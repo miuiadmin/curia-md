@@ -1,6 +1,6 @@
 # create-curia
 
-Scaffold a Curia AI-native documentation workspace into any repository — one command, two questions, then it is yours.
+Scaffold a Curia AI-native documentation workspace into any repository — one command, two questions (plus overwrite confirmations when files already exist), then it is yours.
 
 ## 是什么
 
@@ -13,7 +13,7 @@ Curia 的模型是「拿走即你的、改就是正规用法」，没有内核/�
 ## 三步上手
 
 1. 在目标仓库运行 `npm create curia`（等价 `npx create-curia`）；`--dir <path>` 指定目标目录，CI 里加 `--defaults` 直通。
-2. 回答两个问题：生成哪些 CLI 桥（Claude Code / Codex / 全部，默认全部）；额外根目录（逗号分隔，如 `src,apps`，写入注册表 `rootDirs` 封闭集）。
+2. 回答两个问题：生成哪些 CLI 桥（Claude Code / Codex / 全部，默认全部）；额外根目录（逗号分隔，如 `src,apps`，写入注册表 `rootDirs` 封闭集）。这两问之外，仅当目标已有 `.agents/`、`AGENTS.md` 或桥路径被占用时，会追加逐项覆盖确认（默认否：保留现有）。
 3. 按收尾提示写第一篇（`node scripts/new-doc.mjs --type <type> --topic <主题>`；决策笔记用 write-note 技能）并跑 `node scripts/run-checks.mjs`——全绿即接入完成。
 
 `init` 会代跑 `node scripts/install-hooks.mjs` 装 pre-commit 门禁；目标还不是 git 仓库时，它会提示你先 `git init` 再补装。

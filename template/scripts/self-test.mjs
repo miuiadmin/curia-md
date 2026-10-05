@@ -1628,8 +1628,8 @@ expectStagedFail('notes', '.agents/notes/implemented/process/2026-01-01-staged-n
     // 三个 ID 都是守卫源码里的真规则：零命中判定取两档并集，它们必须全部移出零命中清单。
     mkdirSync(join(auditTmp, '.agents'), { recursive: true });
     writeFileSync(join(auditTmp, '.agents', '.rule-hits.jsonl'), `${JSON.stringify({ ts: '2026-10-05T00:00:00Z', ids: ['types/field-required-missing'] })}\n`);
-    writeFileSync(join(auditTmp, '.agents', '.rule-hits.v1-2026-10-01.jsonl'), `${JSON.stringify({ ts: '2026-10-01T00:00:00Z', ids: ['migrations/seq'] })}\n`);
-    writeFileSync(join(auditTmp, '.agents', '.rule-hits.v1-2026-10-02.jsonl'), `${JSON.stringify({ ts: '2026-10-02T00:00:00Z', ids: ['ledger/evidence'] })}\n`);
+    writeFileSync(join(auditTmp, '.agents', '.rule-hits.v1-2026-10-01.jsonl'), `${JSON.stringify({ ts: '2026-10-01T00:00:00Z', ids: ['layout/trailing-whitespace'] })}\n`);
+    writeFileSync(join(auditTmp, '.agents', '.rule-hits.v1-2026-10-02.jsonl'), `${JSON.stringify({ ts: '2026-10-02T00:00:00Z', ids: ['notes/status-line'] })}\n`);
     const hit = auditOut();
     const zeroAt = hit.out.indexOf('零命中规则');
     const zeroList = zeroAt === -1 ? '' : hit.out.slice(zeroAt);
@@ -1637,10 +1637,10 @@ expectStagedFail('notes', '.agents/notes/implemented/process/2026-01-01-staged-n
       hit.out.includes('【新口径 · error-only】') && hit.out.includes('【历史窗口 · 含 warning 重复记账】') && hit.out.includes('.rule-hits.v1-2026-10-01.jsonl') && hit.out.includes('.rule-hits.v1-2026-10-02.jsonl'),
       hit.out.slice(0, 500));
     expectTrue('审计：两档命中各自出现在对应分段',
-      hit.out.includes('[types/field-required-missing]') && hit.out.includes('[migrations/seq]') && hit.out.includes('[ledger/evidence]'),
+      hit.out.includes('[types/field-required-missing]') && hit.out.includes('[layout/trailing-whitespace]') && hit.out.includes('[notes/status-line]'),
       hit.out.slice(0, 700));
     expectTrue('审计：零命中清单不含任一档命中过的 ID（并集判定，历史命中同被剔除）',
-      zeroAt !== -1 && !zeroList.includes('[types/field-required-missing]') && !zeroList.includes('[migrations/seq]') && !zeroList.includes('[ledger/evidence]'),
+      zeroAt !== -1 && !zeroList.includes('[types/field-required-missing]') && !zeroList.includes('[layout/trailing-whitespace]') && !zeroList.includes('[notes/status-line]'),
       zeroList.slice(0, 300));
     const universeN = /登记规则 (\d+) 条/.exec(hit.out);
     const zeroN = /零命中规则 (\d+) 条/.exec(hit.out);
@@ -1657,6 +1657,73 @@ expectStagedFail('notes', '.agents/notes/implemented/process/2026-01-01-staged-n
 // 规格验收 4：生成脚本连跑两遍产物逐字节一致。抽取器只留在参考实现（规格「脚本留在 Curia」），
 // 模板载荷里没有它——在模板仓跑自证时本组整体跳过，Curia 本仓必须行使。
 if (existsSync(join(SRC_ROOT, 'scripts', 'make-template.mjs'))) {
+  // 清洗规则夹具直接 import 纯函数断言（不经全量生成）；动态 import 让模板仓（载荷里没有抽取器）
+  // 整体跳过本组，Curia 本仓必须行使。import 本模块不触发顶层执行——否则自证会死在用法错误上。
+  const mt = await import(pathToFileURL(join(SRC_ROOT, 'scripts', 'make-template.mjs')).href);
+  const { brandRename, cleanGitignore, cleanRegistry, degradeLinks, runMakeTemplate } = mt;
+
+  expectTrue('make-template 导出面：清洗纯函数与 runMakeTemplate 均为具名导出',
+    [brandRename, degradeLinks, cleanGitignore, cleanRegistry, runMakeTemplate].every((f) => typeof f === 'function'),
+    Object.keys(mt).join(' '));
+
+  // 入口契约：runMakeTemplate 返回退出码而不是 process.exit——自证 import 后仍能安全调用
+  {
+    const savedConsoleError = console.error;
+    let usageCode = null;
+    let usageErr = '';
+    console.error = (...a) => { usageErr += `${a.join(' ')}\n`; };
+    try {
+      usageCode = runMakeTemplate(['--bogus']);
+    } finally {
+      console.error = savedConsoleError;
+    }
+    expectTrue('make-template 入口：runMakeTemplate 对用法错误返回 1（不杀进程）', usageCode === 1 && /用法/.test(usageErr), `code=${usageCode} err=${usageErr.slice(0, 120)}`);
+  }
+
+  /* 清洗规则 1：品牌词（Curia 家族）→ Curia；标识符保留形态（环境变量 / hook 名 / 临时前缀） */
+  const brandIn = 'Curia 参考实现：CURIA_STAGED、CURIA_ROOT、curia-hook、curiad、curia-cli、CURIA、Curia、Curia';
+  const brandOut = 'Curia 参考实现：CURIA_STAGED、CURIA_ROOT、curia-hook、curiad、curia-cli、CURIA、Curia、Curia';
+  expectTrue('make-template 清洗：品牌词 Curia 家族逐一改写（标识符保形态、正文转 Curia）', brandRename(brandIn) === brandOut, brandRename(brandIn));
+  expectTrue('make-template 清洗：产物不再残留 Curia 家族字样（含大小写变体）', !/Curia/i.test(brandRename(brandIn)), brandRename(brandIn));
+
+  /* 清洗规则 2：指向载荷外文件的相对链接降级为纯文本（保留链接文字）；载荷内与 scheme/锚点保留 */
+  const linkSet = new Set(['AGENTS.md', '.agents', '.agents/skills', '.agents/skills/write-doc', '.agents/skills/write-doc/SKILL.md']);
+  const linksIn = '见[技能](.agents/skills/write-doc/SKILL.md)、[技能目录](.agents/skills/write-doc/)、[断链](./nope.md)与[外链](https://example.com/a)、[锚点](#节)。\n';
+  const linksOut = '见[技能](.agents/skills/write-doc/SKILL.md)、[技能目录](.agents/skills/write-doc/)、断链与[外链](https://example.com/a)、[锚点](#节)。\n';
+  expectTrue('make-template 清洗：载荷外相对链接降级为纯文本，载荷内（含目录目标）保留', degradeLinks('AGENTS.md', linksIn, linkSet) === linksOut, JSON.stringify(degradeLinks('AGENTS.md', linksIn, linkSet)));
+  const fenceOnly = '```markdown\n[断链](./nope.md)\n```\n';
+  expectTrue('make-template 清洗：栅栏代码里的链接不降级（是数据不是链接）', degradeLinks('AGENTS.md', fenceOnly, linkSet) === fenceOnly, JSON.stringify(degradeLinks('AGENTS.md', fenceOnly, linkSet)));
+  const quoteLine = '> [断链](./nope.md)\n';
+  expectTrue('make-template 清洗：引用块行整行跳过', degradeLinks('AGENTS.md', quoteLine, linkSet) === quoteLine, JSON.stringify(degradeLinks('AGENTS.md', quoteLine, linkSet)));
+
+  /* 清洗规则 3：gitignore 通用段保留、项目条目改注释示例（注释跟随条目、品牌词同清洗） */
+  const giIn = '# 通用段\n.DS_Store\nnode_modules/\n\n# 项目条目\ncuria-build/\ndeploy-secrets/\n.env\n';
+  const giOut = '# 通用段\n.DS_Store\nnode_modules/\n\n# 项目条目示例（参考实现用过；按你的仓库增删，取消注释即生效）\n# 项目条目\n# curia-build/\n# deploy-secrets/\n.env\n';
+  expectTrue('make-template 清洗：gitignore 通用段保留、项目条目转注释示例、品牌词同洗', cleanGitignore(giIn) === giOut, JSON.stringify(cleanGitignore(giIn)));
+  const giLines = cleanGitignore(giIn).split('\n').map((l) => l.trim());
+  expectTrue('make-template 清洗：项目条目无一以可生效形态残留', !giLines.includes('curia-build/') && !giLines.includes('deploy-secrets/'), JSON.stringify(giLines));
+  expectTrue('make-template 清洗：gitignore 清洗产物是再清洗的不动点（连洗两遍逐字节一致）', cleanGitignore(cleanGitignore(giIn)) === cleanGitignore(giIn), JSON.stringify(cleanGitignore(cleanGitignore(giIn))));
+
+  /* 清洗规则 4：注册表 rootDirs 收窄为通用五项、被移除根的豁免条目删除、空预算覆盖清理、值级品牌清洗 */
+  const regIn = JSON.stringify({
+    workspaceLayout: { rootDirs: ['.agents', '.claude', '.codex', '.git', 'scripts', 'apps', 'deploy'], agentsDirs: ['.agents/plans'], rootMarkdown: ['AGENTS.md'] },
+    exemptPaths: ['deploy/db-ledger/README.md', 'apps/backend/x', '.agents/doc-types.md'],
+    types: { survey: { budgetOverrides: {}, statuses: ['current'] }, note: { hint: 'Curia 家族的笔记' } },
+  });
+  const regOut = cleanRegistry(regIn);
+  const reg = JSON.parse(regOut);
+  expectTrue('make-template 清洗：注册表 rootDirs 收窄为通用五项（顺序即规范形态）',
+    JSON.stringify(reg.workspaceLayout.rootDirs) === JSON.stringify(['.agents', '.claude', '.codex', '.git', 'scripts']),
+    JSON.stringify(reg.workspaceLayout.rootDirs));
+  expectTrue('make-template 清洗：指向被移除根的 exemptPaths 条目一并删除',
+    JSON.stringify(reg.exemptPaths) === JSON.stringify(['.agents/doc-types.md']),
+    JSON.stringify(reg.exemptPaths));
+  expectTrue('make-template 清洗：空 budgetOverrides 属残留、删除', !('budgetOverrides' in reg.types.survey), JSON.stringify(reg.types.survey));
+  expectTrue('make-template 清洗：注册表字符串值走品牌清洗', reg.types.note.hint === 'Curia 家族的笔记', reg.types.note.hint);
+  expectTrue('make-template 清洗：注册表清洗幂等（规范序列化不动点，结尾一个换行）',
+    cleanRegistry(regOut) === regOut && regOut.endsWith('\n') && !regOut.endsWith('\n\n'),
+    JSON.stringify(regOut.slice(-40)));
+
   /** 树快照：文件按内容哈希、符号链接按目标、目录按存在性——逐项可比。 */
   const snapshot = (dir) => {
     const out = new Map();
@@ -1676,7 +1743,7 @@ if (existsSync(join(SRC_ROOT, 'scripts', 'make-template.mjs'))) {
   const mtRoot = mkdtempSync(join(tmpdir(), 'curia-maketemplate-'));
   try {
     const targets = [join(mtRoot, 'out-a'), join(mtRoot, 'out-b')];
-    const run = (target) => spawnSync(process.execPath, [join(SRC_ROOT, 'scripts', 'make-template.mjs'), target], { cwd: SRC_ROOT, encoding: 'utf8' });
+    const run = (target) => spawnSync(process.execPath, [join(SRC_ROOT, 'scripts', 'make-template.mjs'), '--allow-dirty', target], { cwd: SRC_ROOT, encoding: 'utf8' });
     const [a, b] = targets.map(run);
     expectTrue('make-template：两遍都正常退出并落盘', a.status === 0 && b.status === 0 && existsSync(join(targets[0], 'AGENTS.md')) && existsSync(join(targets[1], 'AGENTS.md')), `退出码 ${a.status}/${b.status}；${((a.stderr ?? '') + (b.stderr ?? '')).slice(0, 240)}`);
     const [snapA, snapB] = targets.map(snapshot);
@@ -1686,6 +1753,34 @@ if (existsSync(join(SRC_ROOT, 'scripts', 'make-template.mjs'))) {
     expectTrue('make-template：连跑两遍产物逐字节一致（含符号链接目标）', diffs.length === 0, `不一致 ${diffs.length} 处：${[...new Set(diffs)].slice(0, 5).join('、')}`);
   } finally {
     rmSync(mtRoot, { recursive: true, force: true });
+  }
+
+  // 脏树守卫：/tmp 全量副本自成一个 git 仓——净树可抽取，弄脏即拦、--allow-dirty 放行
+  {
+    const dirtyRepo = mkdtempSync(join(tmpdir(), 'curia-mt-dirty-'));
+    try {
+      execFileSync('rsync', ['-a', '--exclude', '.git', '--exclude', '开源项目', '--exclude', 'create-curia', '--exclude', 'node_modules', `${SRC_ROOT}/`, `${dirtyRepo}/`]);
+      const g = (...a) => execFileSync('git', [...a], { cwd: dirtyRepo, stdio: ['pipe', 'pipe', 'pipe'] });
+      g('init', '-q', '-b', 'main');
+      g('add', '-A');
+      g('-c', 'user.email=selftest@local', '-c', 'user.name=selftest', 'commit', '-q', '-m', 'base');
+      const out1 = mkdtempSync(join(tmpdir(), 'curia-mt-out-'));
+      const runMt = (extra, target) => spawnSync(process.execPath, [join(dirtyRepo, 'scripts', 'make-template.mjs'), ...extra, target], { cwd: dirtyRepo, encoding: 'utf8' });
+      const clean = runMt([], out1);
+      expectTrue('make-template：净树正常抽取', clean.status === 0, `${clean.stderr}`.slice(0, 200));
+      writeFileSync(join(dirtyRepo, 'scripts', 'version.mjs'), readFileSync(join(dirtyRepo, 'scripts', 'version.mjs'), 'utf8') + '\n// dirty-marker\n');
+      const out2 = mkdtempSync(join(tmpdir(), 'curia-mt-out-'));
+      const dirty = runMt([], out2);
+      expectTrue('make-template：脏树默认拒绝并挂 [template/dirty-tree]', dirty.status !== 0 && /template\/dirty-tree/.test(`${dirty.stderr}`), `${dirty.stderr}`.slice(0, 200));
+      const out3 = mkdtempSync(join(tmpdir(), 'curia-mt-out-'));
+      const forced = runMt(['--allow-dirty'], out3);
+      expectTrue('make-template：--allow-dirty 放行且产物带脏标记（如实烙印）', forced.status === 0 && readFileSync(join(out3, 'scripts', 'version.mjs'), 'utf8').includes('dirty-marker'), `${forced.stderr}`.slice(0, 200));
+      rmSync(out1, { recursive: true, force: true });
+      rmSync(out2, { recursive: true, force: true });
+      rmSync(out3, { recursive: true, force: true });
+    } finally {
+      rmSync(dirtyRepo, { recursive: true, force: true });
+    }
   }
 }
 

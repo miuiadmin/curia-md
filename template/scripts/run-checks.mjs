@@ -67,19 +67,25 @@ function runScript(scriptsDir, name, scriptArgs, env = null) {
 
 /** 规则全集：守卫、doc-lib 与 version.mjs 源码里错误/报警构造（push / fail( / 返回对象字面量 errors:[）上的 `[scope/rule]` 字面量。 */
 function ruleUniverse(scriptsDir) {
-  const ids = new Map(); // id → 首次出现它的源码文件
+  const ids = new Map(); // id → { src, warn }：首次出现它的源码文件，与是否只见于 warning 构造
   for (const entry of readdirSync(scriptsDir).sort()) {
     if (!/^(check-.*|doc-lib|version)\.mjs$/.test(entry)) continue;
     let open = 0; // > 0 表示处于未收口的错误/报警构造内：构造可跨行（三目折行），按括号配平续扫
+    let openIsWarn = false; // 当前未收口构造起于 warnings.push
     for (const line of readFileSync(join(scriptsDir, entry), 'utf8').split('\n')) {
-      if (open <= 0 && !/(?:errors|warnings)\.push\(|fail\(|errors:\s*\[/.test(line)) continue;
+      const starts = open <= 0 && /(?:errors|warnings)\.push\(|fail\(|errors:\s*\[/.test(line);
+      if (open <= 0 && !starts) continue;
+      const warn = /warnings\.push\(/.test(line) || openIsWarn;
       for (const m of line.matchAll(/\[([a-z][a-z0-9-]*\/[a-z][a-z0-9-]*)\]/g)) {
-        if (!ids.has(m[1])) ids.set(m[1], entry);
+        const cur = ids.get(m[1]);
+        if (!cur) ids.set(m[1], { src: entry, warn });
+        else if (!warn) cur.warn = false; // 同一 ID 只要见过 error 构造就按 error 级
       }
       for (const ch of line) {
-        if (ch === '(') open++;
+        if (ch === '(') { open++; if (open === 1) openIsWarn = warn; }
         else if (ch === ')') open--;
       }
+      if (open > 0) openIsWarn = warn;
     }
   }
   return ids;
@@ -149,9 +155,15 @@ function audit(scriptsDir) {
   console.log('');
   const union = new Set([...current.keys(), ...history.keys()]);
   const zero = [...universe.keys()].filter((id) => !union.has(id)).sort();
+  // 分级：台账 error-only，warning 级规则结构性不可记账——列进「删除候选」会诱导误删活规则，单列「台账不可证」
+  const zeroError = zero.filter((id) => !universe.get(id).warn);
+  const zeroWarn = zero.filter((id) => universe.get(id).warn);
   console.log(`零命中规则 ${zero.length} 条（判定口径：两档台账并集）——结构性不变量（封印、桥、永不删除、状态机）低频是设计使然，不算冗余；`);
   console.log('机械格式类规则长期零命中才是删除候选：先确认负向夹具还在，再连同规则与夹具一起删，并在笔记里记一笔。');
-  for (const id of zero) console.log(`  [${id}]  定义于 ${universe.get(id)}`);
+  for (const id of zeroError) console.log(`  [${id}]  定义于 ${universe.get(id).src}`);
+  console.log('');
+  console.log(`warning 级零「命中」 ${zeroWarn.length} 条——error-only 台账对它们结构性不可证（warning 不入账），不构成删除候选：`);
+  for (const id of zeroWarn) console.log(`  [${id}]  定义于 ${universe.get(id).src}`);
   console.log('修剪随机制批次执行，不绑日历。');
 }
 

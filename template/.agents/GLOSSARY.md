@@ -36,7 +36,7 @@
 
 **门禁自证（self-test）**：每条断言配一个必须失败的负向夹具，证明拦得住坏输入。_Avoid_: 单元测试（它测的是门禁本身）
 
-**命中台账（rule-hit ledger）**：守卫的 error 级命中把规则 ID 记进 `.agents/.rule-hits.jsonl`（本地，命中=拦截）；warning 只在门禁输出可见、不入账，`--audit` 据台账列零命中删除候选。_Avoid_: 统计面板
+**命中台账（rule-hit ledger）**：守卫的 error 级命中把规则 ID 记进 `.agents/.rule-hits.jsonl`（本地，命中=拦截）；warning 只在门禁输出可见、不入账，`--audit` 并读当前与历史两档台账、取并集判定零命中做删除候选。_Avoid_: 统计面板
 
 **晋级（promote）**：`future/` → `plans/`（迁移、换类型并补 `Status: draft`，原处不留副本）。_Avoid_: 升级、立项
 

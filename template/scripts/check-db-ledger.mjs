@@ -26,7 +26,11 @@ export function runCheck(root, opts = {}) {
   const has = (rel) => (staged ? gitShow(root, rel, '') !== null : existsSync(join(root, rel)));
 
   const entries0 = listDir(LEDGER);
-  if (entries0 === null) return { ok: true, errors, warnings, skipped: true, stats };
+  // 暂存模式下 gitList 对「目录不存在」返回空数组而非 null——空且盘面也无此目录时按跳过处理，
+  // 否则会对根本没有台账目录的项目误报「台账缺 README.md」
+  if (entries0 === null || (staged && !entries0.length && !existsSync(join(root, LEDGER)))) {
+    return { ok: true, errors, warnings, skipped: true, stats };
+  }
   if (!has(`${LEDGER}/README.md`)) warnings.push('台账缺 README.md [ledger/readme]');
 
   const envs = listDir(`${LEDGER}/envs`);

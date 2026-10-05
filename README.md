@@ -24,7 +24,7 @@ Curia 的模型是「拿走即你的、改就是正规用法」，没有内核/�
 
 ## 领域守卫示例
 
-模板自带 `scripts/check-migrations.mjs` 与 `scripts/check-db-ledger.mjs`——它们是从参考实现带出的示例领域守卫（迁移与台账），示范「项目如何加自己的守卫」；用不到就删掉这两个文件，并从 `scripts/run-checks.mjs` 的 `CHECKS` 清单里删掉对应两行。
+模板自带 `scripts/check-migrations.mjs` 与 `scripts/check-db-ledger.mjs`——它们是从参考实现带出的示例领域守卫（迁移与台账），示范「项目如何加自己的守卫」；用不到就这样删干净：删这两个文件 → 从 `scripts/run-checks.mjs` 的 `CHECKS` 清单里删掉对应两行 → 删 `scripts/self-test.mjs` 里引用它们的夹具（搜 `check-migrations` 与 `check-db-ledger`，含接线与「add 坏版盘面改好」两组），否则 `--self` 会红。
 
 ## 红线
 

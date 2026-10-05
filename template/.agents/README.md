@@ -121,7 +121,7 @@ node scripts/install-hooks.mjs       # 装 pre-commit 钩子（幂等，不覆�
 | `check-db-ledger.mjs` | 迁移台账：envs 形状、status 封闭集、证据指针、checksum 对账 | 工作区 |
 | `self-test.mjs` | 门禁自证：八道守卫各配负向夹具，并比对覆盖缺口 | 临时工作区 |
 
-「看哪里」是交互模式的受检范围：「索引」= 已入库文件（`git ls-files`，不踩未跟踪），「工作区」= 盘面全树（会看到草稿）。pre-commit 暂存模式（`CURIA_STAGED=1`）下内容守卫改按 git 索引判「将要提交的树」——发现、正文、链接目标、封印、注册表与投影、受检脚本全取索引版：先 add 坏版再在盘面改好、`git rm --cached`、换符号链接都骗不过；迁移与台账守卫读真仓盘面（`CURIA_ROOT` 指回）；全量审计加 `--all`。守卫输出挂 `[scope/rule]` 规则 ID；error 级命中（口径：命中 = 拦截）记进本地台账 `.agents/.rule-hits.jsonl`（gitignore；warning 只在门禁输出可见、不入账）；`--audit` 拿台账对照源码列零命中规则——机械格式类零命中即删除候选。新增检查必须带 ID 并配负向夹具（缺 ID 报 `meta/missing-rule-id`）。各守卫清单见脚本头注释（唯一权威）。
+「看哪里」是交互模式的受检范围：「索引」= 已入库文件（`git ls-files`，不踩未跟踪），「工作区」= 盘面全树（会看到草稿）。pre-commit 暂存模式（`CURIA_STAGED=1`）下八道守卫全部按 git 索引判「将要提交的树」——发现、正文、链接目标、封印、注册表与投影、受检脚本、迁移与台账全取索引版：先 add 坏版再在盘面改好、`git rm --cached`、换符号链接都骗不过；全量审计加 `--all`。守卫输出挂 `[scope/rule]` 规则 ID；error 级命中（口径：命中 = 拦截）记进本地台账 `.agents/.rule-hits.jsonl`（gitignore；warning 只在门禁输出可见、不入账）；`--audit` 并读当前与历史两档台账取并集列零命中规则——error 级零命中才是删除候选，warning 级台账结构性不可证、单列不诱导误删。新增检查必须带 ID 并配负向夹具（缺 ID 报 `meta/missing-rule-id`）。各守卫清单见脚本头注释（唯一权威）。
 
 工具（不参与判定）：`new-doc.mjs` 建档与补头块、`fix-doc.mjs` 机械修复（显式路径，默认 dry-run）、`archive-doc.mjs` 归档、`doc-query.mjs` 查询与时效报告、`gen-doc-types.mjs` 重生成投影、`seal-notes-archive.mjs` 重新封印。
 

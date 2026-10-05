@@ -134,11 +134,11 @@ export function fixText(raw) {
     lastKeptBlank = blank;
   }
 
-  // 5) 结尾：去掉尾部空行，恰好一个换行收尾
+  // 5) 结尾：去掉尾部空行，恰好一个换行收尾（行号记当次收整的末行，便于 dry-run 报告定位）
   let end = collapsed.length;
   while (end > 0 && collapsed[end - 1].trim() === '') {
     end--;
-    hit('fix/trailing-blank-lines');
+    hit('fix/trailing-blank-lines', end + 1);
   }
   if (!withEof && end > 0) hit('layout/eof-newline');
   const text = end === 0 ? '' : `${collapsed.slice(0, end).join('\n')}\n`;

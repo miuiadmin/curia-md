@@ -1,0 +1,31 @@
+{
+  "name": "create-curia",
+  "version": "0.1.0",
+  "description": "Scaffold a Curia AI-native documentation workspace into any repository (npm create curia).",
+  "keywords": [
+    "curia",
+    "scaffold",
+    "documentation",
+    "agents",
+    "claude-code",
+    "codex"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/example/create-curia.git"
+  },
+  "bin": {
+    "create-curia": "bin/init.mjs"
+  },
+  "files": [
+    "bin/",
+    "template/",
+    "template/.gitignore",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {}
+}

@@ -1,0 +1,26 @@
+# macOS
+.DS_Store
+
+# Node（create-curia 包本地测试可能产生；模板载荷同款条目由 make-template 带走）
+node_modules/
+
+# 项目条目示例（参考实现用过；按你的仓库增删，取消注释即生效）
+# 开源项目参考克隆（本地分析用，不入库）
+# 开源项目/
+
+# 门禁规则命中台账（本地审计数据，不入库；.rule-hits.v1-*.jsonl 为归档的旧口径台账）
+.agents/.rule-hits*.jsonl
+
+# 环境配置真值（需要样例时提交把真值替换成占位符的 .env.example）
+.env
+.env.local
+.env.dev
+.env.test
+.env.prod
+
+# 工单包是生成物，不进 git（台账 receipts/probes 要进，勿整目录忽略）
+# deploy/cloud/workorders/
+# .playwright-mcp/
+# deploy/debugcloud/curiad
+# deploy/debugcloud/pi-agent/
+# apps/backend/deploy/

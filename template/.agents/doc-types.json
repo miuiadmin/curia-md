@@ -1,0 +1,1394 @@
+{
+  "version": 1,
+  "comment": "Curia 文档类型注册表：类型系统的唯一权威来源。模板、门禁、投影文档、脚手架、按需索引全部从这里派生；改类型只改本文件，然后 node scripts/gen-doc-types.mjs 重生成投影。字段语义见 .agents/doc-types.md。",
+  "projection": ".agents/doc-types.md",
+  "templateDir": ".agents/templates",
+  "rawMarker": ".agents-raw",
+  "exemptPaths": [
+    ".agents/templates/**",
+    "node_modules/**",
+    ".git/**",
+    ".claude/**",
+    ".codex/**"
+  ],
+  "resolutionOrder": [
+    "glossary",
+    "projection",
+    "skill",
+    "runbook",
+    "readme",
+    "agents-rules",
+    "note",
+    "frozen"
+  ],
+  "globalRules": {
+    "statusRequiresField": {
+      "superseded": "Superseded-by"
+    },
+    "archiveRequiresField": "Archived",
+    "emptySectionMarker": "_（无）_",
+    "maxFutureDays": 1,
+    "headroomRatio": 0.05
+  },
+  "workspaceLayout": {
+    "comment": "封闭集：.agents/ 顶层、仓库根目录与仓库根 Markdown 只允许这些名字，多出的一律报错（防止新目录/新门面文件绕过类型系统）。rootDirs 含点目录（.git 等）——新增任何根目录都要先登记。",
+    "agentsDirs": [
+      "notes",
+      "skills",
+      "plans",
+      "research",
+      "future",
+      "archive",
+      "templates"
+    ],
+    "agentsFiles": [
+      "README.md",
+      "GLOSSARY.md",
+      "doc-types.json",
+      "doc-types.md"
+    ],
+    "rootMarkdown": [
+      "AGENTS.md",
+      "README.md",
+      "CLAUDE.md"
+    ],
+    "rootDirs": [
+      ".agents",
+      ".claude",
+      ".codex",
+      ".git",
+      "scripts"
+    ]
+  },
+  "bridges": [
+    {
+      "path": "CLAUDE.md",
+      "target": "AGENTS.md",
+      "consumer": "Claude Code"
+    },
+    {
+      "path": ".claude/skills",
+      "target": "../.agents/skills",
+      "consumer": "Claude Code"
+    },
+    {
+      "path": ".codex/skills",
+      "target": "../.agents/skills",
+      "consumer": "Codex"
+    }
+  ],
+  "noteTree": {
+    "comment": "笔记树（note 类型）的格式权威：lifecycle 与 class 封闭集、Status 行形态、按 lifecycle 的必备节与禁用节。check-agent-notes.mjs 消费本块——改笔记格式改这里，不改代码。节键命名空间独立于全局 sectionAliases（「## 方案」在笔记里是 proposal，在计划文档里是 steps，两边刻意不共用）。",
+    "lifecycles": [
+      "proposed",
+      "implemented",
+      "rejected"
+    ],
+    "classes": [
+      "feature",
+      "bug-fix",
+      "simplification",
+      "architecture",
+      "process",
+      "testing"
+    ],
+    "statusLine": {
+      "proposed": "Status: proposed",
+      "implemented": "Status: implemented",
+      "rejected": "Status: rejected — <一行原因>"
+    },
+    "statusReasonRequired": [
+      "rejected"
+    ],
+    "firstSection": "problem",
+    "alternativesExemptComment": "agent-note-format: alternatives-not-recorded (retro)",
+    "sectionAliases": {
+      "problem": [
+        "## Problem",
+        "## 问题"
+      ],
+      "proposal": [
+        "## Proposal",
+        "## 提案",
+        "## 方案",
+        "## 提议"
+      ],
+      "decision": [
+        "## Decision",
+        "## 决定",
+        "## 决策"
+      ],
+      "alternatives": [
+        "## Alternatives considered",
+        "## 备选方案",
+        "## 替代方案"
+      ],
+      "acceptance": [
+        "## Acceptance criteria",
+        "## 验收标准",
+        "## 验收条件",
+        "## 接受标准"
+      ],
+      "risks": [
+        "## Risks",
+        "## 风险"
+      ],
+      "consequences": [
+        "## Consequences",
+        "## 后果",
+        "## 影响",
+        "## 结果"
+      ],
+      "plan": [
+        "## Plan",
+        "## 计划",
+        "## 规划"
+      ],
+      "migration-plan": [
+        "## Migration plan",
+        "## 迁移计划"
+      ]
+    },
+    "sectionsByStatus": {
+      "proposed": [
+        "problem",
+        "proposal",
+        "alternatives",
+        "acceptance",
+        "risks"
+      ],
+      "implemented": [
+        "problem",
+        "decision",
+        "alternatives",
+        "consequences"
+      ],
+      "rejected": []
+    },
+    "bannedSectionsByStatus": {
+      "implemented": [
+        "proposal",
+        "plan",
+        "migration-plan",
+        "acceptance"
+      ],
+      "rejected": [
+        "proposal",
+        "plan",
+        "migration-plan",
+        "acceptance"
+      ]
+    }
+  },
+  "headerFields": {
+    "Type": {
+      "order": 1,
+      "kind": "type-token",
+      "doc": "本文件在注册表里的类型键"
+    },
+    "Status": {
+      "order": 2,
+      "kind": "status-token",
+      "doc": "生命周期状态，取值受该类型 statuses 约束"
+    },
+    "Updated": {
+      "order": 3,
+      "kind": "date",
+      "doc": "最近一次实质改动日（改内容就改它）"
+    },
+    "Verified": {
+      "order": 4,
+      "kind": "date",
+      "doc": "最近一次按文档执行/复核并观察到预期结果的日子"
+    },
+    "Owner": {
+      "order": 5,
+      "kind": "text",
+      "doc": "维护责任人或角色"
+    },
+    "Source": {
+      "order": 6,
+      "kind": "text",
+      "doc": "事实来源：仓库内相对链接、URL、系统名"
+    },
+    "Note": {
+      "order": 7,
+      "kind": "link",
+      "doc": "指向决策笔记（因果归属在 notes/）"
+    },
+    "Supersedes": {
+      "order": 8,
+      "kind": "link",
+      "doc": "本文取代了谁"
+    },
+    "Superseded-by": {
+      "order": 9,
+      "kind": "link",
+      "doc": "谁取代了本文；Status 为 superseded 时必填"
+    },
+    "Archived": {
+      "order": 10,
+      "kind": "date",
+      "doc": "归档日；.agents/archive/ 下的文档必填"
+    }
+  },
+  "sectionAliases": {
+    "background": [
+      "## 背景",
+      "## Background"
+    ],
+    "goal": [
+      "## 目标",
+      "## Goal",
+      "## 目标与非目标"
+    ],
+    "nongoals": [
+      "## 非目标",
+      "## Non-goals"
+    ],
+    "success": [
+      "## 成功判据",
+      "## Success criteria"
+    ],
+    "options": [
+      "## 方案选项",
+      "## Options",
+      "## 备选方案"
+    ],
+    "scope": [
+      "## 范围",
+      "## Scope",
+      "## 改动面",
+      "## 地基范围"
+    ],
+    "contract": [
+      "## 契约",
+      "## Contract",
+      "## 接口与数据",
+      "## 规格"
+    ],
+    "acceptance": [
+      "## 验收标准",
+      "## Acceptance criteria"
+    ],
+    "steps": [
+      "## 步骤",
+      "## Steps",
+      "## 做法",
+      "## 实施步骤",
+      "## 方案",
+      "## 实施方案"
+    ],
+    "openitems": [
+      "## 未完成事项",
+      "## Open items"
+    ],
+    "statuslog": [
+      "## 状态记录",
+      "## Status log"
+    ],
+    "deps": [
+      "## 依赖与顺序",
+      "## Dependencies"
+    ],
+    "question": [
+      "## 问题",
+      "## Question",
+      "## 调研问题",
+      "## 背景与问题"
+    ],
+    "method": [
+      "## 方法与来源",
+      "## Method",
+      "## 来源",
+      "## 方法",
+      "## 样本与来源"
+    ],
+    "findings": [
+      "## 结论",
+      "## Findings",
+      "## 结论与建议"
+    ],
+    "evidence": [
+      "## 证据与出处",
+      "## Evidence",
+      "## 证据"
+    ],
+    "limits": [
+      "## 适用边界",
+      "## Limits",
+      "## 已知局限",
+      "## 未覆盖"
+    ],
+    "incident": [
+      "## 事故概述",
+      "## Incident",
+      "## 事件概述"
+    ],
+    "timeline": [
+      "## 时间线",
+      "## Timeline"
+    ],
+    "impact": [
+      "## 影响",
+      "## Impact"
+    ],
+    "causes": [
+      "## 因果链",
+      "## Root cause",
+      "## 因果分析",
+      "## 根因"
+    ],
+    "prevention": [
+      "## 预防",
+      "## Prevention"
+    ],
+    "actions": [
+      "## 行动项",
+      "## Action items"
+    ],
+    "snapshot": [
+      "## 采集内容",
+      "## Snapshot",
+      "## 快照内容"
+    ],
+    "collection": [
+      "## 采集方式",
+      "## Collection",
+      "## 采集命令"
+    ],
+    "factmap": [
+      "## 事实映射",
+      "## Fact map",
+      "## 事实清单"
+    ],
+    "maintenance": [
+      "## 维护方式",
+      "## Maintenance",
+      "## 刷新流程"
+    ],
+    "motivation": [
+      "## 动机",
+      "## Motivation",
+      "## 为什么想要"
+    ],
+    "trigger": [
+      "## 触发条件",
+      "## Trigger",
+      "## 升级条件"
+    ],
+    "cost": [
+      "## 成本与收益",
+      "## Cost",
+      "## 成本"
+    ],
+    "prereq": [
+      "## 前置条件",
+      "## Prerequisites"
+    ],
+    "recovery": [
+      "## 失败与恢复",
+      "## Recovery",
+      "## 故障排除"
+    ],
+    "verification": [
+      "## 验证",
+      "## Verification",
+      "## 可观察验证"
+    ],
+    "related": [
+      "## 相关",
+      "## Related",
+      "## 进一步阅读"
+    ]
+  },
+  "homes": {
+    "plans": {
+      "path": ".agents/plans",
+      "job": "承诺要做的意图",
+      "criterion": "「要做什么？做到哪了？」",
+      "types": [
+        "proposal",
+        "spec",
+        "plan"
+      ]
+    },
+    "research": {
+      "path": ".agents/research",
+      "job": "已成事实与证据",
+      "criterion": "「查到了什么？发生了什么？」",
+      "types": [
+        "survey",
+        "reference",
+        "postmortem",
+        "evidence"
+      ]
+    },
+    "future": {
+      "path": ".agents/future",
+      "job": "不承诺的方向",
+      "criterion": "「以后可能做，先记着」",
+      "types": [
+        "idea",
+        "foundation"
+      ]
+    },
+    "skills": {
+      "path": ".agents/skills",
+      "job": "可复用的干法",
+      "criterion": "「这个活怎么干？」",
+      "types": [
+        "skill",
+        "runbook"
+      ]
+    },
+    "notes": {
+      "path": ".agents/notes",
+      "job": "决策因果",
+      "criterion": "「我们决定了什么？放弃了什么？」",
+      "types": [
+        "note"
+      ]
+    },
+    "archive": {
+      "path": ".agents/archive",
+      "job": "冻结留档",
+      "criterion": "「过时了但保留历史」",
+      "types": [
+        "frozen"
+      ]
+    },
+    "workspace": {
+      "path": ".",
+      "job": "工作区自身的规格与词汇",
+      "criterion": "「这个工作区怎么运转？」",
+      "types": [
+        "readme",
+        "agents-rules",
+        "glossary",
+        "projection"
+      ]
+    }
+  },
+  "types": {
+    "proposal": {
+      "home": "plans",
+      "title": "目标提案",
+      "naming": "dated",
+      "template": "proposal.md",
+      "header": "required",
+      "statuses": [
+        "draft",
+        "active",
+        "done",
+        "superseded"
+      ],
+      "initialStatus": "draft",
+      "transitions": {
+        "draft": [
+          "active",
+          "done",
+          "superseded"
+        ],
+        "active": [
+          "done",
+          "superseded"
+        ],
+        "done": [
+          "superseded"
+        ],
+        "superseded": []
+      },
+      "fields": {
+        "required": [
+          "Type",
+          "Status",
+          "Updated"
+        ],
+        "optional": [
+          "Owner",
+          "Note",
+          "Supersedes",
+          "Superseded-by"
+        ],
+        "forbidden": [
+          "Verified",
+          "Archived"
+        ]
+      },
+      "sections": {
+        "required": [
+          "background",
+          "goal",
+          "nongoals",
+          "success",
+          "options"
+        ],
+        "forbidden": [
+          "timeline",
+          "collection"
+        ]
+      },
+      "budgetWords": 3000,
+      "freshness": {
+        "field": "Updated",
+        "maxAgeDays": 90,
+        "when": {
+          "Status": [
+            "draft",
+            "active"
+          ]
+        }
+      },
+      "narrative": false,
+      "purpose": "为什么值得做、做成什么样算成功、有哪些候选路线——立项前对齐用。",
+      "notFor": "步骤与进度（→ plan）、字段级契约（→ spec）、决策因果（→ notes）。",
+      "promotesTo": [
+        "spec",
+        "plan"
+      ]
+    },
+    "spec": {
+      "home": "plans",
+      "title": "实施规格",
+      "naming": "dated",
+      "template": "spec.md",
+      "header": "required",
+      "statuses": [
+        "draft",
+        "active",
+        "done",
+        "superseded"
+      ],
+      "initialStatus": "draft",
+      "transitions": {
+        "draft": [
+          "active",
+          "done",
+          "superseded"
+        ],
+        "active": [
+          "done",
+          "superseded"
+        ],
+        "done": [
+          "active",
+          "superseded"
+        ],
+        "superseded": []
+      },
+      "fields": {
+        "required": [
+          "Type",
+          "Status",
+          "Updated"
+        ],
+        "optional": [
+          "Owner",
+          "Source",
+          "Note",
+          "Supersedes",
+          "Superseded-by"
+        ],
+        "forbidden": [
+          "Verified",
+          "Archived"
+        ]
+      },
+      "sections": {
+        "required": [
+          "background",
+          "scope",
+          "contract",
+          "acceptance",
+          "limits"
+        ],
+        "forbidden": [
+          "openitems",
+          "statuslog"
+        ]
+      },
+      "budgetWords": 6000,
+      "freshness": {
+        "field": "Updated",
+        "maxAgeDays": 180,
+        "when": {
+          "Status": [
+            "draft",
+            "active"
+          ]
+        }
+      },
+      "narrative": false,
+      "purpose": "做成什么样：契约、接口、数据结构、验收标准。做完后仍是长期可引用的权威规格，`done` 不是退役。",
+      "notFor": "分几步做与进度（→ plan）、为什么选这条路线（→ notes）。",
+      "promotesTo": []
+    },
+    "plan": {
+      "home": "plans",
+      "title": "实施计划",
+      "naming": "dated",
+      "template": "plan.md",
+      "header": "required",
+      "statuses": [
+        "draft",
+        "active",
+        "done",
+        "superseded"
+      ],
+      "initialStatus": "draft",
+      "transitions": {
+        "draft": [
+          "active",
+          "done",
+          "superseded"
+        ],
+        "active": [
+          "done",
+          "superseded"
+        ],
+        "done": [
+          "superseded"
+        ],
+        "superseded": []
+      },
+      "fields": {
+        "required": [
+          "Type",
+          "Status",
+          "Updated"
+        ],
+        "optional": [
+          "Owner",
+          "Note",
+          "Supersedes",
+          "Superseded-by"
+        ],
+        "forbidden": [
+          "Verified",
+          "Archived"
+        ]
+      },
+      "sections": {
+        "required": [
+          "background",
+          "goal",
+          "steps",
+          "openitems",
+          "statuslog"
+        ],
+        "forbidden": [
+          "contract"
+        ]
+      },
+      "budgetWords": 4000,
+      "freshness": {
+        "field": "Updated",
+        "maxAgeDays": 60,
+        "when": {
+          "Status": [
+            "active"
+          ]
+        }
+      },
+      "narrative": false,
+      "purpose": "分几步做、做到哪了、还剩什么。`active` 时「未完成事项」是这项工作唯一的活跃清单。",
+      "notFor": "做成什么样的契约（→ spec）、完成后的事实与回执（→ research/evidence）。",
+      "promotesTo": []
+    },
+    "survey": {
+      "home": "research",
+      "title": "调研报告",
+      "naming": "dated",
+      "template": "survey.md",
+      "header": "required",
+      "statuses": [
+        "current",
+        "historical",
+        "superseded"
+      ],
+      "initialStatus": "current",
+      "transitions": {
+        "current": [
+          "historical",
+          "superseded"
+        ],
+        "historical": [
+          "superseded"
+        ],
+        "superseded": []
+      },
+      "fields": {
+        "required": [
+          "Type",
+          "Status",
+          "Updated"
+        ],
+        "optional": [
+          "Verified",
+          "Owner",
+          "Source",
+          "Note",
+          "Supersedes",
+          "Superseded-by"
+        ],
+        "forbidden": [
+          "Archived"
+        ]
+      },
+      "sections": {
+        "required": [
+          "question",
+          "method",
+          "findings",
+          "limits"
+        ],
+        "forbidden": [
+          "openitems",
+          "statuslog"
+        ]
+      },
+      "budgetWords": 6000,
+      "freshness": {
+        "field": "Updated",
+        "maxAgeDays": 365
+      },
+      "narrative": false,
+      "extraChecks": [
+        "source-traceable"
+      ],
+      "purpose": "一次性调研的问题、方法、结论与适用边界——回答「查到了什么」。",
+      "notFor": "持续维护的当前事实（→ reference）、原始数据（→ evidence）、由调研得出的决策（→ notes）。",
+      "promotesTo": []
+    },
+    "reference": {
+      "home": "research",
+      "title": "长期事实参考",
+      "naming": "dated",
+      "template": "reference.md",
+      "header": "required",
+      "statuses": [
+        "current",
+        "historical",
+        "superseded"
+      ],
+      "initialStatus": "current",
+      "transitions": {
+        "current": [
+          "historical",
+          "superseded"
+        ],
+        "historical": [
+          "current",
+          "superseded"
+        ],
+        "superseded": []
+      },
+      "fields": {
+        "required": [
+          "Type",
+          "Status",
+          "Updated",
+          "Verified"
+        ],
+        "optional": [
+          "Owner",
+          "Source",
+          "Note",
+          "Supersedes",
+          "Superseded-by"
+        ],
+        "forbidden": [
+          "Archived"
+        ]
+      },
+      "sections": {
+        "required": [
+          "factmap",
+          "method",
+          "maintenance",
+          "limits"
+        ],
+        "forbidden": [
+          "openitems",
+          "statuslog"
+        ]
+      },
+      "budgetWords": 5000,
+      "freshness": {
+        "field": "Verified",
+        "maxAgeDays": 120
+      },
+      "narrative": false,
+      "extraChecks": [
+        "source-traceable"
+      ],
+      "purpose": "外部系统的当前事实映射（端点、字段、配额、行为差异），持续维护、按 `Verified` 复核。",
+      "notFor": "一次性调研结论（→ survey）、原始采集数据（→ evidence）。",
+      "promotesTo": []
+    },
+    "postmortem": {
+      "home": "research",
+      "title": "事故复盘",
+      "naming": "dated",
+      "template": "postmortem.md",
+      "header": "required",
+      "statuses": [
+        "current",
+        "historical"
+      ],
+      "initialStatus": "current",
+      "transitions": {
+        "current": [
+          "historical"
+        ],
+        "historical": []
+      },
+      "fields": {
+        "required": [
+          "Type",
+          "Status",
+          "Updated"
+        ],
+        "optional": [
+          "Owner",
+          "Source",
+          "Note"
+        ],
+        "forbidden": [
+          "Verified",
+          "Supersedes",
+          "Superseded-by",
+          "Archived"
+        ]
+      },
+      "sections": {
+        "required": [
+          "incident",
+          "timeline",
+          "impact",
+          "causes",
+          "prevention",
+          "actions"
+        ],
+        "forbidden": [
+          "contract"
+        ]
+      },
+      "budgetWords": 4000,
+      "freshness": null,
+      "narrative": true,
+      "purpose": "事故的时间线、证据、因果链、影响与预防。`current` = 行动项未全部关闭；`historical` = 已关闭的纯历史记录。",
+      "notFor": "由事故引出的长期决策（→ notes）、可复用的排查步骤（→ skills/runbook）。",
+      "promotesTo": []
+    },
+    "evidence": {
+      "home": "research",
+      "title": "证据快照",
+      "naming": "dated",
+      "template": "evidence.md",
+      "header": "required",
+      "statuses": [
+        "current",
+        "historical",
+        "superseded"
+      ],
+      "initialStatus": "current",
+      "transitions": {
+        "current": [
+          "historical",
+          "superseded"
+        ],
+        "historical": [
+          "superseded"
+        ],
+        "superseded": []
+      },
+      "fields": {
+        "required": [
+          "Type",
+          "Status",
+          "Updated",
+          "Verified",
+          "Source"
+        ],
+        "optional": [
+          "Owner",
+          "Note",
+          "Supersedes",
+          "Superseded-by"
+        ],
+        "forbidden": [
+          "Archived"
+        ]
+      },
+      "sections": {
+        "required": [
+          "snapshot",
+          "collection",
+          "limits"
+        ],
+        "forbidden": [
+          "findings",
+          "options",
+          "contract",
+          "openitems"
+        ]
+      },
+      "budgetWords": 3000,
+      "freshness": {
+        "field": "Verified",
+        "maxAgeDays": 90
+      },
+      "narrative": false,
+      "purpose": "原始事实：清单、命令输出、度量数据、外部语料镜像。只记「什么时候、用什么命令、看到了什么」。",
+      "notFor": "分析与结论（→ survey）、持续维护的事实映射（→ reference）。",
+      "promotesTo": []
+    },
+    "idea": {
+      "home": "future",
+      "title": "预研想法",
+      "naming": "dated",
+      "template": "idea.md",
+      "header": "required",
+      "statuses": [
+        "future",
+        "superseded"
+      ],
+      "initialStatus": "future",
+      "transitions": {
+        "future": [
+          "superseded"
+        ],
+        "superseded": []
+      },
+      "fields": {
+        "required": [
+          "Type",
+          "Status",
+          "Updated"
+        ],
+        "optional": [
+          "Owner",
+          "Note",
+          "Superseded-by"
+        ],
+        "forbidden": [
+          "Verified",
+          "Archived"
+        ]
+      },
+      "sections": {
+        "required": [
+          "motivation",
+          "trigger",
+          "cost"
+        ],
+        "forbidden": [
+          "steps",
+          "contract",
+          "acceptance",
+          "statuslog"
+        ]
+      },
+      "budgetWords": 400,
+      "freshness": {
+        "field": "Updated",
+        "maxAgeDays": 365
+      },
+      "narrative": false,
+      "purpose": "不承诺的想法：一句话动机、什么条件下值得做、粗略成本。写在这里不构成派单。",
+      "notFor": "已承诺的工作（→ plans）、决策因果（→ notes）。",
+      "promotesTo": [
+        "proposal",
+        "plan"
+      ]
+    },
+    "foundation": {
+      "home": "future",
+      "title": "打基础方向",
+      "naming": "dated",
+      "template": "foundation.md",
+      "header": "required",
+      "statuses": [
+        "future",
+        "superseded"
+      ],
+      "initialStatus": "future",
+      "transitions": {
+        "future": [
+          "superseded"
+        ],
+        "superseded": []
+      },
+      "fields": {
+        "required": [
+          "Type",
+          "Status",
+          "Updated"
+        ],
+        "optional": [
+          "Owner",
+          "Note",
+          "Superseded-by"
+        ],
+        "forbidden": [
+          "Verified",
+          "Archived"
+        ]
+      },
+      "sections": {
+        "required": [
+          "motivation",
+          "scope",
+          "trigger",
+          "cost"
+        ],
+        "forbidden": [
+          "acceptance",
+          "statuslog"
+        ]
+      },
+      "budgetWords": 700,
+      "freshness": {
+        "field": "Updated",
+        "maxAgeDays": 365
+      },
+      "narrative": false,
+      "purpose": "现在只铺地基、将来可能长成规格的方向；地基范围要写清，避免把承诺藏进不承诺区。",
+      "notFor": "已承诺的规格或计划（→ spec、plan）、一次性想法（→ idea）。",
+      "promotesTo": [
+        "spec",
+        "plan"
+      ]
+    },
+    "skill": {
+      "home": "skills",
+      "title": "智能体技能",
+      "naming": "fixed",
+      "location": [
+        ".agents/skills/*/SKILL.md"
+      ],
+      "template": "skill.md",
+      "header": "frontmatter",
+      "statuses": [],
+      "transitions": {},
+      "fields": {
+        "required": [],
+        "optional": [],
+        "forbidden": [
+          "Type",
+          "Status",
+          "Updated",
+          "Verified",
+          "Archived"
+        ]
+      },
+      "sections": {
+        "required": [],
+        "forbidden": []
+      },
+      "budgetWords": 3000,
+      "freshness": null,
+      "narrative": false,
+      "extraChecks": [
+        "skill-frontmatter"
+      ],
+      "purpose": "按需加载的智能体工作流：YAML frontmatter（name + description）+ 精简步骤 + 权威来源链接。",
+      "notFor": "面向人的操作手册（→ runbook）、产品与运行时契约（→ research 或源码）。",
+      "promotesTo": []
+    },
+    "runbook": {
+      "home": "skills",
+      "title": "运维手册",
+      "naming": "fixed",
+      "location": [
+        ".agents/skills/*/RUNBOOK.md"
+      ],
+      "template": "runbook.md",
+      "header": "required",
+      "statuses": [
+        "current",
+        "superseded"
+      ],
+      "initialStatus": "current",
+      "transitions": {
+        "current": [
+          "superseded"
+        ],
+        "superseded": []
+      },
+      "fields": {
+        "required": [
+          "Type",
+          "Status",
+          "Updated",
+          "Verified"
+        ],
+        "optional": [
+          "Owner",
+          "Source",
+          "Note",
+          "Superseded-by"
+        ],
+        "forbidden": [
+          "Archived"
+        ]
+      },
+      "sections": {
+        "required": [
+          "prereq",
+          "steps",
+          "verification",
+          "recovery"
+        ],
+        "forbidden": [
+          "options",
+          "statuslog"
+        ]
+      },
+      "budgetWords": 2000,
+      "freshness": {
+        "field": "Verified",
+        "maxAgeDays": 180
+      },
+      "narrative": false,
+      "purpose": "人向操作手册：前置条件、有序步骤、每步的可观察验证、失败恢复。与同目录 SKILL.md 互为两个视角，步骤只在一处写、另一处链接。",
+      "notFor": "智能体按需加载的工作流（→ skill）、事故因果（→ postmortem）。",
+      "promotesTo": []
+    },
+    "readme": {
+      "home": "workspace",
+      "title": "目录规格页",
+      "naming": "fixed",
+      "location": [
+        "README.md",
+        "**/README.md"
+      ],
+      "template": "readme.md",
+      "header": "none",
+      "statuses": [],
+      "transitions": {},
+      "fields": {
+        "required": [],
+        "optional": [],
+        "forbidden": [
+          "Type",
+          "Status",
+          "Updated",
+          "Verified",
+          "Archived"
+        ]
+      },
+      "sections": {
+        "required": [],
+        "forbidden": []
+      },
+      "budgetWords": 700,
+      "budgetOverrides": {
+        ".agents/README.md": 2200,
+        ".agents/notes/README.md": 3200,
+        "README.md": 300
+      },
+      "freshness": null,
+      "narrative": false,
+      "purpose": "一个目录的规格页：装什么、不装什么、命名与状态、流转纪律。目录即索引，README 即该目录的入口。",
+      "notFor": "跨目录的总规格（→ .agents/README.md）、决策因果（→ notes）。",
+      "promotesTo": []
+    },
+    "agents-rules": {
+      "home": "workspace",
+      "title": "智能体规则",
+      "naming": "fixed",
+      "location": [
+        "AGENTS.md",
+        ".agents/**/AGENTS.md"
+      ],
+      "template": "agents-rules.md",
+      "header": "none",
+      "statuses": [],
+      "transitions": {},
+      "fields": {
+        "required": [],
+        "optional": [],
+        "forbidden": [
+          "Type",
+          "Status",
+          "Updated",
+          "Verified",
+          "Archived"
+        ]
+      },
+      "sections": {
+        "required": [],
+        "forbidden": []
+      },
+      "budgetWords": 1000,
+      "freshness": null,
+      "narrative": false,
+      "purpose": "常驻指令：每个会话都要在上下文里的硬规则，一条一到三行并链接其归属；子树规则只能追加约束、不得放宽上层。",
+      "notFor": "故事、完整示例、情境化流程、从归属文档复制来的内容（→ 各自的归属）。",
+      "promotesTo": []
+    },
+    "glossary": {
+      "home": "workspace",
+      "title": "术语表",
+      "naming": "fixed",
+      "location": [
+        ".agents/GLOSSARY.md"
+      ],
+      "template": "glossary.md",
+      "header": "none",
+      "statuses": [],
+      "transitions": {},
+      "fields": {
+        "required": [],
+        "optional": [],
+        "forbidden": [
+          "Type",
+          "Status",
+          "Updated",
+          "Verified",
+          "Archived"
+        ]
+      },
+      "sections": {
+        "required": [],
+        "forbidden": []
+      },
+      "budgetWords": 2500,
+      "budgetOverrides": {
+        ".agents/GLOSSARY.md": 5000
+      },
+      "freshness": null,
+      "narrative": false,
+      "extraChecks": [
+        "glossary-terms"
+      ],
+      "purpose": "一概念一词的术语表：每条 `**术语（English）**：定义。_Avoid_: 禁用或易混词`。",
+      "notFor": "类型定义（→ 注册表与投影文档）、规则（→ AGENTS.md）。",
+      "promotesTo": []
+    },
+    "projection": {
+      "home": "workspace",
+      "title": "注册表投影",
+      "naming": "fixed",
+      "location": [
+        ".agents/doc-types.md"
+      ],
+      "template": null,
+      "header": "none",
+      "statuses": [],
+      "transitions": {},
+      "fields": {
+        "required": [],
+        "optional": [],
+        "forbidden": [
+          "Type",
+          "Status",
+          "Updated",
+          "Verified",
+          "Archived"
+        ]
+      },
+      "sections": {
+        "required": [],
+        "forbidden": []
+      },
+      "budgetWords": null,
+      "freshness": null,
+      "narrative": false,
+      "generated": true,
+      "extraChecks": [
+        "projection-fresh"
+      ],
+      "purpose": "由 scripts/gen-doc-types.mjs 从注册表生成的可读投影，供人与不能读 JSON 的场景使用；禁止手改，改注册表后重生成。",
+      "notFor": "任何手写内容。",
+      "promotesTo": []
+    },
+    "note": {
+      "home": "notes",
+      "title": "决策笔记",
+      "naming": "notes-tree",
+      "location": [
+        ".agents/notes/proposed/**/*.md",
+        ".agents/notes/implemented/**/*.md",
+        ".agents/notes/rejected/**/*.md",
+        ".agents/notes/archived/**/*.md"
+      ],
+      "template": null,
+      "header": "external",
+      "statuses": [
+        "proposed",
+        "implemented",
+        "rejected",
+        "archived"
+      ],
+      "transitions": {
+        "proposed": [
+          "implemented",
+          "rejected"
+        ],
+        "implemented": [],
+        "rejected": [],
+        "archived": []
+      },
+      "fields": {
+        "required": [],
+        "optional": [],
+        "forbidden": []
+      },
+      "sections": {
+        "required": [],
+        "forbidden": []
+      },
+      "budgetWords": null,
+      "freshness": null,
+      "narrative": false,
+      "externalGuard": "scripts/check-agent-notes.mjs",
+      "purpose": "决策因果：为什么这样做、放弃了什么、后果是什么。路径即身份 `{lifecycle}/{class}/yyyy-mm-dd-topic.md`，class 封闭六类。`implemented` 是终态——决定翻转必须新开一篇并互链，不得把旧篇改成反面。",
+      "notFor": "事实与证据（→ research）、意图与进度（→ plans）。",
+      "promotesTo": []
+    },
+    "frozen": {
+      "home": "archive",
+      "title": "冻结留档",
+      "naming": "free",
+      "location": [
+        ".agents/archive/**/*.md"
+      ],
+      "template": null,
+      "header": "archived",
+      "statuses": [],
+      "transitions": {},
+      "fields": {
+        "required": [
+          "Archived"
+        ],
+        "optional": [
+          "Type",
+          "Status",
+          "Updated",
+          "Verified",
+          "Owner",
+          "Source",
+          "Note",
+          "Supersedes",
+          "Superseded-by"
+        ],
+        "forbidden": []
+      },
+      "sections": {
+        "required": [],
+        "forbidden": []
+      },
+      "budgetWords": null,
+      "freshness": null,
+      "narrative": true,
+      "sealed": true,
+      "purpose": "已退役整篇文档的冻结快照：迁入即加 `Archived:` 行并被 manifest 哈希封印，此后永久不改。",
+      "notFor": "笔记的归档（→ .agents/notes/archived/，同一封印机制、另一处归属）。",
+      "promotesTo": []
+    }
+  }
+}

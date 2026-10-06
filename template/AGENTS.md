@@ -18,7 +18,7 @@
 
 1. **一事实一归属**：同一条事实只有一个家；不复制、不双写。
 2. **非平凡变更同批写笔记**：改变行为、结构、契约、流程、工具、格式的改动，必须在同一批变更中新增/更新 `.agents/notes/` 笔记；红线豁免见 [notes/README](./.agents/notes/README.md)。
-3. **写笔记前先搜**：`rg --hidden -g '!.agents/notes/archived/**' <关键词> .agents/notes/`——**含 rejected/**（可能已被否决过）；新笔记必须做 supersession 检查。
+3. **写笔记前先搜**：`rg --hidden -g '!.agents/notes/archived/**' -g '!**/2026-10-02-session-transcripts/**' -g '!**/2026-10-02-qoder-intl-docs/**' -g '!doc-types.md' <关键词> .agents/notes/`——**含 rejected/**（可能已被否决过）；新笔记必须做 supersession 检查。
 4. **禁全局 INDEX.md**：目录即索引，检索一律用 rg。
 5. **引用一律相对 Markdown 链接**（可机械校验；别写裸路径）。
 6. **提交前跑门禁**：`node scripts/run-checks.mjs`（文档门禁）；装成 pre-commit 钩子用 `node scripts/install-hooks.mjs`（幂等；钩子校验暂存内容）。

@@ -1589,8 +1589,71 @@ expectStagedFail('notes', '.agents/notes/implemented/process/2026-01-01-staged-n
     writeFileSync(join(t, 'deploy/db-ledger/envs/dev.json'), goodLedger); // 盘面补上证据指针，不 add
     const c = runStaged('check-db-ledger.mjs');
     expectTrue('暂存：坏台账条目（缺证据指针）已 add、盘面改好——台账守卫按索引拦下', c.code !== 0 && /缺证据指针/.test(c.out), c.out.slice(0, 300));
+
+    // 阻断 1 回归之一：整目录 rm -r --cached 后 MANIFEST 校验与冻结检查全部空转（审计实测「0 个迁移文件」放行）。
+    commit('ledger-good'); // 先把台账修好提交：下列夹具只变迁移目录，错误面单一
+    execFileSync('git', ['rm', '-r', '-q', '--cached', 'apps/backend/migrations'], { cwd: t, stdio: ['pipe', 'pipe', 'pipe'] });
+    const d = runStaged('check-migrations.mjs');
+    expectTrue('暂存：整目录 rm -r --cached 迁移目录——台账区非空必须拦 [migrations/dir-vanished]（不再「0 个迁移文件」放行）', d.code !== 0 && /\[migrations\/dir-vanished\]/.test(d.out), d.out.slice(0, 360));
+    execFileSync('git', ['restore', '--staged', 'apps/backend/migrations'], { cwd: t, stdio: ['pipe', 'pipe', 'pipe'] });
+    const recovered = runStaged('check-migrations.mjs');
+    expectTrue('暂存：按错误信息 git restore --staged 恢复索引后放行（恢复路径有效、错误信息可操作）', recovered.code === 0, recovered.out.slice(0, 300));
+
+    // 阻断 1 回归之二：台账 applied 的文件从索引删掉、MANIFEST 同步放行后，冻结检查仍须拦（此前 cur 为 undefined 直接跳过）。
+    execFileSync('git', ['rm', '-q', '--cached', 'apps/backend/migrations/0001_init.sql'], { cwd: t, stdio: ['pipe', 'pipe', 'pipe'] });
+    writeFileSync(join(t, 'apps/backend/migrations/MANIFEST.json'), `${JSON.stringify({ files: [] }, null, 2)}\n`);
+    execFileSync('git', ['add', 'apps/backend/migrations/MANIFEST.json'], { cwd: t, stdio: ['pipe', 'pipe', 'pipe'] });
+    const frozen = runStaged('check-migrations.mjs');
+    expectTrue('暂存：台账 applied 的迁移在索引读不到——冻结检查不空转，挂 [migrations/frozen-missing]', frozen.code !== 0 && /\[migrations\/frozen-missing\]/.test(frozen.out), frozen.out.slice(0, 360));
   } finally {
     rmSync(t, { recursive: true, force: true });
+  }
+}
+
+/* ------------- 阻断 2 回归：AGENT_NOTE_ROOT 在 pre-commit（暂存）下不许指别处 ------------- */
+
+// 门禁覆盖防绕行：pre-commit 下 AGENT_NOTE_ROOT 指第二棵树会让树发现、注册表与索引读取整体换根，
+// 本仓提交的笔记树根本不参与校验（审计实测「✓ 0 篇」放行）——必须拒绝执行；
+// 同根覆盖（指回本仓）与交互模式（排障用途）不受影响。
+{
+  const fakeTree = mkdtempSync(join(tmpdir(), 'curia-fake-curia-'));
+  try {
+    // 第二棵 Curia 形树：注册表已入库、notes 未入库——旧代码在暂存模式下会对这棵空树报「✓ 0 篇」放行（被绕行的姿态）
+    mkdirSync(join(fakeTree, '.agents', 'notes'), { recursive: true });
+    cpSync(join(root, '.agents', 'doc-types.json'), join(fakeTree, '.agents', 'doc-types.json'));
+    execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: fakeTree, stdio: ['pipe', 'pipe', 'pipe'] });
+    execFileSync('git', ['add', '.agents/doc-types.json'], { cwd: fakeTree, stdio: ['pipe', 'pipe', 'pipe'] });
+    execFileSync('git', ['-c', 'user.email=selftest@local', '-c', 'user.name=selftest', 'commit', '-q', '-m', 'fake-curia-base'], { cwd: fakeTree, stdio: ['pipe', 'pipe', 'pipe'] });
+    writeFileSync(join(fakeTree, '.agents', 'notes', 'README.md'), '# notes/ — 样例\n\n装什么：样例。\n');
+    const spawnNotes = (env) => {
+      const r = spawnSync(process.execPath, [join(root, 'scripts', 'check-agent-notes.mjs')], { cwd: root, encoding: 'utf8', env });
+      return { code: r.status, out: `${r.stdout ?? ''}${r.stderr ?? ''}` };
+    };
+    const hitsPath = join(root, '.agents', '.rule-hits.jsonl');
+
+    // a) 暂存模式 + 覆盖指别处：拒绝执行（退出 1），且绝不输出通过行
+    rmSync(hitsPath, { force: true });
+    const refused = spawnNotes({ ...process.env, CURIA_ROOT: root, CURIA_STAGED: '1', AGENT_NOTE_ROOT: join(fakeTree, '.agents', 'notes') });
+    expectTrue('笔记根覆盖：pre-commit（暂存）下 AGENT_NOTE_ROOT 指第二棵树被拒绝（退出 1，不输出通过行）', refused.code !== 0 && /\[notes\/root-override-staged\]/.test(refused.out) && !refused.out.includes('✓ check-agent-notes 通过'), refused.out.slice(0, 340));
+    expectTrue('笔记根覆盖：拒绝理由解释这是交互排障覆盖变量、pre-commit 下不许指别处', refused.out.includes('交互排障用的覆盖变量') && refused.out.includes('pre-commit'), refused.out.slice(0, 340));
+    const refusedHit = existsSync(hitsPath) ? readFileSync(hitsPath, 'utf8') : '';
+    expectTrue('笔记根覆盖：拒绝命中按 ROOT 落本仓台账（不是被覆盖的第二棵树）', refusedHit.includes('notes/root-override-staged'), JSON.stringify(refusedHit.slice(0, 240)));
+    expectTrue('笔记根覆盖：第二棵树不落任何台账', !existsSync(join(fakeTree, '.agents', '.rule-hits.jsonl')), '第二棵树不该出现 .rule-hits.jsonl');
+
+    // b) 暂存模式 + 覆盖指回本仓：同根不拒，正常放行
+    const same = spawnNotes({ ...process.env, CURIA_ROOT: root, CURIA_STAGED: '1', AGENT_NOTE_ROOT: join(root, '.agents', 'notes') });
+    expectTrue('笔记根覆盖：暂存模式下指回本仓（同根）不拒，正常通过', same.code === 0 && same.out.includes('✓ check-agent-notes 通过'), same.out.slice(0, 300));
+
+    // c) 交互模式 + 覆盖指第二棵树：排障用途保留（对第二棵树校验并通过）
+    const envInteractive = { ...process.env, AGENT_NOTE_ROOT: join(fakeTree, '.agents', 'notes') };
+    delete envInteractive.CURIA_STAGED;
+    delete envInteractive.CURIA_ROOT;
+    const interactive = spawnNotes(envInteractive);
+    expectTrue('笔记根覆盖：交互模式覆盖排障用途保留（对第二棵树校验并通过，不拒绝）', interactive.code === 0 && interactive.out.includes('✓ check-agent-notes 通过') && !interactive.out.includes('[notes/root-override-staged]'), interactive.out.slice(0, 300));
+
+    rmSync(hitsPath, { force: true }); // CLI 会写命中台账，别带进后续夹具
+  } finally {
+    rmSync(fakeTree, { recursive: true, force: true });
   }
 }
 
@@ -1647,8 +1710,49 @@ expectStagedFail('notes', '.agents/notes/implemented/process/2026-01-01-staged-n
     expectTrue('审计：零命中数 = 规则全集 − 两档并集命中数',
       universeN !== null && zeroN !== null && Number(zeroN[1]) === Number(universeN[1]) - 3,
       `全集 ${universeN?.[1] ?? '—'} 条，零命中 ${zeroN?.[1] ?? '—'} 条`);
+
+    // 应修 4 回归：台账混入非字符串 ID / 非数组 ids / 坏 JSON 行——审计不得崩，且只计字符串 ID（坏行同语义跳过）。
+    // 旧实现在 printHits 排序里对数字 ID 调 localeCompare，一行脏数据即 TypeError 整条审计退出 1。
+    writeFileSync(join(auditTmp, '.agents', '.rule-hits.jsonl'), `${JSON.stringify({ ts: '2026-10-06T00:00:00Z', ids: [42, { a: 1 }, 'types/field-required-missing', null, true] })}\n${JSON.stringify({ ts: '2026-10-06T00:00:01Z', ids: 'not-an-array' })}\n不是 JSON 的行\n`);
+    const mixed = auditOut();
+    expectTrue('审计：台账非字符串 ID 不崩溃（旧实现 localeCompare 收数字即 TypeError）', mixed.status === 0, `退出码 ${mixed.status}；${mixed.out.slice(0, 300)}`);
+    expectTrue('审计：非字符串 ID 与坏行同语义跳过，字符串 ID 照常计入', mixed.out.includes('[types/field-required-missing]') && mixed.out.includes('累计 1 次 / 1 条') && !mixed.out.includes('[42]'), mixed.out.slice(0, 400));
   } finally {
     rmSync(auditTmp, { recursive: true, force: true });
+  }
+}
+
+/* ------------- run-checks --audit 分级复位：warnings.push 之后 errors.push 不得被判 warning（应修 3 回归） ------------- */
+
+// 审计缺陷：openIsWarn 在构造收口后不复位，前一条 warnings.push 的级别会沿用给紧随其后的 errors.push，
+// 该规则被误列进 warning 桶（实测 42 条真 error 级规则错位）。在 /tmp 副本里造一条「告警构造紧跟错误构造」
+// 的探针守卫，跑真实 --audit 断言两条规则各归各桶——旧实现下 error 探针会落进 warning 段。
+{
+  const resetTmp = mkdtempSync(join(tmpdir(), 'curia-audit-reset-'));
+  try {
+    cpSync(join(SRC_ROOT, 'scripts'), join(resetTmp, 'scripts'), { recursive: true });
+    writeFileSync(join(resetTmp, 'scripts', 'check-probe.mjs'), [
+      '#!/usr/bin/env node',
+      '// 自证探针守卫：先告警构造、紧跟错误构造——run-checks ruleUniverse 分级复位的回归夹具（不被执行，只被源码扫描）。',
+      'export function runProbe(errors, warnings) {',
+      "  warnings.push('探针: 告警规则 [probe/warn-rule]');",
+      "  errors.push('探针: 错误规则 [probe/error-rule]');",
+      '}',
+      '',
+    ].join('\n'));
+    const envReset = { ...process.env, CURIA_ROOT: resetTmp };
+    delete envReset.CURIA_STAGED; // 自证可能从 pre-commit 透传暂存开关
+    const r = spawnSync(process.execPath, [join(resetTmp, 'scripts', 'run-checks.mjs'), '--audit'], { cwd: resetTmp, encoding: 'utf8', env: envReset });
+    const out = `${r.stdout ?? ''}${r.stderr ?? ''}`;
+    const warnHead = out.indexOf('warning 级零「命中」');
+    const errAt = out.indexOf('[probe/error-rule]');
+    const warnAt = out.indexOf('[probe/warn-rule]');
+    expectTrue('审计分级：warnings.push 之后的 errors.push 规则进 error 桶（构造收口即复位，级别不跨构造沿用）',
+      r.status === 0 && warnHead !== -1 && errAt !== -1 && errAt < warnHead, out.slice(0, 400));
+    expectTrue('审计分级：同一探针里的 warnings.push 规则仍留在 warning 桶（反向对照，复位不是把告警也升成错误）',
+      warnHead !== -1 && warnAt > warnHead, out.slice(warnHead, warnHead + 400));
+  } finally {
+    rmSync(resetTmp, { recursive: true, force: true });
   }
 }
 
@@ -1662,9 +1766,11 @@ if (existsSync(join(SRC_ROOT, 'scripts', 'make-template.mjs'))) {
   const mt = await import(pathToFileURL(join(SRC_ROOT, 'scripts', 'make-template.mjs')).href);
   const { brandRename, cleanGitignore, cleanRegistry, degradeLinks, runMakeTemplate } = mt;
 
-  expectTrue('make-template 导出面：清洗纯函数与 runMakeTemplate 均为具名导出',
-    [brandRename, degradeLinks, cleanGitignore, cleanRegistry, runMakeTemplate].every((f) => typeof f === 'function'),
-    Object.keys(mt).join(' '));
+  // 导出面 8/8：此前只断言 5 件，补齐三件逐文件清洗器（AGENTS.md / README / GLOSSARY 各自的结构清洗入口）
+  const EXPORT_NAMES = ['brandRename', 'cleanAgentsReadme', 'cleanAgentsRules', 'cleanGitignore', 'cleanGlossary', 'cleanRegistry', 'degradeLinks', 'runMakeTemplate'];
+  expectTrue('make-template 导出面：8/8 具名导出均为函数（清洗纯函数 + runMakeTemplate）',
+    EXPORT_NAMES.every((n) => typeof mt[n] === 'function'),
+    `缺失或非函数：${EXPORT_NAMES.filter((n) => typeof mt[n] !== 'function').join('、') || '无'}；实际导出：${Object.keys(mt).join(' ')}`);
 
   // 入口契约：runMakeTemplate 返回退出码而不是 process.exit——自证 import 后仍能安全调用
   {

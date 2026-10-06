@@ -65,15 +65,16 @@ function runScript(scriptsDir, name, scriptArgs, env = null) {
   });
 }
 
-/** 规则全集：守卫、doc-lib 与 version.mjs 源码里错误/报警构造（push / fail( / 返回对象字面量 errors:[）上的 `[scope/rule]` 字面量。 */
+/** 规则全集：守卫、doc-lib 与 version.mjs 源码里错误/报警构造（push / fail( / 返回对象字面量 errors:[ / 行首 errors: [ 或 warnings: [ 的多行数组字面量）上的 `[scope/rule]` 字面量。 */
 function ruleUniverse(scriptsDir) {
   const ids = new Map(); // id → { src, warn }：首次出现它的源码文件，与是否只见于 warning 构造
   for (const entry of readdirSync(scriptsDir).sort()) {
     if (!/^(check-.*|doc-lib|version)\.mjs$/.test(entry)) continue;
-    let open = 0; // > 0 表示处于未收口的错误/报警构造内：构造可跨行（三目折行），按括号配平续扫
-    let openIsWarn = false; // 当前未收口构造起于 warnings.push
+    let open = 0; // > 0 表示处于未收口的错误/报警构造内：构造可跨行（三目折行、多行数组字面量），按配平符续扫
+    let openIsWarn = false; // 当前未收口构造是否起于 warnings.push（构造收口即复位，级别不跨构造沿用）
+    let openSquare = false; // 配平符种类：false 圆括号（push/fail 调用），true 方括号（行首 errors: [ / warnings: [ 字面量）
     for (const line of readFileSync(join(scriptsDir, entry), 'utf8').split('\n')) {
-      const starts = open <= 0 && /(?:errors|warnings)\.push\(|fail\(|errors:\s*\[/.test(line);
+      const starts = open <= 0 && /(?:errors|warnings)\.push\(|fail\(|(?:errors|warnings):\s*\[/.test(line);
       if (open <= 0 && !starts) continue;
       const warn = /warnings\.push\(/.test(line) || openIsWarn;
       for (const m of line.matchAll(/\[([a-z][a-z0-9-]*\/[a-z][a-z0-9-]*)\]/g)) {
@@ -81,17 +82,26 @@ function ruleUniverse(scriptsDir) {
         if (!cur) ids.set(m[1], { src: entry, warn });
         else if (!warn) cur.warn = false; // 同一 ID 只要见过 error 构造就按 error 级
       }
+      // 方括号配平只认行首形态触发：普通数组字面量（赋值、实参、返回值）不按构造续扫
+      if (open <= 0) openSquare = /^[ \t]*(?:errors|warnings):\s*\[/.test(line);
       for (const ch of line) {
-        if (ch === '(') { open++; if (open === 1) openIsWarn = warn; }
-        else if (ch === ')') open--;
+        if (openSquare) {
+          if (ch === '[') { open++; if (open === 1) openIsWarn = warn; }
+          else if (ch === ']') open--;
+        } else {
+          if (ch === '(') { open++; if (open === 1) openIsWarn = warn; }
+          else if (ch === ')') open--;
+        }
       }
+      // 配平回 0 即复位：级别只描述当前构造，不沿用给下一条（否则 warnings.push 之后的 errors.push 全被误判 warning）
       if (open > 0) openIsWarn = warn;
+      else openIsWarn = false;
     }
   }
   return ids;
 }
 
-/** 读一档台账：坏行与 ids 非数组的行跳过——台账是 append-only 的本地数据，不因单行损坏拒绝审计。 */
+/** 读一档台账：坏行、ids 非数组的行与数组里的非字符串 ID 一律跳过——台账是 append-only 的本地数据，不因单行损坏拒绝审计。 */
 function readLedger(path) {
   const hits = new Map(); // id → { count, last }
   if (!existsSync(path)) return hits;
@@ -101,6 +111,7 @@ function readLedger(path) {
       const rec = JSON.parse(line);
       if (!Array.isArray(rec.ids)) continue;
       for (const id of rec.ids) {
+        if (typeof id !== 'string') continue; // 非字符串 ID 与坏行同语义跳过：混进 Map 会让 printHits 排序的 localeCompare 崩溃
         const h = hits.get(id) ?? { count: 0, last: null };
         h.count++;
         if (!h.last || rec.ts > h.last) h.last = rec.ts;
@@ -147,6 +158,7 @@ function audit(scriptsDir) {
   console.log('口径：命中 = 拦截——只记 error 级；warning 只在门禁输出可见，不入账。');
   console.log('');
   console.log(`【新口径 · error-only】.agents/.rule-hits.jsonl：累计 ${total(current)} 次 / ${current.size} 条`);
+  console.log('  注记：2026-10-05 07:10–07:58 过渡窗口的 44 条 warning 记录混在本档，属切换期遗留，不影响零命中判定');
   printHits(current, '  （台账为空——门禁还没拦到过任何东西，或刚启用）');
   console.log('');
   const historyLabel = historyFiles.length ? historyFiles.map((n) => `.agents/${n}`).join('、') : '.agents/.rule-hits.v1-*.jsonl';

@@ -77,17 +77,17 @@ Verified: yyyy-mm-dd
 ## 检索
 
 ```bash
-# 全工作区检索（排除归档区）
-rg --hidden -g '!**/archived/**' -g '!.agents/archive/**' <关键词> .agents/
+# 全工作区检索（排除归档区；.agents-raw 语料目录按名排除，新增语料时补一项）
+rg --hidden -g '!**/archived/**' -g '!.agents/archive/**' -g '!**/2026-10-02-session-transcripts/**' -g '!**/2026-10-02-qoder-intl-docs/**' -g '!doc-types.md' <关键词> .agents/
 
-# 只搜决策笔记（含 rejected，排除 archived）
-rg --hidden -g '!.agents/notes/archived/**' <关键词> .agents/notes/
+# 只搜决策笔记（含 rejected，排除 archived；语料与投影排除为全工作区统一项）
+rg --hidden -g '!.agents/notes/archived/**' -g '!**/2026-10-02-session-transcripts/**' -g '!**/2026-10-02-qoder-intl-docs/**' -g '!doc-types.md' <关键词> .agents/notes/
 
 # 结构化查询（按类型 / 状态 / 家 / 时效）
 node scripts/doc-query.mjs --home plans --status active
 ```
 
-**禁止任何全局 INDEX.md**——目录即索引，rg 即全文检索，`doc-query.mjs` 即结构化索引（按需生成、不入库，不会腐烂）；内部引用一律相对 Markdown 链接。
+**禁全局 INDEX.md**——目录即索引：rg 全文检索，`doc-query.mjs` 结构化索引（按需生成、不入库）。
 
 ## 桥（各 CLI 怎么消费）
 
@@ -111,19 +111,19 @@ node scripts/install-hooks.mjs       # 装 pre-commit 钩子（幂等，不覆�
 
 | 守卫 | 管什么 | 看哪里 |
 |---|---|---|
-| `check-tools.mjs` | 脚本与钩子语法、只读 CLI 可用、钩子确实装好 | 索引 |
-| `check-agent-notes.mjs` | 笔记树格式（schema 取自注册表 `noteTree`）与归档封印 | 工作区 |
+| `check-tools.mjs` | 脚本与钩子语法、只读 CLI、钩子安装 | 索引 |
+| `check-agent-notes.mjs` | 笔记树格式、归档封印 | 工作区 |
 | `check-doc-types.mjs` | 类型、生命周期、布局与桥、永不删除 | 索引 + git 基线 |
-| `check-prose.mjs` | 散文层：中英空格、全角标点、一段一行、硬禁用术语、文风 | 索引 |
-| `check-layout.mjs` | 版式层：栅栏闭合与语言标记、表格列数、标题层级、空白 | 索引 |
-| `check-links.mjs` | 相对链接可达（含模板目录） | 索引 |
+| `check-prose.mjs` | 散文层：中英空格、标点、一段一行、禁用词、文风 | 索引 |
+| `check-layout.mjs` | 版式层：栅栏、表列数、标题层级、空白 | 索引 |
+| `check-links.mjs` | 链接可达（含模板目录） | 索引 |
 | `check-migrations.mjs` | 迁移文件：命名、seq、头注释、MANIFEST 校验和、冻结对账 | 工作区 |
 | `check-db-ledger.mjs` | 迁移台账：envs 形状、status 封闭集、证据指针、checksum 对账 | 工作区 |
-| `self-test.mjs` | 门禁自证：八道守卫各配负向夹具，并比对覆盖缺口 | 临时工作区 |
+| `self-test.mjs` | 自证：八道守卫负向夹具、覆盖比对 | 临时工作区 |
 
-「看哪里」是交互模式的受检范围：「索引」= 已入库文件（`git ls-files`，不踩未跟踪），「工作区」= 盘面全树（会看到草稿）。pre-commit 暂存模式（`CURIA_STAGED=1`）下八道守卫全部按 git 索引判「将要提交的树」——发现、正文、链接目标、封印、注册表与投影、受检脚本、迁移与台账全取索引版：先 add 坏版再在盘面改好、`git rm --cached`、换符号链接都骗不过；全量审计加 `--all`。守卫输出挂 `[scope/rule]` 规则 ID；error 级命中（口径：命中 = 拦截）记进本地台账 `.agents/.rule-hits.jsonl`（gitignore；warning 只在门禁输出可见、不入账）；`--audit` 并读当前与历史两档台账取并集列零命中规则——error 级零命中才是删除候选，warning 级台账结构性不可证、单列不诱导误删。新增检查必须带 ID 并配负向夹具（缺 ID 报 `meta/missing-rule-id`）。各守卫清单见脚本头注释（唯一权威）。
+「看哪里」是交互模式受检范围：索引 = 已入库文件（`git ls-files`），工作区 = 盘面全树。pre-commit 暂存模式（`CURIA_STAGED=1`）下八道守卫按 git 索引判「将要提交的树」——发现、正文、链接、封印、注册表与投影、脚本、迁移与台账取索引版：先 add 坏版再在盘面改好、`git rm --cached`、换符号链接都骗不过；全量审计加 `--all`。守卫输出挂 `[scope/rule]` ID；error 级命中记进 `.agents/.rule-hits.jsonl`（gitignore；warning 不入账）；`--audit` 并读当前与历史两档台账取并集列零命中规则——error 级零命中才是删除候选，warning 级不可证、单列不诱导误删。新增检查必须带 ID 与负向夹具（缺 ID 报 `meta/missing-rule-id`）。守卫清单见脚本头注释（唯一权威）。
 
-工具（不参与判定）：`new-doc.mjs` 建档与补头块、`fix-doc.mjs` 机械修复（显式路径，默认 dry-run）、`archive-doc.mjs` 归档、`doc-query.mjs` 查询与时效报告、`gen-doc-types.mjs` 重生成投影、`seal-notes-archive.mjs` 重新封印。
+工具（不参与判定）：`new-doc.mjs` 建档与补头块、`fix-doc.mjs` 机械修复（默认 dry-run）、`archive-doc.mjs` 归档、`doc-query.mjs` 查询与时效、`gen-doc-types.mjs` 重生成投影、`seal-notes-archive.mjs` 重封印。
 
 ## 边界（什么不进这里）
 

@@ -17,6 +17,7 @@ node_modules/
 .env.dev
 .env.test
 .env.prod
+# .env.postgres
 
 # 工单包是生成物，不进 git（台账 receipts/probes 要进，勿整目录忽略）
 # deploy/cloud/workorders/

@@ -19,14 +19,15 @@
  *      无 git 环境降级为盘面校验）
  *
  * 每条输出挂规则 ID `[notes/…]`；失败时命中记进 .agents/.rule-hits.jsonl 台账（见 doc-lib）。
- * 测试/排障可用 AGENT_NOTE_ROOT 环境变量覆盖 notes 根（其上级需有 .agents/doc-types.json）。
+ * 测试/排障可用 AGENT_NOTE_ROOT 环境变量覆盖 notes 根（其上级需有 .agents/doc-types.json）——仅限交互模式：
+ * 暂存模式下该变量只许指回本仓，指向别处直接拒绝 [notes/root-override-staged]，防门禁覆盖绕行。
  * 暂存模式（环境变量 CURIA_STAGED=1，pre-commit 调用）：树发现、笔记内容、archived 清单与链接目标
  *   存在性都改从 git 索引取，未入库的草稿不参与判定——先 add 坏版本、再在盘上改好（或删掉盘面文件），
  *   仍会按索引里的版本拦下。
  * 运行：node scripts/check-agent-notes.mjs
  */
 
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import {
   ROOT, countMissingRuleIds, gitList, isMainModule, isSubsequence, linkTargetExists, loadRegistry, logRuleHits,
@@ -391,10 +392,28 @@ export function runCheck(notesRoot, opts = {}) {
 
 // 直接执行时做主入口；被测试 import 时不触发。
 if (isMainModule(import.meta.url)) {
+  const staged = process.env.CURIA_STAGED === '1';
   const notesRoot = process.env.AGENT_NOTE_ROOT
     ? resolve(process.env.AGENT_NOTE_ROOT)
     : join(ROOT, '.agents', 'notes'); // ROOT 从 doc-lib 取（支持 CURIA_ROOT）：物化到临时目录执行时也指回真仓
-  const result = runCheck(notesRoot, { staged: process.env.CURIA_STAGED === '1' });
+  // 门禁覆盖防绕行：pre-commit（CURIA_STAGED=1）下 AGENT_NOTE_ROOT 只许指回本仓的笔记树——指向第二棵树
+  // 会把树发现、注册表与索引读取整体换根，本仓提交的笔记树根本不参与校验（审计实测的「✓ 0 篇」放行）。
+  // notesRoot 自身先过 realpath：词法 resolve 不解析路径上的符号链接，仓内 symlink 指向第二棵树可绕过比较（红队 F1）。
+  const canonical = (p) => { try { return realpathSync(p); } catch { return resolve(p); } };
+  const noteRoot = resolve(canonical(notesRoot), '../..');
+  const overrideRefused = staged && !!process.env.AGENT_NOTE_ROOT && canonical(noteRoot) !== canonical(ROOT);
+  const result = overrideRefused
+    ? {
+        ok: false,
+        errors: [
+          `根覆盖: AGENT_NOTE_ROOT=${process.env.AGENT_NOTE_ROOT} 解析出的树根 ${noteRoot} 与本仓根 ${ROOT} 不一致 [notes/root-override-staged]`,
+          `根覆盖: AGENT_NOTE_ROOT 是交互排障用的覆盖变量，pre-commit（CURIA_STAGED=1）下不许指向别处——否则校验的是那棵树，本仓提交被静默放行。取消该环境变量，或去掉 CURIA_STAGED 后交互运行 [notes/root-override-staged]`,
+        ],
+        warnings: [],
+        notes: 0,
+        archived: 0,
+      }
+    : runCheck(notesRoot, { staged });
   for (const w of result.warnings) console.warn(`warning: agent-notes: ${w}`);
   const missing = countMissingRuleIds([...result.errors, ...result.warnings]);
   if (missing > 0) result.errors.push(`门禁: check-agent-notes 有 ${missing} 条输出未挂规则 ID [meta/missing-rule-id]`);
@@ -402,7 +421,7 @@ if (isMainModule(import.meta.url)) {
     for (const e of result.errors) console.error(`agent-notes: ${e}`);
     console.error(`✗ check-agent-notes 未通过：共 ${result.errors.length} 处错误（${result.notes} 篇活跃笔记 / ${result.archived} 篇归档笔记）`);
   }
-  logRuleHits(resolve(notesRoot, '../..'), result.errors, result.warnings);
+  logRuleHits(overrideRefused ? ROOT : noteRoot, result.errors, result.warnings);
   if (result.errors.length) process.exit(1);
   console.log(`✓ check-agent-notes 通过：${result.notes} 篇活跃笔记 + ${result.archived} 篇归档笔记，目录/文件名/头块/Status/必备节/链接/归档封印全部合规`);
 }

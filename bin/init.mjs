@@ -489,7 +489,7 @@ async function run(opts, interactive, rl) {
   console.log('剩余动作（三步上手的第 3 步）： [create-curia/next-steps]');
   if (!hooksOk) console.log('  0. 装好提交门禁：git init（若尚未）后跑 node scripts/install-hooks.mjs [create-curia/next-steps]');
   console.log('  1. 写第一篇：node scripts/new-doc.mjs --list 看类型；再用 node scripts/new-doc.mjs --type <type> --topic <主题> 建档（决策笔记用 write-note 技能，不走脚手架） [create-curia/next-steps]');
-  console.log('  2. 跑门禁：node scripts/run-checks.mjs；全绿即接入完成 [create-curia/next-steps]');
+  console.log('  2. 跑门禁：git add 后 node scripts/run-checks.mjs，全绿即接入完成（门禁看已入库文件，空索引空转） [create-curia/next-steps]');
   console.log('  之后一切修改都是你的（fork-and-own）：本工具只有 init，没有 upgrade / check 驻留子命令 [create-curia/fork-and-own]');
 }
 

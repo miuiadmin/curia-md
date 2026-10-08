@@ -22,7 +22,6 @@
 | 允许的状态与合法迁移 | `statuses` `transitions` | `check-doc-types.mjs` 对 git 基线比对，非法迁移与终态迁出直接报错 |
 | 必备节与禁用节（按序） | `sections` `sectionAliases` | 同上 |
 | 头块字段必填/可选/禁止与顺序 | `fields` `headerFields` | 同上 |
-| 字数预算与单文件例外 | `budgetWords` `budgetOverrides` | 同上：超限报错，余量不足 5% 报警 |
 | 时效（多久必须复核一次） | `freshness` | 同上：超期报警，不阻断提交 |
 | 文体（是否允许叙事） | `narrative` | [prose-standard 技能](./skills/prose-standard/SKILL.md)与人工审校 |
 

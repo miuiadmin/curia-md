@@ -395,55 +395,12 @@ expectPass('空节标记被接受', {
   '.agents/research/2026-01-01-empty-marker.md': SURVEY_OK.replace('## 适用边界\n\n样本范围与失效条件。', '## 适用边界\n\n_（无）_'),
 });
 
-/* ------------------------------------------------------------- 预算与时效 */
-
-expectFail('超字数预算', {
-  '.agents/future/2026-01-01-fat-idea.md': `# 过胖的想法
-
-Type: idea
-Status: future
-Updated: ${TODAY}
-
-## 动机
-
-${'很长的动机说明。'.repeat(80)}
-
-## 触发条件
-
-出现某信号。
-
-## 成本与收益
-
-一周。
-`,
-}, /超上限 400/);
+/* ------------------------------------------------------------- 时效 */
 
 expectPass('时效超期只报警不阻断', {
   '.agents/research/2026-01-01-stale.md': SURVEY_OK.replace(`Updated: ${TODAY}`, 'Updated: 2020-01-01'),
 }, /时效: .*已过/,
 );
-
-// idea 预算 400 词：标题与三个节标题 13 字 + 头块 6 个拉丁 token + 正文 372 字 = 391，落在 95% 与上限之间
-expectPass('预算余量不足只报警', {
-  '.agents/future/2026-01-01-tight-idea.md': `# 甲
-
-Type: idea
-Status: future
-Updated: ${TODAY}
-
-## 动机
-
-${'字'.repeat(372)}
-
-## 触发条件
-
-_（无）_
-
-## 成本与收益
-
-_（无）_
-`,
-}, /余量不足 5%/);
 
 /* ------------------------------------------------- 状态机（需 git 基线） */
 
@@ -1810,11 +1767,11 @@ if (existsSync(join(SRC_ROOT, 'scripts', 'make-template.mjs'))) {
   expectTrue('make-template 清洗：项目条目无一以可生效形态残留', !giLines.includes('curia-build/') && !giLines.includes('deploy-secrets/'), JSON.stringify(giLines));
   expectTrue('make-template 清洗：gitignore 清洗产物是再清洗的不动点（连洗两遍逐字节一致）', cleanGitignore(cleanGitignore(giIn)) === cleanGitignore(giIn), JSON.stringify(cleanGitignore(cleanGitignore(giIn))));
 
-  /* 清洗规则 4：注册表 rootDirs 收窄为通用五项、被移除根的豁免条目删除、空预算覆盖清理、值级品牌清洗 */
+  /* 清洗规则 4：注册表 rootDirs 收窄为通用五项、被移除根的豁免条目删除、值级品牌清洗 */
   const regIn = JSON.stringify({
     workspaceLayout: { rootDirs: ['.agents', '.claude', '.codex', '.git', 'scripts', 'apps', 'deploy'], agentsDirs: ['.agents/plans'], rootMarkdown: ['AGENTS.md'] },
     exemptPaths: ['deploy/db-ledger/README.md', 'apps/backend/x', '.agents/doc-types.md'],
-    types: { survey: { budgetOverrides: {}, statuses: ['current'] }, note: { hint: 'Curia 家族的笔记' } },
+    types: { survey: { statuses: ['current'] }, note: { hint: 'Curia 家族的笔记' } },
   });
   const regOut = cleanRegistry(regIn);
   const reg = JSON.parse(regOut);
@@ -1824,7 +1781,6 @@ if (existsSync(join(SRC_ROOT, 'scripts', 'make-template.mjs'))) {
   expectTrue('make-template 清洗：指向被移除根的 exemptPaths 条目一并删除',
     JSON.stringify(reg.exemptPaths) === JSON.stringify(['.agents/doc-types.md']),
     JSON.stringify(reg.exemptPaths));
-  expectTrue('make-template 清洗：空 budgetOverrides 属残留、删除', !('budgetOverrides' in reg.types.survey), JSON.stringify(reg.types.survey));
   expectTrue('make-template 清洗：注册表字符串值走品牌清洗', reg.types.note.hint === 'Curia 家族的笔记', reg.types.note.hint);
   expectTrue('make-template 清洗：注册表清洗幂等（规范序列化不动点，结尾一个换行）',
     cleanRegistry(regOut) === regOut && regOut.endsWith('\n') && !regOut.endsWith('\n\n'),

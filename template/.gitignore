@@ -25,3 +25,4 @@ node_modules/
 # deploy/debugcloud/curiad
 # deploy/debugcloud/pi-agent/
 # apps/backend/deploy/
+# apps/backend/curiad

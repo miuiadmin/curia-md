@@ -15,12 +15,11 @@
  *   f) 字段形态：date 合法、link 可解析、status ∈ 该类型 statuses
  *   g) 条件字段：Status=superseded 必须带 Superseded-by；archive/ 下必须带 Archived
  *   h) 必备节齐全且按序；禁用节缺席；必备节非空（或写空节标记）
- *   i) 字数预算：超上限报错，余量不足 5% 报警
- *   j) 时效：Verified/Updated 超期报警（不阻断——阻断会让人绕过门禁）
- *   k) 状态机：与 git 基线比较，非法迁移报错，终态迁出报错
- *   l) 专属检查：skill-frontmatter / glossary-terms / projection-fresh
- *   m) 禁 INDEX.md；目录里不得出现无法归类的固定文件
- *   n) 归档封印：.agents/archive/ 下每篇有 Archived 行、manifest 哈希一致、封印相对基线只增不改
+ *   i) 时效：Verified/Updated 超期报警（不阻断——阻断会让人绕过门禁）
+ *   j) 状态机：与 git 基线比较，非法迁移报错，终态迁出报错
+ *   k) 专属检查：skill-frontmatter / glossary-terms / projection-fresh
+ *   l) 禁 INDEX.md；目录里不得出现无法归类的固定文件
+ *   m) 归档封印：.agents/archive/ 下每篇有 Archived 行、manifest 哈希一致、封印相对基线只增不改
  *
  * 运行：node scripts/check-doc-types.mjs [--all] [--today yyyy-mm-dd] [--path <rel>]
  *   默认只校验已入库文件；--all 并入未入库文件（全量审计）；--path 只校验指定文件。
@@ -34,7 +33,7 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { render } from './gen-doc-types.mjs';
 import {
-  DATED_FILENAME_RE, DATE_RE, ROOT, classifyDoc, countMissingRuleIds, countWords, dayDiff, discoverDocs,
+  DATED_FILENAME_RE, DATE_RE, ROOT, classifyDoc, countMissingRuleIds, dayDiff, discoverDocs,
   fieldValue, gitIndexModes, gitList, gitShow, indexChildren, indexHas, isMainModule, isSubsequence, linkTargetExists,
   loadRegistry, logRuleHits, matchAny, maskSource, normalizeLines, parseHeader, parseStatus, proseLines, readDoc,
   readDocStaged, relFromRoot, sectionBody, sectionKeys, today, verifySeals,
@@ -201,7 +200,7 @@ function verifyHeader(rel, type, tdef, reg, header, lines, errors, warnings, opt
   if (need && !fieldValue(header, need)) fail(`\`Status: ${status}\` 必须带 \`${need}:\` 链接（指向取代它的文档） [types/field-conditional]`);
 }
 
-/* ------------------------------------------------------------- h) 节与预算 */
+/* ------------------------------------------------------------- h) 必备节 */
 
 function verifySections(rel, tdef, reg, lines, mask, errors) {
   const fail = (msg) => errors.push(`结构: ${rel} — ${msg}`);
@@ -227,19 +226,7 @@ function verifySections(rel, tdef, reg, lines, mask, errors) {
   }
 }
 
-function verifyBudget(rel, type, tdef, lines, mask, errors, warnings) {
-  const overrides = tdef.budgetOverrides ?? {};
-  const ceiling = overrides[rel] ?? tdef.budgetWords;
-  if (ceiling === null || ceiling === undefined) return;
-  const words = countWords(lines, mask);
-  if (words > ceiling) {
-    errors.push(`预算: ${rel} — ${words} 词超上限 ${ceiling}（类型 ${type}）：先迁内容到归属层，再压缩，最后才提高上限并说明理由 [types/budget-over]`);
-  } else if (words > ceiling * 0.95) {
-    warnings.push(`预算: ${rel} — ${words}/${ceiling} 词，余量不足 5% [types/budget-headroom]`);
-  }
-}
-
-/* ------------------------------------------------------------------- j) 时效 */
+/* ------------------------------------------------------------------- i) 时效 */
 
 function verifyFreshness(rel, tdef, header, errors, warnings, opts) {
   const f = tdef.freshness;
@@ -259,7 +246,7 @@ function verifyFreshness(rel, tdef, header, errors, warnings, opts) {
   }
 }
 
-/* ---------------------------------------------------------------- k) 状态机 */
+/* ---------------------------------------------------------------- j) 状态机 */
 
 function verifyTransition(rel, tdef, root, header, errors) {
   const cur = fieldValue(header, 'Status');
@@ -279,7 +266,7 @@ function verifyTransition(rel, tdef, root, header, errors) {
   }
 }
 
-/* -------------------------------------------------------------- l) 专属检查 */
+/* -------------------------------------------------------------- k) 专属检查 */
 
 function verifySkillFrontmatter(rel, abs, lines, errors) {
   const fail = (msg) => errors.push(`技能: ${rel} — ${msg}`);
@@ -343,7 +330,7 @@ function verifyProjectionFresh(rel, root, reg, errors, staged) {
   }
 }
 
-/* ------------------------------------------------------------- n) 归档封印 */
+/* ------------------------------------------------------------- m) 归档封印 */
 
 function verifyArchiveSeal(root, reg, frozenFiles, errors, warnings, staged) {
   // 空条目也要走 verifySeals：manifest 有键而条目为空 = 归档被删光/被 rm --cached 的空集绕过
@@ -640,7 +627,6 @@ export function runCheck(root = ROOT, opts = {}) {
 
     verifyHeader(doc.rel, type, tdef, reg, header, lines, errors, warnings, { today: todayStr, root, staged });
     verifySections(doc.rel, tdef, reg, lines, mask, errors);
-    verifyBudget(doc.rel, type, tdef, lines, mask, errors, warnings);
     verifyFreshness(doc.rel, tdef, header, errors, warnings, { today: todayStr });
     verifyTransition(doc.rel, tdef, root, header, errors);
     verifyUpdatedHonesty(doc.rel, tdef, root, header, lines, warnings, todayStr);
@@ -689,5 +675,5 @@ if (isMainModule(import.meta.url)) {
   }
   logRuleHits(ROOT, result.errors, result.warnings);
   if (result.errors.length) process.exit(1);
-  console.log(`✓ check-doc-types 通过：${result.stats.docs} 篇文档（${summary || '无'}），注册表/归类/头块/必备节/预算/状态机/封印全部合规`);
+  console.log(`✓ check-doc-types 通过：${result.stats.docs} 篇文档（${summary || '无'}），注册表/归类/头块/必备节/状态机/封印全部合规`);
 }

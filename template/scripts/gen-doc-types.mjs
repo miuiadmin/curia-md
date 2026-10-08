@@ -64,13 +64,6 @@ function freshnessText(type) {
   return `\`${f.field}\` 超 ${f.maxAgeDays} 天报警${when}`;
 }
 
-function budgetText(type, reg) {
-  const overrides = Object.entries(type.budgetOverrides ?? {});
-  const base = type.budgetWords === null || type.budgetWords === undefined ? '不限' : `≤ ${type.budgetWords} 词`;
-  if (!overrides.length) return base;
-  return `${base}；单文件例外：${overrides.map(([p, n]) => `\`${p}\` ≤ ${n}`).join('，')}`;
-}
-
 function typeBlock(reg, key) {
   const t = reg.types[key];
   const home = reg.homes[t.home];
@@ -82,7 +75,7 @@ function typeBlock(reg, key) {
   out.push(`- 状态：${t.statuses.length ? t.statuses.map((s) => `\`${s}\``).join(' ') : '—'}；迁移：${transitionText(t)}`);
   out.push(`- 必备节（按序）：${(t.sections?.required ?? []).length ? t.sections.required.map((s) => sectionLabel(reg, s)).join(' → ') : '—'}；禁用节：${(t.sections?.forbidden ?? []).length ? t.sections.forbidden.map((s) => sectionLabel(reg, s)).join('、') : '—'}`);
   out.push(`- 字段：必填 ${fieldList(reg, t, 'required')}；可选 ${fieldList(reg, t, 'optional')}；禁止 ${fieldList(reg, t, 'forbidden')}`);
-  out.push(`- 预算：${budgetText(t, reg)}；时效：${freshnessText(t)}；文体：${t.narrative ? '允许叙事' : '非叙事（禁推理记录）'}`);
+  out.push(`- 时效：${freshnessText(t)}；文体：${t.narrative ? '允许叙事' : '非叙事（禁推理记录）'}`);
   if (t.extraChecks?.length) out.push(`- 专属检查：${t.extraChecks.map((c) => `\`${c}\``).join(' ')}`);
   if (t.externalGuard) out.push(`- 归属守卫：[\`${t.externalGuard}\`](../${t.externalGuard})（本类型不由类型门禁重复校验）`);
   out.push(`- 装什么：${t.purpose}`);
@@ -133,10 +126,10 @@ export function render(reg) {
   L.push('');
   L.push('## 类型总览');
   L.push('');
-  L.push('| 类型 | 家 | 命名 | 状态 | 预算 | 时效 |');
-  L.push('|---|---|---|---|---|---|');
+  L.push('| 类型 | 家 | 命名 | 状态 | 时效 |');
+  L.push('|---|---|---|---|---|');
   for (const [k, t] of Object.entries(reg.types)) {
-    L.push(`| \`${k}\` | \`${t.home}\` | ${namingText(t)} | ${t.statuses.join(' ') || '—'} | ${t.budgetWords ?? '不限'} | ${t.freshness ? `${t.freshness.field} ${t.freshness.maxAgeDays}d` : '—'} |`);
+    L.push(`| \`${k}\` | \`${t.home}\` | ${namingText(t)} | ${t.statuses.join(' ') || '—'} | ${t.freshness ? `${t.freshness.field} ${t.freshness.maxAgeDays}d` : '—'} |`);
   }
   L.push('');
   L.push('## 节键与可接受标题');

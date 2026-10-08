@@ -17,11 +17,10 @@ description: 在 Curia .agents 工作区新建或修改文档的完整流程—�
 1. **建档**：`node scripts/new-doc.mjs --type <type> --topic <topic>`（固定命名类型用 `--name`）；既有文档补头块用 `--adopt <path> --type <type>`。手抄骨架会被门禁拦下（AGENTS.md 第 10 条）。
 2. **先核事实，再写字**：每条命令、默认值、端点、路径、行为都要跑一遍或读到原文；核不到的写「未核实 + 核实归属」，不凭记忆、类比或隔壁文档下笔。
 3. **填必备节**：按模板顺序写完；确实无内容的节只写 `_（无）_`，不删节、不改标题措辞（标题别名由注册表管）。
-4. **写正文**：只写当前状态；格式硬规则（一段一行、中英空格、全角标点、术语）在 AGENTS.md 第 9 条，句子层面的自查见 [prose-standard](../prose-standard/SKILL.md)。
+4. **写正文**：只写当前状态；篇幅凭判断——事实写够即止、不要太长，没有字数门禁；格式硬规则（一段一行、中英空格、全角标点、术语）在 AGENTS.md 第 9 条，句子层面的自查见 [prose-standard](../prose-standard/SKILL.md)。
 5. **落头块**：`Updated:` 改今天；跑过一遍的（`evidence`/`reference`/`runbook`）同时改 `Verified:`；有对应决策笔记补 `Note:` 链接。
 6. **过门禁**：`node scripts/run-checks.mjs`；机械类错误（中英空格、全角标点、行尾空白）先 `node scripts/fix-doc.mjs --write <路径>` 一键修复；报错就地修文档，不要改门禁。
-7. **触顶处置——先拆后抬**：`budget-over` 提交前必清；`budget-headroom` 只在顺手编辑该文档时处理，不为它开专项批次、不为清告警抬顶；预算上限与 override 变更走提案先说明「为什么不拆」（拆篇先例：环境登记拆二；因果见类型系统笔记）。
-8. **同批写笔记**：非平凡变更（改行为、结构、契约、流程、工具、格式）同批新增/更新 `notes/`（走 write-note）。
+7. **同批写笔记**：非平凡变更（改行为、结构、契约、流程、工具、格式）同批新增/更新 `notes/`（走 write-note）。
 
 ## 晋级与退役
 

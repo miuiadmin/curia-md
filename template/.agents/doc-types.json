@@ -529,7 +529,6 @@
           "collection"
         ]
       },
-      "budgetWords": 3000,
       "freshness": {
         "field": "Updated",
         "maxAgeDays": 90,
@@ -608,7 +607,6 @@
           "statuslog"
         ]
       },
-      "budgetWords": 6000,
       "freshness": {
         "field": "Updated",
         "maxAgeDays": 180,
@@ -681,7 +679,6 @@
           "contract"
         ]
       },
-      "budgetWords": 4000,
       "freshness": {
         "field": "Updated",
         "maxAgeDays": 60,
@@ -748,7 +745,6 @@
           "statuslog"
         ]
       },
-      "budgetWords": 6000,
       "freshness": {
         "field": "Updated",
         "maxAgeDays": 365
@@ -814,7 +810,6 @@
           "statuslog"
         ]
       },
-      "budgetWords": 5000,
       "freshness": {
         "field": "Verified",
         "maxAgeDays": 120
@@ -875,7 +870,6 @@
           "contract"
         ]
       },
-      "budgetWords": 4000,
       "freshness": null,
       "narrative": true,
       "purpose": "事故的时间线、证据、因果链、影响与预防。`current` = 行动项未全部关闭；`historical` = 已关闭的纯历史记录。",
@@ -935,7 +929,6 @@
           "openitems"
         ]
       },
-      "budgetWords": 3000,
       "freshness": {
         "field": "Verified",
         "maxAgeDays": 90
@@ -991,7 +984,6 @@
           "statuslog"
         ]
       },
-      "budgetWords": 400,
       "freshness": {
         "field": "Updated",
         "maxAgeDays": 365
@@ -1049,7 +1041,6 @@
           "statuslog"
         ]
       },
-      "budgetWords": 700,
       "freshness": {
         "field": "Updated",
         "maxAgeDays": 365
@@ -1088,7 +1079,6 @@
         "required": [],
         "forbidden": []
       },
-      "budgetWords": 3000,
       "freshness": null,
       "narrative": false,
       "extraChecks": [
@@ -1147,7 +1137,6 @@
           "statuslog"
         ]
       },
-      "budgetWords": 2000,
       "freshness": {
         "field": "Verified",
         "maxAgeDays": 180
@@ -1184,12 +1173,6 @@
         "required": [],
         "forbidden": []
       },
-      "budgetWords": 700,
-      "budgetOverrides": {
-        ".agents/README.md": 2200,
-        ".agents/notes/README.md": 3200,
-        "README.md": 300
-      },
       "freshness": null,
       "narrative": false,
       "purpose": "一个目录的规格页：装什么、不装什么、命名与状态、流转纪律。目录即索引，README 即该目录的入口。",
@@ -1223,7 +1206,6 @@
         "required": [],
         "forbidden": []
       },
-      "budgetWords": 1000,
       "freshness": null,
       "narrative": false,
       "purpose": "常驻指令：每个会话都要在上下文里的硬规则，一条一到三行并链接其归属；子树规则只能追加约束、不得放宽上层。",
@@ -1255,10 +1237,6 @@
       "sections": {
         "required": [],
         "forbidden": []
-      },
-      "budgetWords": 2500,
-      "budgetOverrides": {
-        ".agents/GLOSSARY.md": 5000
       },
       "freshness": null,
       "narrative": false,
@@ -1295,7 +1273,6 @@
         "required": [],
         "forbidden": []
       },
-      "budgetWords": null,
       "freshness": null,
       "narrative": false,
       "generated": true,
@@ -1342,7 +1319,6 @@
         "required": [],
         "forbidden": []
       },
-      "budgetWords": null,
       "freshness": null,
       "narrative": false,
       "externalGuard": "scripts/check-agent-notes.mjs",
@@ -1382,7 +1358,6 @@
         "required": [],
         "forbidden": []
       },
-      "budgetWords": null,
       "freshness": null,
       "narrative": true,
       "sealed": true,

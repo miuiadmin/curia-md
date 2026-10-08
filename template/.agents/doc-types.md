@@ -39,25 +39,25 @@
 
 ## 类型总览
 
-| 类型 | 家 | 命名 | 状态 | 预算 | 时效 |
-|---|---|---|---|---|---|
-| `proposal` | `plans` | `yyyy-mm-dd-<topic>.md` | draft active done superseded | 3000 | Updated 90d |
-| `spec` | `plans` | `yyyy-mm-dd-<topic>.md` | draft active done superseded | 6000 | Updated 180d |
-| `plan` | `plans` | `yyyy-mm-dd-<topic>.md` | draft active done superseded | 4000 | Updated 60d |
-| `survey` | `research` | `yyyy-mm-dd-<topic>.md` | current historical superseded | 6000 | Updated 365d |
-| `reference` | `research` | `yyyy-mm-dd-<topic>.md` | current historical superseded | 5000 | Verified 120d |
-| `postmortem` | `research` | `yyyy-mm-dd-<topic>.md` | current historical | 4000 | — |
-| `evidence` | `research` | `yyyy-mm-dd-<topic>.md` | current historical superseded | 3000 | Verified 90d |
-| `idea` | `future` | `yyyy-mm-dd-<topic>.md` | future superseded | 400 | Updated 365d |
-| `foundation` | `future` | `yyyy-mm-dd-<topic>.md` | future superseded | 700 | Updated 365d |
-| `skill` | `skills` | `.agents/skills/*/SKILL.md` | — | 3000 | — |
-| `runbook` | `skills` | `.agents/skills/*/RUNBOOK.md` | current superseded | 2000 | Verified 180d |
-| `readme` | `workspace` | `README.md`、`**/README.md` | — | 700 | — |
-| `agents-rules` | `workspace` | `AGENTS.md`、`.agents/**/AGENTS.md` | — | 1000 | — |
-| `glossary` | `workspace` | `.agents/GLOSSARY.md` | — | 2500 | — |
-| `projection` | `workspace` | `.agents/doc-types.md` | — | 不限 | — |
-| `note` | `notes` | `{lifecycle}/{class}/yyyy-mm-dd-<topic>.md` | proposed implemented rejected archived | 不限 | — |
-| `frozen` | `archive` | 保留原文件名 | — | 不限 | — |
+| 类型 | 家 | 命名 | 状态 | 时效 |
+|---|---|---|---|---|
+| `proposal` | `plans` | `yyyy-mm-dd-<topic>.md` | draft active done superseded | Updated 90d |
+| `spec` | `plans` | `yyyy-mm-dd-<topic>.md` | draft active done superseded | Updated 180d |
+| `plan` | `plans` | `yyyy-mm-dd-<topic>.md` | draft active done superseded | Updated 60d |
+| `survey` | `research` | `yyyy-mm-dd-<topic>.md` | current historical superseded | Updated 365d |
+| `reference` | `research` | `yyyy-mm-dd-<topic>.md` | current historical superseded | Verified 120d |
+| `postmortem` | `research` | `yyyy-mm-dd-<topic>.md` | current historical | — |
+| `evidence` | `research` | `yyyy-mm-dd-<topic>.md` | current historical superseded | Verified 90d |
+| `idea` | `future` | `yyyy-mm-dd-<topic>.md` | future superseded | Updated 365d |
+| `foundation` | `future` | `yyyy-mm-dd-<topic>.md` | future superseded | Updated 365d |
+| `skill` | `skills` | `.agents/skills/*/SKILL.md` | — | — |
+| `runbook` | `skills` | `.agents/skills/*/RUNBOOK.md` | current superseded | Verified 180d |
+| `readme` | `workspace` | `README.md`、`**/README.md` | — | — |
+| `agents-rules` | `workspace` | `AGENTS.md`、`.agents/**/AGENTS.md` | — | — |
+| `glossary` | `workspace` | `.agents/GLOSSARY.md` | — | — |
+| `projection` | `workspace` | `.agents/doc-types.md` | — | — |
+| `note` | `notes` | `{lifecycle}/{class}/yyyy-mm-dd-<topic>.md` | proposed implemented rejected archived | — |
+| `frozen` | `archive` | 保留原文件名 | — | — |
 
 ## 节键与可接受标题
 
@@ -108,7 +108,7 @@
 - 状态：`draft` `active` `done` `superseded`；迁移：`draft`→`active` `done` `superseded`；`active`→`done` `superseded`；`done`→`superseded`；`superseded`→终态
 - 必备节（按序）：背景 → 目标 → 非目标 → 成功判据 → 方案选项；禁用节：时间线、采集方式
 - 字段：必填 `Type` `Status` `Updated`；可选 `Owner` `Note` `Supersedes` `Superseded-by`；禁止 `Verified` `Archived`
-- 预算：≤ 3000 词；时效：`Updated` 超 90 天报警（仅 `draft` `active` 时）；文体：非叙事（禁推理记录）
+- 时效：`Updated` 超 90 天报警（仅 `draft` `active` 时）；文体：非叙事（禁推理记录）
 - 装什么：为什么值得做、做成什么样算成功、有哪些候选路线——立项前对齐用。
 - 不装什么：步骤与进度（→ plan）、字段级契约（→ spec）、决策因果（→ notes）。
 - 晋级去向：`spec`、`plan`
@@ -119,7 +119,7 @@
 - 状态：`draft` `active` `done` `superseded`；迁移：`draft`→`active` `done` `superseded`；`active`→`done` `superseded`；`done`→`active` `superseded`；`superseded`→终态
 - 必备节（按序）：背景 → 范围 → 契约 → 验收标准 → 适用边界；禁用节：未完成事项、状态记录
 - 字段：必填 `Type` `Status` `Updated`；可选 `Owner` `Source` `Note` `Supersedes` `Superseded-by`；禁止 `Verified` `Archived`
-- 预算：≤ 6000 词；时效：`Updated` 超 180 天报警（仅 `draft` `active` 时）；文体：非叙事（禁推理记录）
+- 时效：`Updated` 超 180 天报警（仅 `draft` `active` 时）；文体：非叙事（禁推理记录）
 - 装什么：做成什么样：契约、接口、数据结构、验收标准。做完后仍是长期可引用的权威规格，`done` 不是退役。
 - 不装什么：分几步做与进度（→ plan）、为什么选这条路线（→ notes）。
 
@@ -129,7 +129,7 @@
 - 状态：`draft` `active` `done` `superseded`；迁移：`draft`→`active` `done` `superseded`；`active`→`done` `superseded`；`done`→`superseded`；`superseded`→终态
 - 必备节（按序）：背景 → 目标 → 步骤 → 未完成事项 → 状态记录；禁用节：契约
 - 字段：必填 `Type` `Status` `Updated`；可选 `Owner` `Note` `Supersedes` `Superseded-by`；禁止 `Verified` `Archived`
-- 预算：≤ 4000 词；时效：`Updated` 超 60 天报警（仅 `active` 时）；文体：非叙事（禁推理记录）
+- 时效：`Updated` 超 60 天报警（仅 `active` 时）；文体：非叙事（禁推理记录）
 - 装什么：分几步做、做到哪了、还剩什么。`active` 时「未完成事项」是这项工作唯一的活跃清单。
 - 不装什么：做成什么样的契约（→ spec）、完成后的事实与回执（→ research/evidence）。
 
@@ -139,7 +139,7 @@
 - 状态：`current` `historical` `superseded`；迁移：`current`→`historical` `superseded`；`historical`→`superseded`；`superseded`→终态
 - 必备节（按序）：问题 → 方法与来源 → 结论 → 适用边界；禁用节：未完成事项、状态记录
 - 字段：必填 `Type` `Status` `Updated`；可选 `Verified` `Owner` `Source` `Note` `Supersedes` `Superseded-by`；禁止 `Archived`
-- 预算：≤ 6000 词；时效：`Updated` 超 365 天报警；文体：非叙事（禁推理记录）
+- 时效：`Updated` 超 365 天报警；文体：非叙事（禁推理记录）
 - 专属检查：`source-traceable`
 - 装什么：一次性调研的问题、方法、结论与适用边界——回答「查到了什么」。
 - 不装什么：持续维护的当前事实（→ reference）、原始数据（→ evidence）、由调研得出的决策（→ notes）。
@@ -150,7 +150,7 @@
 - 状态：`current` `historical` `superseded`；迁移：`current`→`historical` `superseded`；`historical`→`current` `superseded`；`superseded`→终态
 - 必备节（按序）：事实映射 → 方法与来源 → 维护方式 → 适用边界；禁用节：未完成事项、状态记录
 - 字段：必填 `Type` `Status` `Updated` `Verified`；可选 `Owner` `Source` `Note` `Supersedes` `Superseded-by`；禁止 `Archived`
-- 预算：≤ 5000 词；时效：`Verified` 超 120 天报警；文体：非叙事（禁推理记录）
+- 时效：`Verified` 超 120 天报警；文体：非叙事（禁推理记录）
 - 专属检查：`source-traceable`
 - 装什么：外部系统的当前事实映射（端点、字段、配额、行为差异），持续维护、按 `Verified` 复核。
 - 不装什么：一次性调研结论（→ survey）、原始采集数据（→ evidence）。
@@ -161,7 +161,7 @@
 - 状态：`current` `historical`；迁移：`current`→`historical`；`historical`→终态
 - 必备节（按序）：事故概述 → 时间线 → 影响 → 因果链 → 预防 → 行动项；禁用节：契约
 - 字段：必填 `Type` `Status` `Updated`；可选 `Owner` `Source` `Note`；禁止 `Verified` `Supersedes` `Superseded-by` `Archived`
-- 预算：≤ 4000 词；时效：—；文体：允许叙事
+- 时效：—；文体：允许叙事
 - 装什么：事故的时间线、证据、因果链、影响与预防。`current` = 行动项未全部关闭；`historical` = 已关闭的纯历史记录。
 - 不装什么：由事故引出的长期决策（→ notes）、可复用的排查步骤（→ skills/runbook）。
 
@@ -171,7 +171,7 @@
 - 状态：`current` `historical` `superseded`；迁移：`current`→`historical` `superseded`；`historical`→`superseded`；`superseded`→终态
 - 必备节（按序）：采集内容 → 采集方式 → 适用边界；禁用节：结论、方案选项、契约、未完成事项
 - 字段：必填 `Type` `Status` `Updated` `Verified` `Source`；可选 `Owner` `Note` `Supersedes` `Superseded-by`；禁止 `Archived`
-- 预算：≤ 3000 词；时效：`Verified` 超 90 天报警；文体：非叙事（禁推理记录）
+- 时效：`Verified` 超 90 天报警；文体：非叙事（禁推理记录）
 - 装什么：原始事实：清单、命令输出、度量数据、外部语料镜像。只记「什么时候、用什么命令、看到了什么」。
 - 不装什么：分析与结论（→ survey）、持续维护的事实映射（→ reference）。
 
@@ -181,7 +181,7 @@
 - 状态：`future` `superseded`；迁移：`future`→`superseded`；`superseded`→终态
 - 必备节（按序）：动机 → 触发条件 → 成本与收益；禁用节：步骤、契约、验收标准、状态记录
 - 字段：必填 `Type` `Status` `Updated`；可选 `Owner` `Note` `Superseded-by`；禁止 `Verified` `Archived`
-- 预算：≤ 400 词；时效：`Updated` 超 365 天报警；文体：非叙事（禁推理记录）
+- 时效：`Updated` 超 365 天报警；文体：非叙事（禁推理记录）
 - 装什么：不承诺的想法：一句话动机、什么条件下值得做、粗略成本。写在这里不构成派单。
 - 不装什么：已承诺的工作（→ plans）、决策因果（→ notes）。
 - 晋级去向：`proposal`、`plan`
@@ -192,7 +192,7 @@
 - 状态：`future` `superseded`；迁移：`future`→`superseded`；`superseded`→终态
 - 必备节（按序）：动机 → 范围 → 触发条件 → 成本与收益；禁用节：验收标准、状态记录
 - 字段：必填 `Type` `Status` `Updated`；可选 `Owner` `Note` `Superseded-by`；禁止 `Verified` `Archived`
-- 预算：≤ 700 词；时效：`Updated` 超 365 天报警；文体：非叙事（禁推理记录）
+- 时效：`Updated` 超 365 天报警；文体：非叙事（禁推理记录）
 - 装什么：现在只铺地基、将来可能长成规格的方向；地基范围要写清，避免把承诺藏进不承诺区。
 - 不装什么：已承诺的规格或计划（→ spec、plan）、一次性想法（→ idea）。
 - 晋级去向：`spec`、`plan`
@@ -204,7 +204,7 @@
 - 状态：—；迁移：—（无状态机）
 - 必备节（按序）：—；禁用节：—
 - 字段：必填 —；可选 —；禁止 `Type` `Status` `Updated` `Verified` `Archived`
-- 预算：≤ 3000 词；时效：—；文体：非叙事（禁推理记录）
+- 时效：—；文体：非叙事（禁推理记录）
 - 专属检查：`skill-frontmatter`
 - 装什么：按需加载的智能体工作流：YAML frontmatter（name + description）+ 精简步骤 + 权威来源链接。
 - 不装什么：面向人的操作手册（→ runbook）、产品与运行时契约（→ research 或源码）。
@@ -216,7 +216,7 @@
 - 状态：`current` `superseded`；迁移：`current`→`superseded`；`superseded`→终态
 - 必备节（按序）：前置条件 → 步骤 → 验证 → 失败与恢复；禁用节：方案选项、状态记录
 - 字段：必填 `Type` `Status` `Updated` `Verified`；可选 `Owner` `Source` `Note` `Superseded-by`；禁止 `Archived`
-- 预算：≤ 2000 词；时效：`Verified` 超 180 天报警；文体：非叙事（禁推理记录）
+- 时效：`Verified` 超 180 天报警；文体：非叙事（禁推理记录）
 - 装什么：人向操作手册：前置条件、有序步骤、每步的可观察验证、失败恢复。与同目录 SKILL.md 互为两个视角，步骤只在一处写、另一处链接。
 - 不装什么：智能体按需加载的工作流（→ skill）、事故因果（→ postmortem）。
 
@@ -227,7 +227,7 @@
 - 状态：—；迁移：—（无状态机）
 - 必备节（按序）：—；禁用节：—
 - 字段：必填 —；可选 —；禁止 `Type` `Status` `Updated` `Verified` `Archived`
-- 预算：≤ 700 词；单文件例外：`.agents/README.md` ≤ 2200，`.agents/notes/README.md` ≤ 3200，`README.md` ≤ 300；时效：—；文体：非叙事（禁推理记录）
+- 时效：—；文体：非叙事（禁推理记录）
 - 装什么：一个目录的规格页：装什么、不装什么、命名与状态、流转纪律。目录即索引，README 即该目录的入口。
 - 不装什么：跨目录的总规格（→ .agents/README.md）、决策因果（→ notes）。
 
@@ -238,7 +238,7 @@
 - 状态：—；迁移：—（无状态机）
 - 必备节（按序）：—；禁用节：—
 - 字段：必填 —；可选 —；禁止 `Type` `Status` `Updated` `Verified` `Archived`
-- 预算：≤ 1000 词；时效：—；文体：非叙事（禁推理记录）
+- 时效：—；文体：非叙事（禁推理记录）
 - 装什么：常驻指令：每个会话都要在上下文里的硬规则，一条一到三行并链接其归属；子树规则只能追加约束、不得放宽上层。
 - 不装什么：故事、完整示例、情境化流程、从归属文档复制来的内容（→ 各自的归属）。
 
@@ -249,7 +249,7 @@
 - 状态：—；迁移：—（无状态机）
 - 必备节（按序）：—；禁用节：—
 - 字段：必填 —；可选 —；禁止 `Type` `Status` `Updated` `Verified` `Archived`
-- 预算：≤ 2500 词；单文件例外：`.agents/GLOSSARY.md` ≤ 5000；时效：—；文体：非叙事（禁推理记录）
+- 时效：—；文体：非叙事（禁推理记录）
 - 专属检查：`glossary-terms`
 - 装什么：一概念一词的术语表：每条 `**术语（English）**：定义。_Avoid_: 禁用或易混词`。
 - 不装什么：类型定义（→ 注册表与投影文档）、规则（→ AGENTS.md）。
@@ -261,7 +261,7 @@
 - 状态：—；迁移：—（无状态机）
 - 必备节（按序）：—；禁用节：—
 - 字段：必填 —；可选 —；禁止 `Type` `Status` `Updated` `Verified` `Archived`
-- 预算：不限；时效：—；文体：非叙事（禁推理记录）
+- 时效：—；文体：非叙事（禁推理记录）
 - 专属检查：`projection-fresh`
 - 装什么：由 scripts/gen-doc-types.mjs 从注册表生成的可读投影，供人与不能读 JSON 的场景使用；禁止手改，改注册表后重生成。
 - 不装什么：任何手写内容。
@@ -273,7 +273,7 @@
 - 状态：`proposed` `implemented` `rejected` `archived`；迁移：`proposed`→`implemented` `rejected`；`implemented`→终态；`rejected`→终态；`archived`→终态
 - 必备节（按序）：—；禁用节：—
 - 字段：必填 —；可选 —；禁止 —
-- 预算：不限；时效：—；文体：非叙事（禁推理记录）
+- 时效：—；文体：非叙事（禁推理记录）
 - 归属守卫：[`scripts/check-agent-notes.mjs`](../scripts/check-agent-notes.mjs)（本类型不由类型门禁重复校验）
 - 装什么：决策因果：为什么这样做、放弃了什么、后果是什么。路径即身份 `{lifecycle}/{class}/yyyy-mm-dd-topic.md`，class 封闭六类。`implemented` 是终态——决定翻转必须新开一篇并互链，不得把旧篇改成反面。
 - 不装什么：事实与证据（→ research）、意图与进度（→ plans）。
@@ -285,7 +285,7 @@
 - 状态：—；迁移：—（无状态机）
 - 必备节（按序）：—；禁用节：—
 - 字段：必填 `Archived`；可选 `Type` `Status` `Updated` `Verified` `Owner` `Source` `Note` `Supersedes` `Superseded-by`；禁止 —
-- 预算：不限；时效：—；文体：允许叙事
+- 时效：—；文体：允许叙事
 - 装什么：已退役整篇文档的冻结快照：迁入即加 `Archived:` 行并被 manifest 哈希封印，此后永久不改。
 - 不装什么：笔记的归档（→ .agents/notes/archived/，同一封印机制、另一处归属）。
 

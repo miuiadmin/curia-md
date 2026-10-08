@@ -18,7 +18,7 @@
 
 **头块（header block）**：文档开头的固定结构——标题行、空行、`Key: value` 字段行、空行；状态值保留英文 token，正文用中文；笔记树以 `Status:` 独占第 3 行。_Avoid_: frontmatter（本仓只有技能用）、中文状态词
 
-**类型注册表（doc-type registry）**：`.agents/doc-types.json`——文档类型的唯一权威：家、状态机、必备与禁用节、头块字段、预算、时效、模板与检查。_Avoid_: 配置表、schema（它是内容）
+**类型注册表（doc-type registry）**：`.agents/doc-types.json`——文档类型的唯一权威：家、状态机、必备与禁用节、头块字段、时效、模板与检查。_Avoid_: 配置表、schema（它是内容）
 
 **三件套（type triple）**：一个类型 ↔ 一个模板 ↔ 至少一条专属检查的 1:1 约束；缺一件即被门禁拦下。_Avoid_: 三要素
 

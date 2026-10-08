@@ -145,14 +145,6 @@ export function matchAny(patterns, rel) {
   return (patterns ?? []).some((p) => globToRe(p).test(rel));
 }
 
-/** 字数：CJK 字符逐字计 1，拉丁/数字 token 计 1；不含 fenced 与注释。 */
-export function countWords(lines, mask) {
-  const text = proseLines(lines, mask).map((l) => l.text).join('\n');
-  const cjk = (text.match(/[\u3400-\u9fff\uf900-\ufaff]/g) ?? []).length;
-  const latin = (text.replace(/[\u3400-\u9fff\uf900-\ufaff]/g, ' ').match(/[A-Za-z0-9_][\w-]*/g) ?? []).length;
-  return cjk + latin;
-}
-
 /**
  * 解析文件头块：`# 标题` / 空行 / 连续 `Key: value` 行 / 空行 / 正文。
  * 返回 { title, titleOk, fields: [{key,value,idx}], bodyStart, headerEnd }。

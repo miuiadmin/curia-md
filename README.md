@@ -4,7 +4,7 @@ Scaffold a Curia AI-native documentation workspace into any repository — one c
 
 ## 是什么
 
-Curia 是一套可移植到任何项目的 AI 原生文档制度：开发与管理文档统一收在 `.agents/`，只维护一份，经符号链接分发给 Claude Code、Codex 等 agent CLI，类型、模板、状态机与门禁由 `.agents/doc-types.json` 注册表驱动。`create-curia` 是它的脚手架：把制度模板生成进你的仓库，生成后的内容即你的项目，随意修改。
+Curia 是一套可移植到任何项目的 AI 原生文档制度：开发与管理文档统一收在 `.agents/`，只维护一份，经符号链接分发给 Claude Code、Codex 等 agent CLI，类型、模板、状态机与门禁由 `.agents/doc-types.json` 注册表驱动；外部事实文档（仓外系统的登记与定义）住根目录 `docs/` 可见树，按需建立并登记 `rootDirs`，当前版即唯一真相、不入类型生命周期。`create-curia` 是它的脚手架：把制度模板生成进你的仓库，生成后的内容即你的项目，随意修改。
 
 ## 为什么做成生成器
 

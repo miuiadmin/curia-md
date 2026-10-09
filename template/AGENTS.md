@@ -1,6 +1,6 @@
 # Curia — 智能体工作区规则
 
-本项目由 Curia 管理：开发与管理文档统一收在 `.agents/`，只维护一份，符号链接分发给各 agent CLI。
+本项目由 Curia 管理：开发与管理文档统一收在 `.agents/`，只维护一份，符号链接分发给各 agent CLI；外部事实文档（仓外系统的登记与定义，当前版即唯一真相）住根目录 `docs/`，按需建立、建前在注册表 `workspaceLayout.rootDirs` 登记。
 
 **放东西之前先读总规格：[`.agents/README.md`](./.agents/README.md)。**
 
@@ -11,6 +11,7 @@
 - **为什么** → `.agents/notes/`（`proposed | implemented | rejected | archived` × 6 类）
 - **过时的** → 状态翻转，或迁 `.agents/archive/` 封存；**永不删除**
 - （**不承诺的** → `.agents/future/`）
+- （**外部事实** → 根 `docs/`：仓外系统的登记与定义；当前版即唯一真相、无状态机，变更直接改、走 MR 评审；为什么变仍记 `.agents/notes/`）
 
 家决定放哪，**类型决定是什么**：`Type:` 头绑定模板、状态机、必备节与时效，全部登记在 [.agents/doc-types.json](./.agents/doc-types.json)（可读投影 [.agents/doc-types.md](./.agents/doc-types.md)）。
 
@@ -39,6 +40,7 @@
 ├── AGENTS.md           # 本文件（hot-path 规则）；CLAUDE.md 是其符号链接
 ├── README.md
 ├── .agents/            # ★ 唯一内容根（总规格见其 README）
+├── docs/               # 外部事实文档（按需建立；当前版即唯一真相）
 └── scripts/            # 门禁与工具
 ```
 

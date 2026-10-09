@@ -9,7 +9,7 @@
 3. **为什么** → `notes/`（决策因果与备选，永远不进 research）
 4. **过时的** → 优先状态翻转（`superseded` / `done` / `historical`）；冷历史迁 `archive/` 封存。**永不删除。**
 
-补充：**不承诺的** → `future/`；**可复用的干法** → `skills/`；**工作区规格与词汇** → 本目录 `README.md`、`GLOSSARY.md`、`doc-types.*`。
+补充：**不承诺的** → `future/`；**可复用的干法** → `skills/`；**外部事实** → 仓库根 `docs/`（本目录之外的可见树，按需建立：仓外系统的登记与定义，当前版即唯一真相、无状态机，建树前在注册表 `workspaceLayout.rootDirs` 登记）；**工作区规格与词汇** → 本目录 `README.md`、`GLOSSARY.md`、`doc-types.*`。
 
 六个家：[notes/](./notes/)、[plans/](./plans/)、[research/](./research/)、[future/](./future/)、[skills/](./skills/)、[archive/](./archive/)，另有 [templates/](./templates/)。各家装什么、允许哪些类型、状态怎么流转，唯一权威是[类型注册表](./doc-types.json)（可读投影 [doc-types.md](./doc-types.md)，生成物禁手改）。
 
@@ -129,4 +129,5 @@ node scripts/install-hooks.mjs       # 装 pre-commit 钩子（幂等，不覆�
 - 密钥/凭据/`.env`：任何情况下不进仓库（含 `.agents`）。
 - 原始大文件、二进制产物：不进；引用外部位置。
 - 批量原始语料（外部文档镜像、采集数据）：可以进，但目录里放一个空标记文件 `.agents-raw` 即整体豁免类型与写作检查；仍需一篇 `evidence` 或 `reference` 说明它是什么、怎么采的。
-- 将来如出现「对外文档/站点」（产品站、用户手册）：另立独立可见树，不放 `.agents`——**.agents 是工作区，不是发布面**。
+- 外部事实文档（仓外系统的登记与定义：资源 ID、字段映射、端点、协议、机器与网络形态）：住仓库根 `docs/` 可见树，按需建立（建树前在注册表 `workspaceLayout.rootDirs` 登记）——当前版即唯一真相，无类型与状态机，变更直接改、走 MR 评审；`research/` 的 `reference` 只承接调研与语料导览性质的长期参考。
+- 将来如出现「对外文档/站点」（产品站、用户手册）：另立独立可见树（与 `docs/` 事实登记面区分），不放 `.agents`——**.agents 是工作区，不是发布面**。

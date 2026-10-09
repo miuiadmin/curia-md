@@ -1,6 +1,6 @@
 # Curia — 智能体工作区规则
 
-本项目由 Curia 管理：开发与管理文档统一收在 `.agents/`，只维护一份，符号链接分发给各 agent CLI；外部事实文档（仓外系统的登记与定义，当前版即唯一真相）住根目录 `docs/`，按需建立、建前在注册表 `workspaceLayout.rootDirs` 登记。
+本项目由 Curia 管理：开发与管理文档统一收在 `.agents/`，只维护一份，符号链接分发给各 agent CLI；外部事实文档（仓外系统的登记与定义，当前版即唯一真相）住根目录 `docs/`，准入与约定见 docs/README.md。
 
 **放东西之前先读总规格：[`.agents/README.md`](./.agents/README.md)。**
 
@@ -28,6 +28,7 @@
 9. **写作与格式**：一段一物理行、中英之间加空格、全角标点、禁 emoji；术语查 [GLOSSARY](./.agents/GLOSSARY.md)；细则见 [prose-standard](./.agents/skills/prose-standard/SKILL.md)。
 10. **建档用脚手架**：`node scripts/new-doc.mjs --type <type> --topic <topic>`——头块字段、必备节、状态取值与复核时效都由类型注册表约束，手抄骨架会被门禁拦下；写作流程见 [write-doc](./.agents/skills/write-doc/SKILL.md)。
 11. **机制冻结**：`.agents/` 机制与 `scripts/` 只在两类信号下动——门禁漏了真问题、流程税高到开始少写文档；「还能更好」不是理由，预算还给产品。因果见冻结与二轮精简笔记。
+12. **本地不跑运行时**（Owner 2026-10-08，2026-10-09 收窄措辞）：一切运行时——数据库、Docker、服务、集成测试栈——跑在调试云双环境（test 栈 `curia-test-*` / dev 栈 `curia-dev-*`，见 deploy/debugcloud），内存与配置都够；本地只查看、编辑与同步文件，不执行构建、单测或重门（`scripts/deep-checks.mjs` 的 PG 矩阵等）；**文档门禁不在此列**——它是零依赖静态检查，按硬规则 6 随 pre-commit 在本地跑，改去云上跑反而验的是落后树；所有重验证经 SSH 在调试云执行，以服务器统一开发修订为准。起本地 Docker/PG 即违规，显式矩阵（`scripts/deep-checks.mjs`）的 DSN 指向调试云而非 127.0.0.1 容器。因果见本地无运行时笔记与文档门禁本地跑笔记。
 
 ## 桥
 
@@ -40,7 +41,6 @@
 ├── AGENTS.md           # 本文件（hot-path 规则）；CLAUDE.md 是其符号链接
 ├── README.md
 ├── .agents/            # ★ 开发管理文档唯一内容根（总规格见其 README）
-├── docs/               # 外部事实文档（按需建立；当前版即唯一真相）
 └── scripts/            # 门禁与工具
 ```
 

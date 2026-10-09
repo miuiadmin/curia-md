@@ -9,8 +9,8 @@
 | Type | 回答什么 | 关键约束 |
 |---|---|---|
 | `survey` | 一次性调研的问题、方法、结论 | 至少 3 处可回溯出处；`Updated` 超一年报警 |
-| `reference` | 外部系统的当前事实映射 | 必填 `Verified:`，超 120 天报警；复核后可从 `historical` 翻回 `current` |
-| `postmortem` | 事故的时间线、因果链、影响、预防 | 全工作区唯一允许叙事文体；行动项关闭后翻 `historical` |
+| `reference` | 调研与语料导览性质的长期参考（运行登记 → 仓库根 `docs/`） | 必填 `Verified:`，超 120 天报警；复核后可从 `historical` 翻回 `current` |
+| `postmortem` | 事故的时间线、因果链、影响、预防 | 全工作区唯一允许叙事文体（归档区 `frozen` 除外）；行动项关闭后翻 `historical` |
 | `evidence` | 原始事实：清单、命令输出、度量、语料镜像 | 必填 `Verified:` 与 `Source:`；不下结论（结论去 `survey`） |
 
 每个类型的必备节、专属检查与复核时效由[注册表](../doc-types.json)定义，可读投影见 [doc-types.md](../doc-types.md)。

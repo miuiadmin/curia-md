@@ -23,7 +23,7 @@ node scripts/doc-query.mjs --home plans --status active
 
 - 三个类型共用 `draft`（没开始）→ `active`（进行中）→ `done`（完成留档），任意态可 → `superseded`（必须带 `Superseded-by:` 链接）。
 - `active` 的计划必须维护「未完成事项」一节——它是这项工作唯一的活跃清单；本次做不完的项写 `DEFERRED: <原因 / 归属 / 触发条件>`。
-- 迁移由门禁对 git 基线校验：`done` 与 `superseded` 之后不得回到 `active`（`spec` 例外——规格可因后续变更重新激活）。
+- 迁移由门禁对 git 基线校验：`done` 与 `superseded` 之后不得回到 `active`（`spec` 例外——`done` 的规格可因后续变更重新激活；`superseded` 是终态，不得迁出）。
 
 ## 流转
 

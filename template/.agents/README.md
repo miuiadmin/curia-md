@@ -1,6 +1,6 @@
 # .agents — Curia 工作区总规格
 
-本系统名为 **Curia（枢机院）**：可移植到任何项目的 AI 原生文档管理制度——本目录即其内容根：开发与管理文档只收这里、只维护一份，经符号链接分发各 CLI。**判断「一个新东西该放哪」只看这一页**；建立决策见单根工作区决策笔记。
+本系统名为 **Curia（枢机院）**：可移植到任何项目的 AI 原生文档管理制度——本目录即其在 Curia 的实例与开发管理文档的唯一内容根：开发与管理文档只收这里、只维护一份，经符号链接分发各 CLI；外部事实文档（仓外系统的登记与定义，当前版即唯一真相）住仓库根 docs/ 可见树，不入本系统类型生命周期，准入见「边界」。**判断「一个新东西该放哪」只看这一页**；建立决策见单根工作区决策笔记。
 
 ## 四句口诀（放哪的最后裁决）
 
@@ -9,7 +9,7 @@
 3. **为什么** → `notes/`（决策因果与备选，永远不进 research）
 4. **过时的** → 优先状态翻转（`superseded` / `done` / `historical`）；冷历史迁 `archive/` 封存。**永不删除。**
 
-补充：**不承诺的** → `future/`；**可复用的干法** → `skills/`；**外部事实** → 仓库根 `docs/`（本目录之外的可见树，按需建立：仓外系统的登记与定义，当前版即唯一真相、无状态机，建树前在注册表 `workspaceLayout.rootDirs` 登记）；**工作区规格与词汇** → 本目录 `README.md`、`GLOSSARY.md`、`doc-types.*`。
+补充：**不承诺的** → `future/`；**可复用的干法** → `skills/`；**外部事实** → 仓库根 `docs/`（本目录之外的可见树：仓外系统的登记与定义，当前版即唯一真相、无状态机，准入判据见「边界」与 docs/README.md）；**工作区规格与词汇** → 本目录 `README.md`、`GLOSSARY.md`、`doc-types.*`。
 
 六个家：[notes/](./notes/)、[plans/](./plans/)、[research/](./research/)、[future/](./future/)、[skills/](./skills/)、[archive/](./archive/)，另有 [templates/](./templates/)。各家装什么、允许哪些类型、状态怎么流转，唯一权威是[类型注册表](./doc-types.json)（可读投影 [doc-types.md](./doc-types.md)，生成物禁手改）。
 
@@ -76,8 +76,8 @@ Verified: yyyy-mm-dd
 ## 检索
 
 ```bash
-# 全工作区检索（排除归档区；.agents-raw 语料目录按名排除，新增语料时补一项；已建 docs/ 外部事实树的项目把 docs/ 追加进检索路径）
-rg --hidden -g '!**/archived/**' -g '!.agents/archive/**' -g '!**/2026-10-02-session-transcripts/**' -g '!**/2026-10-02-qoder-intl-docs/**' -g '!doc-types.md' <关键词> .agents/
+# 全工作区检索（排除归档区；.agents-raw 语料目录按名排除，新增语料时补一项）
+rg --hidden -g '!**/archived/**' -g '!.agents/archive/**' -g '!**/2026-10-02-session-transcripts/**' -g '!**/2026-10-02-qoder-intl-docs/**' -g '!doc-types.md' <关键词> .agents/ docs/
 
 # 只搜决策笔记（含 rejected，排除 archived；语料与投影排除为全工作区统一项）
 rg --hidden -g '!.agents/notes/archived/**' -g '!**/2026-10-02-session-transcripts/**' -g '!**/2026-10-02-qoder-intl-docs/**' -g '!doc-types.md' <关键词> .agents/notes/
@@ -126,8 +126,8 @@ node scripts/install-hooks.mjs       # 装 pre-commit 钩子（幂等，不覆�
 
 ## 边界（什么不进这里）
 
-- 密钥/凭据/`.env`：默认不进仓库（含 `.agents`）；宿主仓为受控私有仓且凭据仅在受控网内可用（双支柱）时，可经 Owner 裁决修订为可入仓——修订须同批改写本条并记录因果笔记。
+- 凭据/密钥：可入仓（Owner 2026-10-09 修订，因果见凭据入仓笔记）——依据双支柱：仓库托管于内网私有 GitLab，仓库本身即受控边界；且这类凭据只在内网可用，泄漏到外网无可用性。对外开源与分享材料仍须脱敏。`.env`（gitignore）形态保留可用，两种形态不互斥。
 - 原始大文件、二进制产物：不进；引用外部位置。
 - 批量原始语料（外部文档镜像、采集数据）：可以进，但目录里放一个空标记文件 `.agents-raw` 即整体豁免类型与写作检查；仍需一篇 `evidence` 或 `reference` 说明它是什么、怎么采的。
-- 外部事实文档（仓外系统的登记与定义：资源 ID、字段映射、端点、协议、机器与网络形态）：住仓库根 `docs/` 可见树，按需建立（建树前在注册表 `workspaceLayout.rootDirs` 登记）——当前版即唯一真相，无类型与状态机，变更直接改、走 MR 评审；`research/` 的 `reference` 只承接调研与语料导览性质的长期参考。
-- 将来如出现「对外文档/站点」（产品站、用户手册）：另立独立可见树（与 `docs/` 事实登记面区分），不放 `.agents`——**.agents 是工作区，不是发布面**。
+- **外部事实文档**（仓外系统的登记与定义：资源 ID、字段映射、端点、协议、机器与网络形态）：住仓库根 `docs/` 可见树——当前版即唯一真相，无类型与状态机，变更直接改、走 MR 评审；准入判据与约定见 docs/README.md，决策见外部事实树笔记。`research/` 的 `reference` 类型继续承接调研与语料导览性质的长期参考；运行登记一律去 `docs/`。
+- 将来如出现「对外文档/站点」（产品站、用户手册）：另立独立可见树（与 `docs/` 的事实登记面区分），不放 `.agents`——**.agents 是工作区，不是发布面**。

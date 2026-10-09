@@ -10,7 +10,7 @@ description: 在 Curia .agents 工作区新建或修改文档的完整流程—�
 ## 定家定型（两步）
 
 1. **定家**：按 AGENTS.md 的四句口诀——为什么 → `notes/`（走 write-note）；没做的 → `plans/`（未承诺 → `future/`）；做完的 → `research/`；可复用干法 → `skills/`，冷历史 → `archive/`；**外部事实**（仓外系统的登记与定义，当前版即唯一真相）→ 仓库根 `docs/`（类型系统之外，准入与约定见其 README，不走本技能定型步骤）。
-2. **定型**：同一家里类型互斥，判据现查 `node scripts/new-doc.mjs --list`（每类的装什么/不装什么都在输出里，不要背表）。两组最常混的：`survey` 会过时、`reference` 持续维护带 `Verified:`；`spec` 做完仍是权威（`done` 不退役）、`plan` 做完就是历史。
+2. **定型**：同一家里类型互斥，判据现查 `node scripts/new-doc.mjs --list`（每类的装什么/不装什么都在输出里，不要背表）。两组最常混的：`survey` 会过时、`reference` 持续维护带 `Verified:`；`spec` 做完仍是权威（`done` 不退役）、`plan` 做完就是历史。运行登记不再用 `reference`——它只留调研与语料导览性质，外部事实住根 `docs/`。
 
 ## 流程
 

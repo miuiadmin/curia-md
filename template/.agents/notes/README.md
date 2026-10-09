@@ -13,7 +13,7 @@
 写新笔记前先搜活跃树——**含 `rejected/`，可能是被否决过的方案**：
 
 ```bash
-rg --hidden -g '!.agents/notes/archived/**' <关键词> .agents/notes/
+rg --hidden -g '!.agents/notes/archived/**' -g '!**/2026-10-02-session-transcripts/**' -g '!**/2026-10-02-qoder-intl-docs/**' -g '!doc-types.md' <关键词> .agents/notes/
 ```
 
 活跃树即工作清单：按 lifecycle/class 目录浏览或全文检索。

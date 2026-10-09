@@ -11,12 +11,7 @@ node_modules/
 # 门禁规则命中台账（本地审计数据，不入库；.rule-hits.v1-*.jsonl 为归档的旧口径台账）
 .agents/.rule-hits*.jsonl
 
-# 环境配置真值（需要样例时提交把真值替换成占位符的 .env.example）
-.env
-.env.local
-.env.dev
-.env.test
-.env.prod
+# 环境配置（2026-10-09 起凭据可入仓——内网私有仓+凭据内网-only；见 .agents/notes/implemented/process/2026-10-09-credentials-in-repo.md）
 # .env.postgres
 
 # 工单包是生成物，不进 git（台账 receipts/probes 要进，勿整目录忽略）

@@ -152,8 +152,8 @@
 - 字段：必填 `Type` `Status` `Updated` `Verified`；可选 `Owner` `Source` `Note` `Supersedes` `Superseded-by`；禁止 `Archived`
 - 时效：`Verified` 超 120 天报警；文体：非叙事（禁推理记录）
 - 专属检查：`source-traceable`
-- 装什么：外部系统的当前事实映射（端点、字段、配额、行为差异），持续维护、按 `Verified` 复核。
-- 不装什么：一次性调研结论（→ survey）、原始采集数据（→ evidence）。
+- 装什么：调研与语料导览性质的长期参考，持续维护、按 `Verified` 复核。
+- 不装什么：一次性调研结论（→ survey）、原始采集数据（→ evidence）、外部系统运行登记（资源 ID、凭据、端点、字段映射等现值 → 仓库根 `docs/` 外部事实树，类型系统外）。
 
 ### `postmortem` — 事故复盘
 

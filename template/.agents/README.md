@@ -76,7 +76,7 @@ Verified: yyyy-mm-dd
 ## 检索
 
 ```bash
-# 全工作区检索（排除归档区；.agents-raw 语料目录按名排除，新增语料时补一项）
+# 全工作区检索（排除归档区；.agents-raw 语料目录按名排除，新增语料时补一项；已建 docs/ 外部事实树的项目把 docs/ 追加进检索路径）
 rg --hidden -g '!**/archived/**' -g '!.agents/archive/**' -g '!**/2026-10-02-session-transcripts/**' -g '!**/2026-10-02-qoder-intl-docs/**' -g '!doc-types.md' <关键词> .agents/
 
 # 只搜决策笔记（含 rejected，排除 archived；语料与投影排除为全工作区统一项）
@@ -126,7 +126,7 @@ node scripts/install-hooks.mjs       # 装 pre-commit 钩子（幂等，不覆�
 
 ## 边界（什么不进这里）
 
-- 密钥/凭据/`.env`：任何情况下不进仓库（含 `.agents`）。
+- 密钥/凭据/`.env`：默认不进仓库（含 `.agents`）；宿主仓为受控私有仓且凭据仅在受控网内可用（双支柱）时，可经 Owner 裁决修订为可入仓——修订须同批改写本条并记录因果笔记。
 - 原始大文件、二进制产物：不进；引用外部位置。
 - 批量原始语料（外部文档镜像、采集数据）：可以进，但目录里放一个空标记文件 `.agents-raw` 即整体豁免类型与写作检查；仍需一篇 `evidence` 或 `reference` 说明它是什么、怎么采的。
 - 外部事实文档（仓外系统的登记与定义：资源 ID、字段映射、端点、协议、机器与网络形态）：住仓库根 `docs/` 可见树，按需建立（建树前在注册表 `workspaceLayout.rootDirs` 登记）——当前版即唯一真相，无类型与状态机，变更直接改、走 MR 评审；`research/` 的 `reference` 只承接调研与语料导览性质的长期参考。

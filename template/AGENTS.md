@@ -39,7 +39,7 @@
 <你的项目>/
 ├── AGENTS.md           # 本文件（hot-path 规则）；CLAUDE.md 是其符号链接
 ├── README.md
-├── .agents/            # ★ 唯一内容根（总规格见其 README）
+├── .agents/            # ★ 开发管理文档唯一内容根（总规格见其 README）
 ├── docs/               # 外部事实文档（按需建立；当前版即唯一真相）
 └── scripts/            # 门禁与工具
 ```

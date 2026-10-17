@@ -22,4 +22,4 @@ node .agents/tools/new-doc.mjs --type runbook --topic <kebab-name>
 
 ## 桥的代价
 
-本目录经符号链接暴露给 Claude Code 与 Codex（`.claude/skills`、`.codex/skills`）；Pi 与 Codex 还原生读取 `.agents/skills/`。代价是**本目录下不要放与技能无关的文件**——它们会被一起分发。
+本目录经符号链接暴露给 Claude Code 与 Codex（`.claude/skills`、`.codex/skills`）；Codex 也原生读取 `.agents/skills/`。代价是**本目录下不要放与技能无关的文件**——它们会被一起分发。

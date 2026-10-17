@@ -17,9 +17,10 @@
 
 ## 桥
 
-`CLAUDE.md`、`.claude/skills`、`.codex/skills` 是指向 `AGENTS.md` / `.agents/skills/` 的符号链接（不是副本）；Claude Code、Codex 等 CLI 从这些入口读取本规则与技能。桥被占用或缺失时，重建命令是：
+`CLAUDE.md`、`.claude/skills`、`.codex/skills` 是指向 `AGENTS.md` / `.agents/skills/` 的符号链接（不是副本）；Claude Code、Codex 等 CLI 从这些入口读取本规则与技能。桥缺失时（被占用的路径先备份移开再重建），命令是：
 
 ```bash
+mkdir -p .claude .codex
 ln -s AGENTS.md CLAUDE.md
 ln -s ../.agents/skills .claude/skills
 ln -s ../.agents/skills .codex/skills

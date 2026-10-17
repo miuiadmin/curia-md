@@ -25,7 +25,7 @@ create-curia/
 ├── bin/init.mjs            # 生成器入口：复制 + 桥 + 下一步
 ├── template/               # 分发载荷（约 30 个文件、2 支脚本）
 │   ├── AGENTS.md           # 通用规则集（8 条）
-│   ├── README.md           # 载荷说明与三步上手
+│   ├── README.md           # 工作区介绍与上手（生成到目标仓根）
 │   ├── .gitignore
 │   ├── docs/README.md      # 知识根约定
 │   └── .agents/

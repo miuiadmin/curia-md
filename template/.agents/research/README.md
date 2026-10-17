@@ -17,7 +17,7 @@
 
 ## 状态
 
-`current`（与现状一致）→ `historical`（属于历史时点，不再保证为真）；被取代 → `superseded` + `Superseded-by:`。
+`current`（与现状一致）→ `historical`（属于历史时点，不再保证为真）；被取代 → `superseded` + `Superseded-by:`（`postmortem` 只有 `current` / `historical`）。
 
 ## 纪律
 

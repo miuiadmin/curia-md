@@ -10,13 +10,13 @@ description: 在 Curia .agents 工作区新建或修改文档的完整流程—�
 ## 定家定型（两步）
 
 1. **定家**：按四句口诀——为什么 → `notes/`（走 [write-note](../write-note/SKILL.md)）；没做的 → `plans/`；做完的 → `research/`；可复用的干法 → `skills/`；外部事实 → 根 `docs/`；冷历史 → `archive/`。
-2. **定型**：同一家里类型互斥，判据现查 `node .agents/tools/new-doc.mjs --list`（每类的装什么、住哪、建议节都在输出里，不要背表）。两组最常混的：`survey` 会过时、`reference` 持续维护；`spec` 做完仍是权威（`done` 不退役）、`plan` 做完就是历史。
+2. **定型**：同一家里类型互斥，判据现查 `node .agents/tools/new-doc.mjs --list`（每类的家、初始 Status 与建议节都在输出里，不要背表）。两组最常混的：`survey` 会过时、`reference` 持续维护；`spec` 做完仍是权威（`done` 不退役）、`plan` 做完就是历史。
 
 ## 流程
 
 1. **建档**：`node .agents/tools/new-doc.mjs --type <type> --topic <topic>`（`skill` 与 `runbook` 的 topic 是目录名，须 kebab-case）；也可以手抄 [.agents/templates/](../../templates/) 里对应骨架。
 2. **先核事实，再写字**：每条命令、默认值、端点、路径、行为都要跑一遍或读到原文；核不到的写「未核实 + 核实归属」，不凭记忆、类比或隔壁文档下笔。
-3. **填建议节**：按骨架顺序写；确实无内容的节只写 `_（无）_`，不删节。
+3. **填建议节**：按骨架顺序写；无内容的节可写 `_（无）_`；同族类型可按内容增删节，但不搬另一个家的事实。
 4. **写正文**：只写当前状态；篇幅凭判断——事实写够即止，没有字数预算；格式硬规则（一段一行、中英空格、全角标点、禁 emoji）见根 `AGENTS.md` 第 6 条，句子层面的自查见 [prose-standard](../prose-standard/SKILL.md)。
 5. **落头块**：`Updated:` 改今天；`Status: superseded` 必须带 `Superseded-by:` 相对链接。
 6. **自检（可选）**：`node .agents/tools/check-docs.mjs` 报告模式看发现，`--strict` 任一发现即退出码 1；报错就地修文档，不要改脚本。装不装提交钩子归项目自定。
@@ -24,7 +24,7 @@ description: 在 Curia .agents 工作区新建或修改文档的完整流程—�
 
 ## 晋级与退役
 
-- 承诺了：不承诺的意图落成 `draft` 的 proposal；做完的计划翻 `done`，事实与因果分家互链。
+- 想做的：不承诺的意图落成 `draft` 的 proposal；做完的计划翻 `done`，事实与因果分家互链。
 - 过时了：优先状态翻转（`superseded` / `done` / `historical`）；冷历史走[归档四步](../../archive/README.md)——移动、`Archived:` 行、重写自身相对链接、修入链。**永不删除。**
 
 ## 改类型系统本身

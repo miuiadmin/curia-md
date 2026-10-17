@@ -10,7 +10,7 @@
  *   默认两根按脚本位置（工作区根）解析，与调用时的工作目录无关——从任意子目录调用结果一致。
  * 取舍：模板目录缺失按配置错误（2，模板是类型枚举的第二份表示）；「跳过 K 项」= 跳过组数；
  *   目录名 kebab-case 只查 `.agents/` 子树；日期型文件名只查 plans/research 家与 notes 活动区；
- *   组 7/8 一行只报第一处；组 0「编码」在文件无法按 UTF-8 解码时报出；纯文件系统遍历，不读 git；
+ *   组 7/8 一行只报第一处；组 0「编码」在文件无法按 UTF-8 解码或含 NUL 字节时报出；纯文件系统遍历，不读 git；
  *   仅 POSIX 实测：Windows 未实测、路径大小写不做归一（绝对 --exclude 按逐字前缀比较）。
  * 行数：规范「合计目标 ≤ 500 行」——本文件 435 行 + new-doc.mjs 86 行 = 521 行，小幅超出为修判据误报/漏报（emoji 字符集、引用块与闭合围栏、符号链接定位、超长行守卫、setext 与脚注定义、注释区域级掩码）；硬线为单支 600 行，未超。
  */
@@ -65,10 +65,10 @@ function relOf(abs) {
   return r === '' ? '.' : r;
 }
 
-/** 读文件：剥 BOM（否则首行标题匹配失败）；bad = 含 U+FFFD（解码损坏，中文判据不可信）。 */
+/** 读文件：剥 BOM（否则首行标题匹配失败）；bad = 含 U+FFFD 或 NUL 字节（解码损坏或非文本编码——NUL 覆盖 BOM 缺省的 UTF-16 等，判据不可信）。 */
 function readLines(abs) {
   const raw = readFileSync(abs, 'utf8').replace(/^\uFEFF/, '');
-  return { lines: raw.replace(/\r\n?/g, '\n').split('\n'), bad: raw.includes('\uFFFD') };
+  return { lines: raw.replace(/\r\n?/g, '\n').split('\n'), bad: raw.includes('\uFFFD') || raw.includes('\u0000') };
 }
 
 /** 极简 glob → RegExp：`**` 跨任意层目录（含零层），`*` 不跨目录（占位符避开替换串里的 `*`）。 */
@@ -133,7 +133,7 @@ function collect(roots, excludes) {
   const stack = roots.map((r) => ({ abs: r, rel: relOf(r) }));
   while (stack.length) {
     let cur = stack.pop();
-    let st; try { st = statSync(cur.abs); } catch { continue; } // 悬空符号链接等
+    let st; try { st = statSync(cur.abs); } catch (e) { if (e.code === 'ENOENT' || e.code === 'ELOOP') continue; throw e; } // 悬空/成环符号链接跳过；其余（ENAMETOOLONG、EACCES 等）必须响，不得静默漏检
     let real; try { real = realpathSync(cur.abs); } catch { real = cur.abs; }
     if (!inFace(real) || seen.has(real)) continue;
     seen.add(real);
@@ -377,7 +377,7 @@ function checkDoc(f, skip, out) {
   const base = basename(f.abs);
   const isIndex = INDEX_NAMES.has(base) || base === 'SKILL.md'; // 类型化文档的例外名
   const g = activeGroups(loc, isIndex, skip);
-  if (bad) add(out, 0, f.rel, 1, '文件含无法按 UTF-8 解码的字节（疑似非 UTF-8 编码），其余判据不可信');
+  if (bad) add(out, 0, f.rel, 1, '文件含无法按 UTF-8 解码的字节或 NUL 字节（疑似非 UTF-8 文本），其余判据不可信');
   if (g.has(1)) checkHeaderBlock(f.rel, hdr, out);
   if (g.has(2)) checkSuperseded(f.rel, dirname(f.abs), hdr, out);
   if (g.has(3)) checkNoteHeader(f.rel, lines, hdr, loc, out);

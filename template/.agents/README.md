@@ -293,7 +293,7 @@ node .agents/tools/check-docs.mjs --strict [路径…]   # 严格模式：任一
 
 | # | 组 | 判据（命中即报） |
 |---|---|---|
-| 0 | 编码 | 文件含无法按 UTF-8 解码的字节（检出 U+FFFD 替换字符）——报，并注明其余判据不可信。 |
+| 0 | 编码 | 文件含无法按 UTF-8 解码的字节或 NUL 字节（检出 U+FFFD 替换字符或 NUL）——报，并注明其余判据不可信。 |
 | 1 | 头块 | 类型化文档（定义见「3 行头块」）必须有 `Type:`、`Status:`、`Updated:` 三行且顺序固定；Type 不在 9 类内、Status 不在该类型允许集内、`Updated:` 非 `yyyy-mm-dd`、字段值残留 `<占位符>`——报。 |
 | 2 | 状态与取代 | `Status: superseded` 无 `Superseded-by:`——报；`Superseded-by:` 的裸路径形态（非 Markdown 链接）目标不存在——报；Markdown 链接形态的目标存在性归第 9 组。 |
 | 3 | 笔记头 | 活动笔记（`notes/` 下非 `archived/`）：标题后的第一个非空行必须是 `Status:`，取值与所在 lifecycle 目录一致；`rejected` 的 `—` 后原因为空——报；`notes/` 下不在 lifecycle 目录（proposed / implemented / rejected）的笔记——报。 |
@@ -331,7 +331,7 @@ node .agents/tools/check-docs.mjs --strict [路径…]   # 严格模式：任一
 node .agents/tools/check-docs.mjs --strict
 ```
 
-注意：检查脚本读工作树、不读索引——先 `git add` 坏版、改好工作树再提交，提交进去的仍是未经检查的版本；改完务必重新 `git add`。
+注意：检查脚本读工作树、不读索引。不带路径的 `git commit` 提交的是索引版本——先 `git add` 坏版、改好工作树再提交，提交进去的仍是未经检查的版本，改完务必重新 `git add`；带路径的 `git commit -- <路径>` 提交的是工作树版本，与检查面一致。另：工作树里的未跟踪半成品也在扫描面内，会拦停与它无关的提交。
 
 ### 存量树只读纳管
 

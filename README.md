@@ -23,7 +23,7 @@ Curia 是一套可移植的文档管理方案：两根布局（`.agents/` 管过
 ```text
 create-curia/
 ├── bin/init.mjs            # 生成器入口：复制 + 桥 + 下一步
-├── template/               # 分发载荷（约 30 个文件、2 支脚本）
+├── template/               # 分发载荷（36 个文件、2 支脚本）
 │   ├── AGENTS.md           # 通用规则集（8 条）
 │   ├── README.md           # 工作区介绍与上手（生成到目标仓根）
 │   ├── .gitignore
@@ -34,14 +34,16 @@ create-curia/
 │       ├── templates/      # 9 份类型骨架，文件名即类型键
 │       ├── tools/          # check-docs.mjs 与 new-doc.mjs
 │       ├── examples/       # 3 份手写示例（可删）
-│       ├── plans/ research/ notes/ skills/ archive/
+│       ├── plans/ research/ notes/ archive/
 │       └── skills/         # write-doc / write-note / prose-standard
 └── package.json
 ```
 
+`template/` 内另有 3 个桥符号链接（`CLAUDE.md`、`.claude/skills`、`.codex/skills`）：模板目录自足（整目录直拷即为可用工作区）；`init` 复制时跳过它们，由桥步在目标仓重建。
+
 ## 红线
 
-- **生成器，不是运行时**：`init` 只复制载荷、建桥与打印下一步——不提问、不装钩子、不重生成投影、不运行载荷内任何脚本；生成物不 `import` 本包任何模块。
+- **生成器，不是运行时**：`init` 只复制载荷、建桥与打印下一步——不提问、不装钩子、不运行载荷内任何脚本；生成物不 `import` 本包任何模块。
 - **零依赖**：本包 `dependencies` 为空，只用 Node 内置模块（Node ≥ 18）；载荷脚本同样零依赖、不联网。
 - **fork-and-own**：生成后目标仓与本包再无关系；没有 `upgrade` / `check` 驻留子命令，同步靠重开 init 到新目录 diff，或 git cherry-pick。
 - **不覆盖**：目标已存在且内容不同的文件一律保留并列出；桥被占用时打印 `ln -s` 命令后跳过。

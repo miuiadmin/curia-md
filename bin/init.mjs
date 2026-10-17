@@ -6,7 +6,7 @@
  *   - 复制包内 template/ 载荷（逐项；桥树留给桥步）；
  *   - 创建桥符号链接（目标路径空闲即建；被占用时打印手工命令并跳过）；
  *   - 打印下一步。
- * 无提问、不装钩子、不重生成投影、不运行载荷内任何脚本；目标已存在且内容不同的文件一律不覆盖，
+ * 无提问、不装钩子、不运行载荷内任何脚本；目标已存在且内容不同的文件一律不覆盖，
  * 只列出。生成后目标仓与本包再无关系（fork-and-own）——本工具只有 init，没有驻留子命令。
  *
  * 用法：
@@ -161,10 +161,20 @@ function run(opts) {
   if (inside(target) || inside(targetReal)) {
     die(`目标不能落在 create-curia 包内：${target}；请在你要接入的仓库里运行（不指定 --dir 时用当前工作目录）`);
   }
-  if (existsSync(target)) {
-    if (!lstatSync(target).isDirectory()) die(`目标已存在且不是目录：${target}；把 --dir 指向目录，或先移走同名文件`);
+  if (lstatExists(target)) {
+    let isDir = false;
+    try {
+      isDir = statSync(target).isDirectory(); // 跟随符号链接：指向目录的符号链接算目录（macOS 的 /tmp 即如此）
+    } catch {
+      // 悬空符号链接等：按「不是目录」处理，给可读错误而不是裸崩
+    }
+    if (!isDir) die(`目标已存在且不是目录：${target}；把 --dir 指向目录，或先移走同名文件`);
   } else {
-    mkdirSync(target, { recursive: true });
+    try {
+      mkdirSync(target, { recursive: true });
+    } catch (e) {
+      die(`无法创建目标目录：${target} — ${e.message}`);
+    }
     log(`已新建目标目录：${target}`);
   }
   log(`目标仓库：${target}`);
@@ -253,8 +263,13 @@ function run(opts) {
       warn(`未创建 ${b.path}：路径已被占用（不是指向 ${b.target} 的符号链接）——备份后删除该路径再重跑，或手工执行 ln -s ${b.target} ${b.path}`);
       continue;
     }
-    mkdirSync(dirname(dst), { recursive: true });
-    symlinkSync(b.target, dst);
+    try {
+      mkdirSync(dirname(dst), { recursive: true });
+      symlinkSync(b.target, dst);
+    } catch (e) {
+      warn(`未创建 ${b.path}：${e.message}——占用路径先备份移走再重跑，或手工执行 ln -s ${b.target} ${b.path}`);
+      continue;
+    }
     bridgesCreated.push(b.path);
     log(`已创建桥：${b.path} -> ${b.target}`);
   }

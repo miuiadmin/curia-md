@@ -1,8 +1,8 @@
 # archive/ — 冻结留档区
 
-**装什么**：已退役的整篇文档（`plans/`、`research/` 的冷历史）。**只归档、不删除。**
+**装什么**：类型化文档的冷历史（`plans/`、`research/` 及 `skills/` 下的 runbook）。**只归档、不删除。**
 
-**不装什么**：笔记的归档——它们走 [../notes/archived/](../notes/archived/)（另一处归属）；技能与各家 README 是活的入口页，不归档。
+**不装什么**：笔记的归档——它们走 [../notes/archived/](../notes/archived/)（另一处归属）；`SKILL.md` 与各家 README 是活的入口页，不归档。
 
 ## 归档四步
 

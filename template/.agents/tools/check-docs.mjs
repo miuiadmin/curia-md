@@ -332,7 +332,7 @@ function checkProse(rel, lines, a, hdr, g, out) {
   flush(lines.length);
 }
 
-/** 组 9：相对 Markdown 链接目标不存在（锚点与外部 URL 跳过；扫描含归档区）。 */
+/** 组 9：相对 Markdown 链接目标不存在（锚点与外部 URL 跳过，含协议相对 `//`；扫描含归档区）。 */
 function checkLinks(rel, abs, lines, a, out) {
   const dir = dirname(abs);
   for (let i = 0; i < lines.length; i++) {
@@ -342,7 +342,7 @@ function checkLinks(rel, abs, lines, a, out) {
     for (const m of masked.matchAll(LINK_RE)) {
       let target = m[1].trim();
       if (target.startsWith('<') && target.endsWith('>')) target = target.slice(1, -1).trim(); // CommonMark 尖括号目标：剥 `<` `>` 再判存在性
-      if (!target || target.startsWith('#') || SCHEME_RE.test(target)) continue;
+      if (!target || target.startsWith('#') || target.startsWith('//') || SCHEME_RE.test(target)) continue;
       const pathPart = target.split('#')[0];
       if (pathPart && !targetExists(dir, pathPart)) add(out, 9, rel, i + 1, `相对链接目标不存在：${target}`);
     }

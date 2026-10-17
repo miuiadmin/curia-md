@@ -14,7 +14,7 @@
 
 **类型化文档（typed doc）**：带 `Type:` / `Status:` / `Updated:` 三行头块、按 9 类之一定义、住对应家的文档；目录说明文件、笔记、`skill` 与 `docs/` 文档不适用。_Avoid_: 正式文档
 
-**头块（header block）**：文档首个标题后的固定字段行块——类型化文档三行固定，笔记两行（标题与 `Status:`），`skill` 用 frontmatter。_Avoid_: frontmatter（只有技能用）
+**头块（header block）**：文档开头的固定字段行块——类型化文档三行固定，笔记两行（标题与 `Status:`），`skill` 用 frontmatter；`docs/` 文档无头块。_Avoid_: frontmatter（只有技能用）
 
 **笔记（note）**：`notes/` 下的决策因果记录，头块两行，取值与所在 lifecycle 目录一致。_Avoid_: 日记、流水账
 
@@ -22,7 +22,7 @@
 
 **技能（skill）**：`skills/<name>/SKILL.md`——按需加载的工作流；frontmatter 的 `description` 决定触发时机。_Avoid_: 提示词模板、脚本
 
-**归档四步**：移动、加 `Archived:` 行、重写自身相对链接、修入链；缺一步就会留下断链。_Avoid_: 备份、冷存储
+**归档四步**：移动、加 `Archived:` 行、重写自身相对链接、修入链；第 3、4 步缺一步都会留下断链或静默错链。_Avoid_: 备份、冷存储
 
 **取代（superseded）**：文档被取代后的终态；必须带 `Superseded-by:` 指向取代者，不得迁出。_Avoid_: 废弃、作废
 

@@ -64,4 +64,4 @@ description: Curia 写作与格式标准。写或修改任何笔记、文档、�
 
 ## 工作流
 
-先读目标文件与相关规范（所属目录 README、[规范全文](../../README.md)、GLOSSARY）→ 按覆盖表判「必须写 / 不该有」→ 逐条核对完整命题、删 slop、三档法校准 → 跑 `node .agents/tools/check-docs.mjs`（机械面机器判、语义你判，可选）。被取代的决策按笔记约定新开一篇互链。
+先读目标文件与相关规范（所属目录 README、[规范全文](../../README.md)、GLOSSARY）→ 按覆盖表判「必须写 / 不该有」→ 逐条核对完整命题、删 slop、三档法校准 → 跑 `node .agents/tools/check-docs.mjs`（机械子集机器判、语义你判，可选）。被取代的决策按笔记约定新开一篇互链。

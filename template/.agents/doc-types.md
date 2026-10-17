@@ -298,7 +298,7 @@
 | `.agents/` 子目录 | `notes` `skills` `plans` `research` `future` `archive` `templates` |
 | `.agents/` 文件 | `README.md` `GLOSSARY.md` `doc-types.json` `doc-types.md` |
 | 仓库根 Markdown | `AGENTS.md` `README.md` `CLAUDE.md` |
-| 仓库根目录 | `.agents` `.claude` `.codex` `.git` `scripts` |
+| 仓库根目录 | `.agents` `.claude` `.codex` `.git` `docs` `scripts` |
 | `.agents/templates` | 只放 `.md` 模板，且每个模板必须被某个类型引用 |
 
 | 桥 | 指向 | 消费方 |

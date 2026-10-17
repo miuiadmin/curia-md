@@ -1,6 +1,6 @@
 #!/bin/sh
 # curia-hook: 提交前门禁。安装/更新：node scripts/install-hooks.mjs
-# 语义：以 CURIA_STAGED=1 调用总入口，八道守卫校验的是 git 索引里的暂存内容——
+# 语义：以 CURIA_STAGED=1 调用总入口，各道守卫校验的是 git 索引里的暂存内容——
 #       先 add 坏版本、再在盘上改好，仍会按索引里的版本拦下（环境变量由子进程继承透传）。
 #       交互运行 node scripts/run-checks.mjs（无此变量）校验工作区。
 # 绕过：git commit --no-verify（不推荐——绕过门禁等于把红线留给自己下次踩）

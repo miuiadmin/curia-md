@@ -5,7 +5,7 @@ Agent Note 是 agent 写的 RFC 式决策记录：沉淀代码与文档装不下
 **动手重构/选型前先搜笔记**——含 `rejected/`，可能是被否决过的方案：
 
 ```bash
-rg --hidden -g '!.agents/notes/archived/**' -g '!**/2026-10-02-session-transcripts/**' -g '!**/2026-10-02-qoder-intl-docs/**' -g '!doc-types.md' <关键词> .agents/notes/
+rg --hidden -g '!.agents/notes/archived/**' -g '!doc-types.md' <关键词> .agents/notes/
 ```
 
 - **每篇新笔记触发 supersession 检查**：先 rg 搜活跃树（排除 archived/），当场分类——无关 / 部分重叠（互链）/ 完全吸收（合并或归档）/ 过时提案（转 rejected）——分类结论与新笔记同批落盘。

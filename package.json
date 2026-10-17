@@ -1,6 +1,7 @@
 {
   "name": "create-curia",
   "version": "0.1.0",
+  "private": true,
   "description": "Scaffold a Curia AI-native documentation workspace into any repository (npm create curia).",
   "keywords": [
     "curia",
@@ -22,7 +23,8 @@
     "bin/",
     "template/",
     "template/.gitignore",
-    "README.md"
+    "README.md",
+    "docs/"
   ],
   "engines": {
     "node": ">=18"

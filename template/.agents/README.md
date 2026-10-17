@@ -1,6 +1,6 @@
 # .agents — Curia 工作区总规格
 
-本系统名为 **Curia（枢机院）**：可移植到任何项目的 AI 原生文档管理制度——本目录即其在 Curia 的实例与开发管理文档的唯一内容根：开发与管理文档只收这里、只维护一份，经符号链接分发各 CLI；外部事实文档（仓外系统的登记与定义，当前版即唯一真相）住仓库根 docs/ 可见树，不入本系统类型生命周期，准入见「边界」。**判断「一个新东西该放哪」只看这一页**；建立决策见单根工作区决策笔记。
+本系统名为 **Curia（枢机院）**：`.agents/` 是开发协作的唯一内容根，知识与结果住按需创建的根 `docs/`。API、手册、方法、事实、台账和记录可以直接维护最终内容，不为纳管补造过程；已启用的类型、冻结与原项目规则继续生效。**判断「一个新东西该放哪」只看这一页**。
 
 ## 四句口诀（放哪的最后裁决）
 
@@ -9,7 +9,7 @@
 3. **为什么** → `notes/`（决策因果与备选，永远不进 research）
 4. **过时的** → 优先状态翻转（`superseded` / `done` / `historical`）；冷历史迁 `archive/` 封存。**永不删除。**
 
-补充：**不承诺的** → `future/`；**可复用的干法** → `skills/`；**外部事实** → 仓库根 `docs/`（本目录之外的可见树：仓外系统的登记与定义，当前版即唯一真相、无状态机，准入判据见「边界」与 docs/README.md）；**工作区规格与词汇** → 本目录 `README.md`、`GLOSSARY.md`、`doc-types.*`。
+补充：**不承诺的** → `future/`；**可复用的干法** → `skills/`；**知识与结果** → 根 `docs/`，普通结果不要求过程头块，原件、台账和冻结记录保留各自维护规则；**工作区规格与词汇** → 本目录 `README.md`、`GLOSSARY.md`、`doc-types.*`。
 
 六个家：[notes/](./notes/)、[plans/](./plans/)、[research/](./research/)、[future/](./future/)、[skills/](./skills/)、[archive/](./archive/)，另有 [templates/](./templates/)。各家装什么、允许哪些类型、状态怎么流转，唯一权威是[类型注册表](./doc-types.json)（可读投影 [doc-types.md](./doc-types.md)，生成物禁手改）。
 
@@ -77,10 +77,10 @@ Verified: yyyy-mm-dd
 
 ```bash
 # 全工作区检索（排除归档区；.agents-raw 语料目录按名排除，新增语料时补一项）
-rg --hidden -g '!**/archived/**' -g '!.agents/archive/**' -g '!**/2026-10-02-session-transcripts/**' -g '!**/2026-10-02-qoder-intl-docs/**' -g '!doc-types.md' <关键词> .agents/ docs/
+rg --hidden -g '!**/archived/**' -g '!.agents/archive/**' -g '!doc-types.md' <关键词> .agents/ docs/
 
 # 只搜决策笔记（含 rejected，排除 archived；语料与投影排除为全工作区统一项）
-rg --hidden -g '!.agents/notes/archived/**' -g '!**/2026-10-02-session-transcripts/**' -g '!**/2026-10-02-qoder-intl-docs/**' -g '!doc-types.md' <关键词> .agents/notes/
+rg --hidden -g '!.agents/notes/archived/**' -g '!doc-types.md' <关键词> .agents/notes/
 
 # 结构化查询（按类型 / 状态 / 家 / 时效）
 node scripts/doc-query.mjs --home plans --status active
@@ -102,7 +102,7 @@ node scripts/doc-query.mjs --home plans --status active
 ## 门禁
 
 ```bash
-node scripts/run-checks.mjs          # 全部门禁（八道守卫并行）
+node scripts/run-checks.mjs          # 全部门禁（各道守卫并行）
 node scripts/run-checks.mjs --self   # 附带门禁自证（负向夹具漏一道，自证自己红）
 node scripts/run-checks.mjs --audit  # 规则命中审计（命中 = 拦截，只记 error 级；不跑守卫）
 node scripts/install-hooks.mjs       # 装 pre-commit 钩子（幂等，不覆盖别的工具装的）
@@ -116,18 +116,17 @@ node scripts/install-hooks.mjs       # 装 pre-commit 钩子（幂等，不覆�
 | `check-prose.mjs` | 散文层：中英空格、标点、一段一行、禁用词、文风 | 索引 |
 | `check-layout.mjs` | 版式层：栅栏、表列数、标题层级、空白 | 索引 |
 | `check-links.mjs` | 链接可达（含模板目录） | 索引 |
-| `check-migrations.mjs` | 迁移文件：命名、seq、头注释、MANIFEST 校验和、冻结对账 | 工作区 |
-| `check-db-ledger.mjs` | 迁移台账：envs 形状、status 封闭集、证据指针、checksum 对账 | 工作区 |
-| `self-test.mjs` | 自证：八道守卫负向夹具、覆盖比对 | 临时工作区 |
+| `check-records.mjs` | 按需 Run 形状、追加与 Git 基线冻结；未启用时不适用 | 工作区 + git 基线 |
+| `self-test.mjs` | 自证：各道守卫负向夹具、覆盖比对 | 临时工作区 |
 
-「看哪里」是交互模式受检范围：索引 = 已入库文件（`git ls-files`），工作区 = 盘面全树。pre-commit 暂存模式（`CURIA_STAGED=1`）下八道守卫按 git 索引判「将要提交的树」——发现、正文、链接、封印、注册表与投影、脚本、迁移与台账取索引版：先 add 坏版再在盘面改好、`git rm --cached`、换符号链接都骗不过；全量审计加 `--all`。守卫输出挂 `[scope/rule]` ID；error 级命中记进 `.agents/.rule-hits.jsonl`（gitignore；warning 不入账）；`--audit` 并读当前与历史两档台账取并集列零命中规则——error 级零命中才是删除候选，warning 级不可证、单列不诱导误删。新增检查必须带 ID 与负向夹具（缺 ID 报 `meta/missing-rule-id`）。守卫清单见脚本头注释（唯一权威）。
+「看哪里」是交互模式受检范围：索引 = 已入库文件（`git ls-files`），工作区 = 盘面全树。pre-commit 暂存模式（`CURIA_STAGED=1`）下各道守卫按 git 索引判「将要提交的树」——发现、正文、链接、封印、注册表与投影、脚本、守卫清单、记录取索引版：先 add 坏版再在盘面改好、`git rm --cached`、换符号链接都骗不过；全量审计加 `--all`。守卫输出挂 `[scope/rule]` ID；error 级命中记进 `.agents/.rule-hits.jsonl`（gitignore；warning 不入账）；`--audit` 并读当前与历史两档台账取并集列零命中规则——error 级零命中才是删除候选，warning 级不可证、单列不诱导误删。新增检查必须带 ID 与负向夹具（缺 ID 报 `meta/missing-rule-id`）。守卫执行清单以 [run-checks](../scripts/run-checks.mjs) 的 `CHECKS` 为准，暂存模式读取 index 中的清单。
 
 工具（不参与判定）：`new-doc.mjs` 建档与补头块、`fix-doc.mjs` 机械修复（默认 dry-run）、`archive-doc.mjs` 归档、`doc-query.mjs` 查询与时效、`gen-doc-types.mjs` 重生成投影、`seal-notes-archive.mjs` 重封印。
 
 ## 边界（什么不进这里）
 
-- 凭据/密钥：可入仓（Owner 2026-10-09 修订，因果见凭据入仓笔记）——依据双支柱：仓库托管于内网私有 GitLab，仓库本身即受控边界；且这类凭据只在内网可用，泄漏到外网无可用性。对外开源与分享材料仍须脱敏。`.env`（gitignore）形态保留可用，两种形态不互斥。
+- 凭据 / 密钥：模板不授予读取、入仓或外发权限；按采用项目的访问和凭据政策处理，默认只提交脱敏样例，不继承参考项目的内网信任假设。
 - 原始大文件、二进制产物：不进；引用外部位置。
 - 批量原始语料（外部文档镜像、采集数据）：可以进，但目录里放一个空标记文件 `.agents-raw` 即整体豁免类型与写作检查；仍需一篇 `evidence` 或 `reference` 说明它是什么、怎么采的。
-- **外部事实文档**（仓外系统的登记与定义：资源 ID、字段映射、端点、协议、机器与网络形态）：住仓库根 `docs/` 可见树——当前版即唯一真相，无类型与状态机，变更直接改、走 MR 评审；准入判据与约定见 docs/README.md，决策见外部事实树笔记。`research/` 的 `reference` 类型继续承接调研与语料导览性质的长期参考；运行登记一律去 `docs/`。
-- 将来如出现「对外文档/站点」（产品站、用户手册）：另立独立可见树（与 `docs/` 的事实登记面区分），不放 `.agents`——**.agents 是工作区，不是发布面**。
+- **知识与结果**：API、手册、方法、事实、台账、记录及原格式附件住根 `docs/`，按领域进二级目录。普通结果无需计划、过程日志或 Type / Status 头块；原项目的类型、schema、状态、审批与冻结约束不因采用 Curia 而降低。原格式与纸档可只登记位置，未解析不冒充已读。
+- **对外交付**：用户手册不因受众不同而另立内容根；只有确有独立发布目标时才按需登记交付面，并计入受管面上限。生成与同步不默认发生，交付副本不取代原件 authority。

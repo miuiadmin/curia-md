@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 /**
- * run-checks.mjs —— Curia 门禁总入口：并行运行八道守卫，任一失败则退出码非 0。
+ * run-checks.mjs —— Curia 门禁总入口：并行运行各道守卫，任一失败则退出码非 0。
  *
- * 运行：node scripts/run-checks.mjs            # 八道守卫并行（默认只看已入库文件）
+ * 运行：node scripts/run-checks.mjs            # 各道守卫并行（默认只看已入库文件）
  *       node scripts/run-checks.mjs --all      # 并入未入库文件做全量审计
  *       node scripts/run-checks.mjs --self     # 附带门禁自证（负向夹具套件，在守卫之后串行）
  *       node scripts/run-checks.mjs --audit    # 只读两档命中台账（新口径 + 历史窗口）：命中过的规则与零命中候选，不跑守卫
  *
  * 暂存模式：CURIA_STAGED=1（pre-commit 设置）时，先把 git 索引里的 scripts/ 物化到临时目录，
- * 八道守卫全部从这份「将要提交的副本」启动，并设 CURIA_ROOT 指回真实仓库根（doc-lib 的 ROOT 覆盖）——
+ * 各道守卫全部从这份「将要提交的副本」启动，并设 CURIA_ROOT 指回真实仓库根（doc-lib 的 ROOT 覆盖）——
  * 校验的既是要提交的树，也是要提交的门禁本体：先 add 坏守卫再在盘上改好同样拦得住。
  * 索引里缺门禁脚本（含 run-checks 自身与 doc-lib）时直接拒绝放行；交互模式（无此变量）仍从盘面启动。
  * 自证（--self）是唯一例外，仍从盘面跑：它要用真实仓库的 .agents 搭夹具工作区，物化树只有 scripts/。
@@ -27,10 +27,13 @@ import { execFileSync, spawn } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { ROOT, isMainModule } from './doc-lib.mjs';
 
-export const CHECKS = ['check-tools.mjs', 'check-agent-notes.mjs', 'check-doc-types.mjs', 'check-prose.mjs', 'check-layout.mjs', 'check-links.mjs', 'check-migrations.mjs', 'check-db-ledger.mjs'];
+export const CORE_CHECKS = ['check-tools.mjs', 'check-agent-notes.mjs', 'check-doc-types.mjs', 'check-prose.mjs', 'check-layout.mjs', 'check-links.mjs', 'check-records.mjs'];
+// Explicit source-only registration. The template generator clears this list, not the source repository.
+export const REFERENCE_CHECKS = [];
+export const CHECKS = [...CORE_CHECKS, ...REFERENCE_CHECKS];
 export const SELFTEST = 'self-test.mjs';
 
 /** 暂存模式开关：pre-commit 设 CURIA_STAGED=1，门禁校验 git 索引（将要提交的树）而非盘面。 */
@@ -192,6 +195,7 @@ async function main() {
   const withSelf = args.includes('--self');
 
   let scriptsDir = diskScriptsDir;
+  let checks = CHECKS;
   let guardEnv = null;
   let cleanup = null;
   if (isStagedMode()) {
@@ -204,8 +208,17 @@ async function main() {
     scriptsDir = stagedTree.scriptsDir;
     cleanup = stagedTree.cleanup;
     guardEnv = { ...process.env, CURIA_STAGED: '1', CURIA_ROOT: ROOT };
+    // The selected checks must come from the staged runner too; a narrower worktree list cannot hide native guards.
+    try {
+      const stagedRunner = await import(pathToFileURL(join(scriptsDir, 'run-checks.mjs')).href);
+      checks = stagedRunner.CHECKS;
+      if (!Array.isArray(checks) || !checks.length || checks.length > 64 || new Set(checks).size !== checks.length || checks.some((name) => typeof name !== 'string' || !/^check-[a-z0-9-]+\.mjs$/.test(name))) throw new Error('CHECKS 必须是非空、唯一的仓内守卫文件清单');
+    } catch (error) {
+      console.error(`暂存模式: 无法读取将要提交的守卫清单：${error.message} [meta/staged-checks]`);
+      cleanup(); process.exitCode = 1; return;
+    }
     // 门禁本体必须也在将要提交的树里：索引删掉某个守卫或钩子源（git rm --cached）不能被静默跳过
-    const required = ['run-checks.mjs', 'doc-lib.mjs', ...CHECKS, ...(withSelf ? [SELFTEST] : []), 'hooks/pre-commit'];
+    const required = ['run-checks.mjs', 'doc-lib.mjs', ...checks, ...(withSelf ? [SELFTEST] : []), 'hooks/pre-commit'];
     const missing = required.filter((name) => !existsSync(join(scriptsDir, name)));
     if (missing.length) {
       console.error(`暂存模式: 索引里缺门禁脚本 ${missing.join('、')}——将要提交的树缺门禁本体，拒绝放行 [meta/staged-guard-missing]`);
@@ -216,7 +229,7 @@ async function main() {
   }
 
   try {
-    const results = await Promise.all(CHECKS.map((name) => runScript(scriptsDir, name, passthrough, guardEnv)));
+    const results = await Promise.all(checks.map((name) => runScript(scriptsDir, name, passthrough, guardEnv)));
     // 自证在暂存模式下仍从盘面跑（见文件头）：它要用真实仓库的 .agents 搭夹具工作区，且不在 pre-commit 路径上
     if (withSelf) results.push(await runScript(diskScriptsDir, SELFTEST, []));
 

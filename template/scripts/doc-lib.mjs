@@ -17,6 +17,7 @@ import { createHash } from 'node:crypto';
 import { appendFileSync, existsSync, lstatSync, readFileSync, readdirSync, realpathSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseRegistryJson } from './curia-json.mjs';
 
 export const ROOT = process.env.CURIA_ROOT ? resolve(process.env.CURIA_ROOT) : resolve(fileURLToPath(new URL('../', import.meta.url)));
 
@@ -34,8 +35,27 @@ export function isMainModule(metaUrl) {
   }
 }
 
+/** A conservative floor, not a secret detector. Caller exclusions can only narrow it. */
+export function privateReadPath(rel) {
+  const parts = rel.normalize('NFC').toLowerCase().split('/');
+  return rel === '.agents/doc-types.json' || parts.some((part) => /^(?:\.env(?:\..*)?|\.ssh|\.gnupg|secrets?|credentials?|private|logs?|transcripts?)$/.test(part)
+    || /(?:^|-)(?:session-transcripts|private-logs|secrets?|credentials?)(?:-|\.|$)/.test(part))
+    || /\.(?:pem|key|p12|pfx|keystore|log|db|sqlite3?)$/i.test(rel);
+}
+
+
 export const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 export const DATED_FILENAME_RE = /^(\d{4}-\d{2}-\d{2})-.+\.md$/;
+
+/** The projection is a derived file, never a repository escape or the Registry itself. */
+export function registryProjectionPath(value) {
+  if (typeof value !== 'string' || !value || /[\\:\x00-\x1f\x7f]/.test(value)
+      || value.split('/').some(part => !part || part !== part.trim() || part === '.' || part === '..' || part.endsWith('.') || part.toLowerCase() === '.git')
+      || value.normalize('NFC').toLowerCase() === '.agents/doc-types.json') {
+    throw new Error('Registry projection 必须是仓内规范相对文件路径，不能指向 Git 元数据或注册表自身 [curia2/registry-invalid]');
+  }
+  return value;
+}
 
 /**
  * 读取注册表；结构非法即抛错。
@@ -48,13 +68,14 @@ export function loadRegistry(root = ROOT, { staged = false } = {}) {
   if (staged) {
     const raw = gitShow(root, rel, '');
     if (raw === null) throw new Error(`注册表不在暂存索引中：${rel}（先把它 add 进来）`);
-    reg = JSON.parse(raw);
+    reg = parseRegistryJson(raw);
   } else {
     const p = join(root, rel);
     if (!existsSync(p)) throw new Error(`注册表缺失：${p}`);
-    reg = JSON.parse(readFileSync(p, 'utf8'));
+    reg = parseRegistryJson(readFileSync(p, 'utf8'));
   }
   if (reg?.version !== 1 || typeof reg.types !== 'object') throw new Error(`注册表结构非法：${staged ? rel : join(root, rel)}`);
+  if (reg.projection !== undefined) registryProjectionPath(reg.projection);
   return reg;
 }
 

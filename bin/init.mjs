@@ -64,7 +64,7 @@ function usage() {
   --defaults     非交互直通：桥=全部、额外根目录=无、冲突不覆盖
   -h, --help     显示本帮助
 
-生成后：node scripts/install-hooks.mjs 已代跑；写第一篇与跑门禁见收尾提示。 [create-curia/usage]`);
+生成后：node scripts/install-hooks.mjs 已代跑；结果文档、过程文档与检查入口见收尾提示。 [create-curia/usage]`);
 }
 
 /* ------------------------------------------------------------------ 纯函数（导出供测试） */
@@ -187,6 +187,12 @@ function isMain() {
   }
 }
 
+// Load only when a Registry exists, preserving help and empty-payload diagnostics.
+async function readRegistry(path) {
+  const { loadRegistry } = await import('../template/scripts/doc-lib.mjs');
+  return loadRegistry(dirname(dirname(path)));
+}
+
 /* ------------------------------------------------------------------ 主流程 */
 
 async function run(opts, interactive, rl) {
@@ -203,10 +209,10 @@ async function run(opts, interactive, rl) {
   const tplRegPath = join(TEMPLATE_DIR, '.agents', 'doc-types.json');
   if (existsSync(tplRegPath)) {
     try {
-      const reg = JSON.parse(readFileSync(tplRegPath, 'utf8'));
+      const reg = await readRegistry(tplRegPath);
       if (Array.isArray(reg.bridges)) templateBridges = reg.bridges;
     } catch (e) {
-      warn('template-registry', `模板注册表解析失败（${e.message}），桥改用内置清单`);
+      die('template-registry', `模板注册表解析失败：${e.message}；目标尚未修改，请修复安装包后重试`);
     }
   }
   const bridgeDefs = templateBridges ?? FALLBACK_BRIDGES;
@@ -416,7 +422,7 @@ async function run(opts, interactive, rl) {
   } else {
     let reg;
     try {
-      reg = JSON.parse(readFileSync(regPath, 'utf8'));
+      reg = await readRegistry(regPath);
     } catch (e) {
       die('registry-rewrite-failed', `注册表不是合法 JSON（.agents/doc-types.json）：${e.message}；修正后重跑`);
     }
@@ -488,8 +494,8 @@ async function run(opts, interactive, rl) {
   log('done', `完成：目标 ${target} — 新建 ${created}、覆盖 ${overwritten}、已一致 ${unchanged}、保留 ${kept}；桥 ${bridgeCreated.length} 条`);
   console.log('剩余动作（三步上手的第 3 步）： [create-curia/next-steps]');
   if (!hooksOk) console.log('  0. 装好提交门禁：git init（若尚未）后跑 node scripts/install-hooks.mjs [create-curia/next-steps]');
-  console.log('  1. 写第一篇：node scripts/new-doc.mjs --list 看类型；再用 node scripts/new-doc.mjs --type <type> --topic <主题> 建档（决策笔记用 write-note 技能，不走脚手架） [create-curia/next-steps]');
-  console.log('  2. 跑门禁：git add 后 node scripts/run-checks.mjs，全绿即接入完成（门禁看已入库文件，空索引空转） [create-curia/next-steps]');
+  console.log('  1. 知识与结果直接放在按需创建的 docs/，保留原格式，不补造过程；原项目的类型、冻结和审批规则继续生效。过程文档才用 node scripts/new-doc.mjs --list 选型建档，决策笔记用 write-note [create-curia/next-steps]');
+  console.log('  2. 检查当前文件：node scripts/run-checks.mjs --all；提交前精确暂存并校验。空范围或静态通过不等于事实已核实，也不代表可选能力已启用 [create-curia/next-steps]');
   console.log('  之后一切修改都是你的（fork-and-own）：本工具只有 init，没有 upgrade / check 驻留子命令 [create-curia/fork-and-own]');
 }
 

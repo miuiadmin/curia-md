@@ -3,7 +3,10 @@
  * fix-doc.mjs —— 机械写作规则的一键修复器（纯 node 标准库、零依赖）。
  *
  * 只修「机器能改对」的规则，检查与修复共用 doc-lib 的同一份字符类（一事实一归属）：
- *   1) prose/cjk-space             中英文/数字之间补半角空格
+ *   1) prose/cjk-space             中英文/数字之间补半角空格；含链接开括号边界——链接文本以
+ *      拉丁/数字开头的 `见[PAT…](…)` 在 `[` 前补空格（检查器剥掉链接语法后可见文本是
+ *      `见PAT…`，缺空格；文本以中文开头的 `见[总规格](…)` 剥出 `见总规格` 本就合规，不补，
+ *      免得制造无谓 diff——两型共用同一规则 ID，检查与修复同源）
  *   2) prose/halfwidth-punct       与中文直接相邻的半角标点 , ; : ! ? ( ) 转全角
  *   3) layout/trailing-whitespace  行尾空白（fenced code 与 HTML 注释内不动）
  *   4) layout/consecutive-blank    连续空行压成一个（同上，栅栏内不动）
@@ -11,7 +14,8 @@
  *      多余空行属编辑卫生，修复器顺手收，记账用修复器自己的标签）
  *
  * 绝不自动修（要语义判断，留给作者与门禁报错）：一段一物理行、禁用术语、栅栏语言标记、
- * 表格列数、标题层级、链接文本与正文之间的跨界空格（该在内侧还是外侧补空格需作者判断）。
+ * 表格列数、标题层级、其余链接边界空格（链接闭合后的 CJK 邻接如 `[PAT](…)四档`，在链接尾
+ * 补空格还是改写句式需作者判断）。
  * 保护区：行内代码、链接目标、URL、HTML 标签、frontmatter、
  * 引用行、fenced code、HTML 注释、归档冻结区、生成物投影、原始语料目录。
  *
@@ -58,6 +62,17 @@ function fixSpacing(t) {
   return t
     .replace(new RegExp(`([${CJK_CLASS}])([A-Za-z0-9@#$_])`, 'g'), '$1 $2')
     .replace(new RegExp(`([A-Za-z0-9%])([${CJK_CLASS}])`, 'g'), '$1 $2');
+}
+
+/**
+ * 链接开括号边界：CJK 紧邻链接开括号（`见[PAT…](…)`）时在括号前补空格——check-prose 的
+ * stripInline 会把链接剥成可见文本 `见PAT…` 报缺空格，而 fixSpacing 看不见 `见[`（`[` 不在
+ * 字符类里），历史三批真实拦截里这一型反复出现（因果见 2026-10-10 第三轮整理笔记）。
+ * 只在链接文本以拉丁/数字开头时补：`见[总规格](…)` 剥成 `见总规格` 本就合规，补了只是无谓
+ * diff（与检查器同一字符类，一事实一归属）；`!` 随 `![` 一起处理，补在 `!` 之前才不破坏图片语法。
+ */
+function fixLinkBracket(t) {
+  return t.replace(new RegExp(`([${CJK_CLASS}])(!?\\[)([A-Za-z0-9@#$_])`, 'g'), '$1 $2$3');
 }
 
 /**
@@ -112,10 +127,11 @@ export function fixText(raw) {
     }
     const { out: guarded, vault } = protect(l);
     const spaced = fixSpacing(guarded);
-    const puncted = fixPunct(spaced);
+    const linked = fixLinkBracket(spaced);
+    const puncted = fixPunct(linked);
     if (puncted !== guarded) {
-      if (spaced !== guarded) hit('prose/cjk-space', i + 1);
-      if (puncted !== spaced) hit('prose/halfwidth-punct', i + 1);
+      if (spaced !== guarded || linked !== spaced) hit('prose/cjk-space', i + 1);
+      if (puncted !== linked) hit('prose/halfwidth-punct', i + 1);
       l = restore(puncted, vault);
     }
     return l;

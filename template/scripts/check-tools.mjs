@@ -2,14 +2,14 @@
 /**
  * check-tools.mjs —— 工具链冒烟门禁（纯 node 标准库、零依赖）。
  *
- * 动机：run-checks 只执行守卫脚本；doc-query / new-doc / gen-doc-types / seal 这些工具
+ * 动机：run-checks 只执行守卫脚本；doc-query / curia-query / curia-workflow / curia-verify / new-doc / gen-doc-types / seal 这些工具
  * 若语法坏掉或启动即崩，没有任何门禁会发现——它们只在被人用到时才炸。本检查把它们全部空跑一遍。
  *
  * 断言：
  *   a) scripts/ 下每个 .mjs 都能通过 `node --check`（含未被任何守卫 import 的工具）
- *   b) 只读 CLI 正常退出并有输出：doc-query --json、new-doc --list、gen-doc-types --check
+ *   b) READ_ONLY_CLIS 清单中的每个只读入口真实启动、正常退出并有输出；网络入口只运行不外访的 help。
  *   c) 注册表可被加载且投影与之一致（--check 已覆盖）
- *   d) 提交钩子真的装好了：八道守卫只在 pre-commit 自动跑，钩子没装就等于门禁全靠自愿。
+ *   d) 提交钩子真的装好了：各道守卫只在 pre-commit 自动跑，钩子没装就等于门禁全靠自愿。
  *      钩子目录里没有任何非 *.sample 文件（全新 clone / 从未装过）→ 告警并提示 install-hooks；
  *      有非 sample 文件但我们的钩子缺/坏 → 报错（有人装过钩子而门禁没接上，才是真问题）；
  *      被别的工具占用（不含我们的标记）或已过期 → 告警不阻断，
@@ -19,8 +19,10 @@
  * 受检清单默认取 git 索引（git ls-files -- scripts）——门禁守「将要提交的内容」，
  * 同仓并行会话未入库的草稿脚本不拦本次提交（与内容守卫的索引语义对齐）；非 git 环境回退读盘。
  * CURIA_STAGED=1（pre-commit 的暂存模式）时脚本内容也从索引取并物化到临时目录：
- * `node --check` / `sh -n` 与三个只读 CLI 跑的都是「将要提交的版本」——先 add 坏版再在盘上改好也拦得住；
- * CLI 从物化目录 spawn，带 CURIA_ROOT（指回真仓，配合 doc-lib 的 ROOT 覆盖）与 CURIA_STAGED。
+ * `node --check` / `sh -n` 与只读 CLI 跑的都是「将要提交的版本」——先 add 坏版再在盘上改好也拦得住；
+ * 只读 CLI 的脚本、Registry 与投影都从 index 原始字节物化；ROOT 与 cwd 指向隔离目录，
+ * 子进程移除暂存开关和 Git 环境覆盖，只做启动、配置与投影新鲜度冒烟，不冒充暂存 inventory。
+ * 普通查询保持工作树语义；正文与链接的暂存校验仍由各自守卫承担。
  *
  * 只跑只读命令：seal 会写 manifest，故只做语法检查，不执行。
  * 运行：node scripts/check-tools.mjs
@@ -30,14 +32,26 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
-import { ROOT, countMissingRuleIds, isMainModule, logRuleHits } from './doc-lib.mjs';
+import { ROOT, countMissingRuleIds, isMainModule, logRuleHits, registryProjectionPath } from './doc-lib.mjs';
+import { parseRegistryJson } from './curia-json.mjs';
 import { MARKER } from './install-hooks.mjs';
 
-const READ_ONLY_CLIS = [
+export const READ_ONLY_CLIS = Object.freeze([
   ['doc-query.mjs', ['--json']],
+  ['curia-query.mjs', ['--coverage', '--json', '--allow-no-git']],
+  ['curia-workflow.mjs', ['--list-checks', '--json']],
+  ['curia-workflow.mjs', ['snapshot', '--help']],
+  ['curia-workflow.mjs', ['moves', '--help']],
+  ['curia-workflow.mjs', ['external', '--help']],
+  ['curia-workflow.mjs', ['external', 'verify-original', '--help']],
+  ['curia-verify.mjs', ['--list-methods', '--json']],
+  ['curia-extract.mjs', ['--list-parsers', '--json']],
+  ['curia-records.mjs', ['--help']],
+  ['curia-guards.mjs', ['--help']],
+  ['curia-checks.mjs', ['--help']],
   ['new-doc.mjs', ['--list']],
   ['gen-doc-types.mjs', ['--check']],
-];
+].map(([file, args]) => Object.freeze([file, Object.freeze(args)])));
 
 /** 暂存模式开关（pre-commit 置 1）：脚本内容从 git 索引取，而不是工作区正文。 */
 const isStagedMode = () => process.env.CURIA_STAGED === '1';
@@ -99,10 +113,10 @@ function listToolFiles(root) {
   }
 }
 
-/** 从 git 索引读暂存内容（`git show :path`）；索引里没有该条目或读取失败时返回 null。 */
+/** 原样读取 index blob；保留字节，不能用 UTF-8 替换解码洗白坏配置。缺失或读取失败返回 null。 */
 function readIndexBlob(root, rel) {
   try {
-    return execFileSync('git', ['show', `:${rel}`], { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['pipe', 'pipe', 'pipe'] });
+    return execFileSync('git', ['show', `:${rel}`], { cwd: root, maxBuffer: 64 * 1024 * 1024, stdio: ['pipe', 'pipe', 'pipe'] });
   } catch {
     return null;
   }
@@ -136,7 +150,31 @@ export function runCheck(root = ROOT, opts = {}) {
       errors.push(`暂存: ${rel} — git show :${rel} 读取失败，无法校验将要提交的内容 [tools/staged-read]`);
       return null;
     }
-    return stageContent(rel, content);
+    try {
+      return stageContent(rel, content);
+    } catch (error) {
+      errors.push(`暂存: ${rel} — 无法物化索引内容：${error.message} [tools/staged-read]`);
+      return null;
+    }
+  };
+  const stageConfig = () => {
+    const registryPath = stagedFile('.agents/doc-types.json');
+    if (registryPath === null) return false;
+    let registry;
+    try {
+      // Decode only to discover the projection path; the Registry itself stays byte-exact.
+      registry = parseRegistryJson(readFileSync(registryPath, 'utf8'));
+    } catch {
+      // Keep malformed bytes for the CLIs' own startup/Registry diagnostics; never repair them.
+      return true;
+    }
+    let rel;
+    try { rel = registryProjectionPath(registry?.projection); }
+    catch {
+      errors.push('暂存: Registry projection 必须是仓内规范相对路径，且不能指向 Git 元数据或注册表自身 [tools/staged-path]');
+      return false;
+    }
+    return stagedFile(rel) !== null;
   };
 
   try {
@@ -187,24 +225,31 @@ export function runCheck(root = ROOT, opts = {}) {
       }
     }
 
+    const configReady = !staged || stageConfig();
     for (const [name, args] of READ_ONLY_CLIS) {
       const rel = `scripts/${name}`;
       let script = join(scriptsDir, name);
       let cliEnv = null;
+      let cliCwd = root;
       if (staged) {
-        // 执行索引版而不是盘面版：从物化目录 spawn，CURIA_ROOT 让 CLI 的 ROOT 解析指回真仓
+        // Input comes only from the materialized index snapshot, never the worktree.
         const content = readIndexBlob(root, rel);
         if (content === null) {
           errors.push(`工具: ${rel} 不在暂存索引中——只读 CLI 缺失 [tools/cli-missing]`);
           continue;
         }
+        if (!configReady) continue;
         script = stageContent(rel, content);
-        cliEnv = { ...process.env, CURIA_ROOT: root, CURIA_STAGED: '1' };
+        cliCwd = stageDir;
+        cliEnv = { ...process.env, CURIA_ROOT: stageDir };
+        delete cliEnv.CURIA_STAGED;
+        // Pre-commit may export an alternate index. It selects the snapshot above, not this tree.
+        for (const key of Object.keys(cliEnv)) if (key.startsWith('GIT_')) delete cliEnv[key];
       } else if (!existsSync(script)) {
         errors.push(`工具: scripts/${name} 不存在——只读 CLI 缺失 [tools/cli-missing]`);
         continue;
       }
-      const r = spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8', ...(cliEnv ? { env: cliEnv } : {}) });
+      const r = spawnSync(process.execPath, [script, ...args], { cwd: cliCwd, encoding: 'utf8', ...(cliEnv ? { env: cliEnv } : {}) });
       if (r.status !== 0) {
         errors.push(`工具: scripts/${name} ${args.join(' ')} — 退出码 ${r.status}：${(r.stderr || r.stdout || '').trim().split('\n')[0]} [tools/cli-failed]`);
       } else if (!(r.stdout || '').trim()) {

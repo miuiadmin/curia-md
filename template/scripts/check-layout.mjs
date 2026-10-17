@@ -10,12 +10,14 @@
  * 报错（阻断）：
  *   1) 代码栅栏未闭合 —— 后续全部内容被当代码，整篇结构失效
  *   2) 表格行的列数与表头不符 —— 渲染成破表
- *   3) 标题层级跳跃（H2 直接到 H4）—— 目录与大纲断裂
- *   4) 文件结尾缺换行 —— 拼接与 diff 出错
- *   5) 行尾空白 —— 不可见噪声，破坏精确匹配
+ *   3) 表格行缺行首/行尾竖线 —— 该行不会被当表格行渲染，且整行跳过会让列数检查随之不可见
+ *      （历史事故：阻塞表某行行尾缺 | 且中段有游离 |，门禁沉默放行，2026-10-10 第五轮才被人工逮住）
+ *   4) 标题层级跳跃（H2 直接到 H4）—— 目录与大纲断裂
+ *   5) 文件结尾缺换行 —— 拼接与 diff 出错
+ *   6) 行尾空白 —— 不可见噪声，破坏精确匹配
  * 报警（不阻断）：
- *   6) 代码栅栏缺语言标记 —— 只是丢高亮
- *   7) 连续空行 —— 渲染上等价于一个空行
+ *   7) 代码栅栏缺语言标记 —— 只是丢高亮
+ *   8) 连续空行 —— 渲染上等价于一个空行
  *
  * 刻意不收的规则（会造假阳性，见 notes 里的取舍记录）：
  *   裸 URL —— `Source:` 字段与来源索引文档本就该露出原始链接
@@ -37,12 +39,27 @@ import { ROOT, countMissingRuleIds, discoverDocs, isMainModule, loadRegistry, lo
 const FENCE_RE = /^(\s{0,3})(```+|~~~+)(.*)$/;
 const HEADING_RE = /^\s{0,3}(#{1,6})(?:\s|$)/;
 const TABLE_ROW_RE = /^\s{0,3}\|.*\|\s*$/;
+const QUOTE_RE = /^\s*>/;
 const FRONTMATTER_DELIM = /^\s{0,3}---\s*$/;
 
 /** 表格列数：先摘掉行内代码（里面可能有竖线），再按未转义的 `|` 切。 */
 function tableCols(line) {
   const bare = line.trim().replace(/`[^`]*`/g, ' ').replace(/^\|/, '').replace(/\|$/, '');
   return bare.split(/(?<!\\)\|/).length;
+}
+
+/**
+ * 表格行缺竖线：含一端竖线却不匹配首尾竖线正则的行，报缺哪一头，不再整行跳过——
+ * 历史事故：阻塞表某行行首 | 在、行尾 | 缺且中段有游离 |，整行跳过让列数检查随之不可见。
+ * 防误伤：两头都缺的行与散文里的竖线（如 `open|closed`）不可分，不查；引用行不查；
+ * 缩进 ≥4 空格是缩进代码块（数据），不查；行尾判定排除转义 \|。
+ */
+function tablePipeIssue(line) {
+  if (QUOTE_RE.test(line) || /^\s{4,}/.test(line)) return null;
+  const lead = /^\s{0,3}\|/.test(line);
+  const trail = /(?<!\\)\|\s*$/.test(line);
+  if (lead === trail) return null; // 两头都在＝已是表格行（走列数检查）；两头都缺＝与散文竖线不可分
+  return lead ? '缺行尾竖线' : '缺行首竖线';
 }
 
 /** frontmatter 区间 [start, end]（0 基，含两端）；没有则返回 null。 */
@@ -119,6 +136,10 @@ function checkFile(rel, lines, errors, warnings) {
         errors.push(`版式: ${rel} 第 ${no} 行 — 表格有 ${cols} 列，与表头（第 ${tableStart} 行 ${tableColsExpected} 列）不符：单元格里的竖线要转义成 \\| [layout/table-columns]`);
       }
     } else {
+      const pipeIssue = tablePipeIssue(line);
+      if (pipeIssue) {
+        errors.push(`版式: ${rel} 第 ${no} 行 — 表格行${pipeIssue}（行首行尾都要有 |；中段游离竖线转义成 \\| 或包进行内代码） [layout/table-pipe]`);
+      }
       tableStart = 0;
       tableColsExpected = 0;
     }

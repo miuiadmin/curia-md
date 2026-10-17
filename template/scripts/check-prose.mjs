@@ -11,14 +11,16 @@
  *   2) 中文与英文/数字之间缺半角空格
  *   3) 中文语境用了半角标点 , ; : ! ? ( )
  *   4) 一个自然段跨多物理行（应一段一行，靠编辑器软折行）
- *   5) 正文用了 GLOSSARY 里 `_Avoid_: !词` 标记的硬禁用词
+ *   5) 原生 / 变体 / 时间头块 opt-in 的 instance 配置非法（不允许未知配置跳过段落检查）
+ *   6) 正文用了 GLOSSARY 里 `_Avoid_: !词` 标记的硬禁用词
  * 报警（不阻断，靠审校判断）：
- *   6) 正文裸写仓库路径（应写成相对链接或行内代码）
- *   7) 跨文档重复句（「一事实一归属」的机械探针）
+ *   7) 正文裸写仓库路径（应写成相对链接或行内代码）
+ *   8) 跨文档重复句（「一事实一归属」的机械探针）
  *
  * 豁免：生成物（注册表投影）、模板目录、归档冻结区、原始语料目录、fenced code、HTML 注释、
  *   行内代码、链接目标、`「」` 引用（提及禁用词以讨论它不算使用）、GLOSSARY 自身、表格行与列表行
- *   （第 4 条只对连续散文行生效）。
+ *   （第 4 条只对连续散文行生效）。可选 instance 映射的绑定头块复用固定 parser 的词法范围，
+ *   只扩展第 4 条的头块边界，不豁免正文、其他写作检查或整个目录；未启用时保持旧规则。
  *
  * 运行：node scripts/check-prose.mjs [--all] [--path <rel>]
  *   环境变量 CURIA_STAGED=1 时走暂存模式（pre-commit 调用）：发现面、注册表与正文全部取自 git 索引，
@@ -26,6 +28,7 @@
  */
 
 import { existsSync } from 'node:fs';
+import { normalizeInstance, nativeHeaderBoundary } from './curia-instance.mjs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -89,9 +92,9 @@ function loadAvoidedTerms(root, staged = false) {
   return out.filter((e) => e.word);
 }
 
-function checkFile(rel, lines, mask, reg, errors, warnings, avoided = []) {
+function checkFile(rel, lines, mask, reg, errors, warnings, avoided = [], nativeStart = null) {
   const prose = proseLines(lines, mask);
-  const start = proseStart(lines);
+  const start = nativeStart ?? proseStart(lines);
   let prevProseIdx = null;
   const sentences = [];
   const isGlossary = /(^|\/)GLOSSARY\.md$/.test(rel);
@@ -167,6 +170,12 @@ export function runCheck(root = ROOT, opts = {}) {
     return { ok: false, errors: [`注册表: ${e.message} [types/registry-load]`], warnings, stats: {} };
   }
 
+  let instance = null;
+  if (reg.instance !== undefined) {
+    try { instance = normalizeInstance(reg.instance, reg.types); }
+    catch (e) { return { ok: false, errors: [`绑定头块配置: ${e.message} [prose/instance-invalid]`], warnings, stats: {} }; }
+  }
+
   const docs = opts.paths?.length
     ? opts.paths.map((rel) => ({ rel, abs: join(root, rel) }))
     : discoverDocs(root, reg, { includeUntracked: opts.includeUntracked ?? false, staged });
@@ -182,7 +191,7 @@ export function runCheck(root = ROOT, opts = {}) {
     const lines = staged ? readDocStaged(root, doc.rel) : (existsSync(doc.abs) ? readDoc(doc.abs) : null);
     if (lines === null) continue; // 非暂存模式下索引里有、盘上已删：不是写作问题
     const mask = maskSource(lines);
-    allSentences.push(...checkFile(doc.rel, lines, mask, reg, errors, warnings, avoided));
+    allSentences.push(...checkFile(doc.rel, lines, mask, reg, errors, warnings, avoided, instance ? nativeHeaderBoundary(instance, doc.rel, lines) : null));
     scanned++;
   }
 

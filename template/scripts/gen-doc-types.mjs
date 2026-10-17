@@ -14,22 +14,13 @@
  *       node scripts/gen-doc-types.mjs --normalize  # 注册表按 serializeRegistry 规范写回（稳定键序 + 2 空格缩进），再重生成投影
  */
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { closeSync, constants, fstatSync, ftruncateSync, lstatSync, openSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { isMainModule, ROOT } from './doc-lib.mjs';
+import { isMainModule, loadRegistry, registryProjectionPath, ROOT } from './doc-lib.mjs';
 
-// ROOT 从 doc-lib 取（支持 CURIA_ROOT 覆盖）：CLI 被物化到临时目录执行时（暂存模式），
-// 解析必须指回真仓——否则读到的是临时目录里的空注册表。保留导出以稳定模块表面。
-export { ROOT };
-
-/** 读取并解析注册表；失败即抛错（注册表缺失意味着类型系统不可用）。 */
-export function loadRegistry(root = ROOT) {
-  const p = join(root, '.agents', 'doc-types.json');
-  if (!existsSync(p)) throw new Error(`注册表缺失：${p}`);
-  const reg = JSON.parse(readFileSync(p, 'utf8'));
-  if (reg.version !== 1) throw new Error(`注册表 version 应为 1，实为 ${reg.version}`);
-  return reg;
-}
+// ROOT 从 doc-lib 取（支持 CURIA_ROOT 覆盖）；暂存工具冒烟指向含索引版 Registry 与投影的隔离目录。
+// 保留导出以稳定模块表面。
+export { ROOT, loadRegistry };
 
 /**
  * 注册表写回的规范序列化：稳定键序（就地改值、不重建对象，键序即文件里的键序）、
@@ -187,34 +178,81 @@ export function render(reg) {
   return L.join('\n');
 }
 
-if (isMainModule(import.meta.url)) {
-  const reg = loadRegistry();
-  const text = render(reg);
-  const target = join(ROOT, reg.projection);
-  if (process.argv.includes('--stdout')) {
-    process.stdout.write(text);
-  } else if (process.argv.includes('--check')) {
-    const current = existsSync(target) ? readFileSync(target, 'utf8') : null;
-    if (current === text) {
-      console.log(`✓ doc-types 投影新鲜：${reg.projection}`);
-    } else {
-      console.error(`✗ doc-types 投影过期：${reg.projection} 与注册表不一致——运行 node scripts/gen-doc-types.mjs 重生成`);
-      process.exit(1);
+const REGISTRY_REL = '.agents/doc-types.json';
+const sameFile = (a, b) => a && b && a.dev === b.dev && a.ino === b.ino;
+const sameRevision = (a, b) => sameFile(a, b) && ['mode', 'size', 'mtimeMs', 'ctimeMs', 'nlink'].every(key => a[key] === b[key]);
+const boundaryError = () => new Error('投影或注册表路径不是独立的仓内普通文件，或来源已变化 [projection/path-boundary]');
+
+// Inspect existing components, not just the lexical destination. A missing projection is
+// allowed, but writing never creates parent directories or follows symlinks/hard-link aliases.
+function inspectFile(root, rel, { writing = false, required = false } = {}) {
+  const parts = rel.split('/'); let path = root;
+  for (let i = 0; i < parts.length; i++) {
+    path = join(path, parts[i]); let stat;
+    try { stat = lstatSync(path); }
+    catch (error) {
+      if (error.code !== 'ENOENT' || required || (writing && i < parts.length - 1)) throw boundaryError();
+      return { root, rel, path: join(root, rel), stat: null };
     }
-  } else if (process.argv.includes('--normalize')) {
-    const regPath = join(ROOT, '.agents', 'doc-types.json');
-    const current = readFileSync(regPath, 'utf8');
+    if (stat.isSymbolicLink() || (i < parts.length - 1 ? !stat.isDirectory() : !stat.isFile() || (writing && stat.nlink !== 1))) throw boundaryError();
+    if (i === parts.length - 1) return { root, rel, path, stat };
+  }
+}
+
+function unchanged(file) {
+  const now = inspectFile(file.root, file.rel, { required: !!file.stat });
+  if (file.stat ? !sameRevision(file.stat, now.stat) : now.stat !== null) throw boundaryError();
+}
+
+function writeChecked(file, text) {
+  unchanged(file);
+  const flags = constants.O_WRONLY | (constants.O_NOFOLLOW ?? 0) | (file.stat ? 0 : constants.O_CREAT | constants.O_EXCL);
+  const fd = openSync(file.path, flags, 0o666);
+  try {
+    const stat = fstatSync(fd);
+    if (!stat.isFile() || stat.nlink !== 1 || (file.stat && !sameRevision(file.stat, stat))) throw boundaryError();
+    ftruncateSync(fd, 0); writeFileSync(fd, text);
+  } finally { closeSync(fd); }
+}
+
+function generateProjection() {
+  const stdout = process.argv.includes('--stdout');
+  const check = !stdout && process.argv.includes('--check');
+  const normalize = !stdout && !check && process.argv.includes('--normalize');
+  const root = realpathSync(ROOT);
+  const registryFile = inspectFile(root, REGISTRY_REL, { required: true, writing: normalize });
+  const reg = loadRegistry(root);
+  const projection = registryProjectionPath(reg.projection);
+  const text = render(reg);
+  unchanged(registryFile);
+  if (stdout) { process.stdout.write(text); return; }
+  // Validate both destinations before --normalize can touch the authoritative JSON.
+  const target = inspectFile(root, projection, { writing: !check });
+  if (sameFile(registryFile.stat, target.stat)) throw boundaryError();
+  if (check) {
+    const current = target.stat ? readFileSync(target.path, 'utf8') : null;
+    unchanged(target); unchanged(registryFile);
+    if (current === text) console.log(`✓ doc-types 投影新鲜：${reg.projection}`);
+    else {
+      console.error(`✗ doc-types 投影过期：${reg.projection} 与注册表不一致——运行 node scripts/gen-doc-types.mjs 重生成`);
+      process.exitCode = 1;
+    }
+    return;
+  }
+  if (normalize) {
+    const current = readFileSync(registryFile.path, 'utf8');
     const normalized = serializeRegistry(reg);
-    if (current === normalized) {
-      console.log('✓ 注册表已是规范序列化形态（键序与缩进无漂移）');
-    } else {
-      writeFileSync(regPath, normalized);
+    if (current === normalized) console.log('✓ 注册表已是规范序列化形态（键序与缩进无漂移）');
+    else {
+      writeChecked(registryFile, normalized);
       console.log('✓ 注册表已按规范序列化写回（键序与缩进归一）');
     }
-    writeFileSync(target, text);
-    console.log(`✓ 已生成 ${reg.projection}（${Object.keys(reg.types).length} 个类型）`);
-  } else {
-    writeFileSync(target, text);
-    console.log(`✓ 已生成 ${reg.projection}（${Object.keys(reg.types).length} 个类型）`);
   }
+  writeChecked(target, text);
+  console.log(`✓ 已生成 ${reg.projection}（${Object.keys(reg.types).length} 个类型）`);
+}
+
+if (isMainModule(import.meta.url)) {
+  try { generateProjection(); }
+  catch (error) { console.error(`gen-doc-types: ${error.message} [projection/generate-failed]`); process.exitCode = 1; }
 }

@@ -1,27 +1,27 @@
-# research/ — 事实与证据
+# research/ — 做完的（survey / evidence / postmortem / reference）
 
-**装什么**：已完成的研究产出与客观事实——调研报告、长期事实参考、事故复盘、证据快照。它回答「查到了什么、发生了什么」，是事实层。
+**装什么**：已完成的研究产出与客观事实——调研报告、原始证据、事故复盘、长期事实参考。它回答「查到了什么、发生了什么」，是事实层。
 
-**不装什么**：还没做的调研（→ [../plans/](../plans/)）；决策的因果与取舍（→ [../notes/](../notes/)——研究是决策依据时，依据与决策分家、两边互链）。
+**不装什么**：还没做的调研（→ [../plans/](../plans/)）；决策因果与取舍（→ [../notes/](../notes/)——研究是决策依据时，依据与决策分家、两边互链）。
 
 ## 四个类型
 
 | Type | 回答什么 | 关键约束 |
 |---|---|---|
-| `survey` | 一次性调研的问题、方法、结论 | 至少 3 处可回溯出处；`Updated` 超一年报警 |
-| `reference` | 调研与语料导览性质的长期参考（运行登记 → 仓库根 `docs/`） | 必填 `Verified:`，超 120 天报警；复核后可从 `historical` 翻回 `current` |
-| `postmortem` | 事故的时间线、因果链、影响、预防 | 全工作区唯一允许叙事文体（归档区 `frozen` 除外）；行动项关闭后翻 `historical` |
-| `evidence` | 原始事实：清单、命令输出、度量、语料镜像 | 必填 `Verified:` 与 `Source:`；不下结论（结论去 `survey`） |
+| `survey` | 一次性调研的问题、方法、结论 | 结论必须能追到证据；会过时 |
+| `evidence` | 原始事实：清单、命令输出、度量、语料镜像 | 保持原样，不下结论（结论去 `survey`） |
+| `postmortem` | 事故的时间线、因果链、影响、预防 | 行动项全部关闭后翻 `historical` |
+| `reference` | 长期事实参考：持续维护的映射与导览 | 外部事实登记去根 `docs/` |
 
-每个类型的必备节、专属检查与复核时效由[注册表](../doc-types.json)定义，可读投影见 [doc-types.md](../doc-types.md)。
+建议节与骨架见[规范全文](../README.md)，骨架实物见 [survey 骨架](../templates/survey.md)。
 
 ## 状态
 
-`current`（与现状一致）→ `historical`（属于历史时点，不再保证为真）；被取代 → `superseded` + `Superseded-by:`。`postmortem` 只有 `current`/`historical`：行动项没关完就是 `current`。
+`current`（与现状一致）→ `historical`（属于历史时点，不再保证为真）；被取代 → `superseded` + `Superseded-by:`。
 
 ## 纪律
 
-- **来源可回溯**：每条结论要有出处（相对链接、URL、commit SHA）；`survey` 与 `reference` 少于 3 处出处会被门禁拦下。
-- **事实与因果分家**：研究支撑了某个决策时，研究留在这里，决策写 [../notes/](../notes/)，用头块 `Note:` 字段互链。
-- **跑过再写**：`Verified:` 是「我按这份文档执行并看到预期结果」的日期，不是「我改过这个文件」的日期（那是 `Updated:`）。
-- **批量原始语料**：整目录镜像放进来时，在该目录放一个名为 `.agents-raw` 的空标记文件豁免类型与写作检查，并另写一篇 `evidence` 说明它是什么、怎么采的、什么时候会失效。
+- **来源可回溯**：每条结论要有出处（相对链接、URL、commit SHA）。
+- **事实与因果分家**：研究支撑了某个决策时，研究留在这里，决策写 [../notes/](../notes/)，两边互链。
+- **批量原始语料**：整目录镜像放进来时，在该目录放一个名为 `.agents-raw` 的空标记文件整目录免检，并另写一篇 `survey` 或 `reference` 说明它是什么、怎么采的。
+- 建档：`node .agents/tools/new-doc.mjs --type <type> --topic <topic>`。

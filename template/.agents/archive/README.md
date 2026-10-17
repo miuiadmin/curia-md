@@ -1,27 +1,26 @@
 # archive/ — 冻结留档区
 
-**装什么**：已退役的整篇文档（`plans/` `research/` `future/` 的冷历史），类型为 `frozen`。**只归档、不删除。**
+**装什么**：已退役的整篇文档（`plans/`、`research/` 的冷历史）。**只归档、不删除。**
 
-**不装什么**：notes 的归档——它们走 [../notes/archived/](../notes/archived/)（同一套哈希封印机制，另一处归属）。
+**不装什么**：笔记的归档——它们走 [../notes/archived/](../notes/archived/)（另一处归属）；技能与各家 README 是活的入口页，不归档。
 
-## 归档操作
+## 归档四步
+
+1. **移动**：文档移入本目录（可加品类子目录）；笔记移入 [../notes/archived/](../notes/archived/)（扁平放置）。
+2. **加行**：头块末尾加 `Archived: yyyy-mm-dd`；原有 `Type:`、`Status:` 保留，作为它退役前的身份。
+3. **重写自身相对链接**：归档件深了一层，链接基准随之改变——指向同批归档件的改指归档区，其余改指原位置。
+4. **修入链**：全仓扫描指向旧路径的相对链接，同批改到新位置：
 
 ```bash
-node scripts/archive-doc.mjs .agents/plans/2026-01-01-old-plan.md --subdir plans --dry-run   # 先看结果
-node scripts/archive-doc.mjs .agents/plans/2026-01-01-old-plan.md --subdir plans             # 执行
+rg -n '\]\([^)]*<目标文件名>' .agents/ docs/
 ```
 
-**同批归档多篇时把路径一次给全**（`node scripts/archive-doc.mjs <路径1> <路径2> … --subdir plans`）：一次移动、一次封印、一次报告，且互相引用的两篇才知道对方要搬到哪，不会各自指向已被搬走的位置。
+**第三步不能省。** 归档件比原件深一层（`research/x.md` → `archive/research/x.md`），文中所有相对链接的基准跟着变。不重写就会出两类事故：其一，跨 `.agents/` 的链接当场失效，而检查器扫归档区，会报出来；其二，更隐蔽的一类——`../README.md` 从 `archive/plans/` 解析到 `archive/README.md`，**那个文件存在**，于是机器不报而链接静默指错。
 
-工具做五件事：移动到本目录（保留原文件名，`--subdir` 可按品类分子目录）、在头块末尾插入 `Archived: YYYY-MM-DD`（原有 `Type:`/`Status:` 保留，作为它退役前的身份）、**重写文档自身的相对链接**、调 `seal-notes-archive.mjs --target archive` 重新封印、扫出全仓指向旧路径的入链清单。
+## 检查与冻结
 
-**第三步不能省。** 归档件比原件深一层（`research/x.md` → `archive/research/x.md`），文中所有相对链接的基准跟着变。不重写就会出两类事故：其一，跨 `.agents/` 的链接当场失效，而 `check-links` 是扫归档区的，门禁必红；其二，更隐蔽的一类——`../README.md` 从 `archive/plans/` 解析到 `archive/README.md`，**那个文件存在**，于是门禁不报而链接静默指错。封印是 append-only 的单向棘轮（`seal-notes-archive.mjs` 拒绝封印后的任何改动，也没有 `--force`），所以「搬完再修」这条退路不存在——真要补救只能删掉 manifest 条目重来。
-
-**入链必须在同一批变更里修完**（改指替代文档；没有替代者就指向归档件本身，它仍是可发现的历史），否则 `check-links` 会红。手工归档也只做这四件事：移动、加 `Archived:` 行、重写自身相对链接、重新封印并修入链。
-
-之后**永久冻结**：不编辑、不翻译、不重排、不移动、不删除；它不再是对当前行为的权威，仅作历史快照。门禁逐文件核对 sha256，并校验封印相对 git 基线只增不改。
-
-只接受 `plans/` `research/` `future/` 下的文档：笔记走 [../notes/archived/](../notes/archived/)，技能与各家 README 是活的入口页、不归档。
+- 归档区不是豁免区：检查器对归档件查 `Archived:` 行与链接可达（这正是四步第 3、4 步的机器验证面）；写作与格式组不查归档件——冻结件永不修改，查出来也无法处置。
+- 归档件永久冻结：不编辑、不翻译、不重排、不移动、不删除；它不再是对当前行为的权威，仅作历史快照。冻结靠纪律与评审，机器不做哈希封印。
 
 ## 为什么不是删除
 

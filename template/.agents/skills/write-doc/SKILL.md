@@ -1,37 +1,32 @@
 ---
 name: write-doc
-description: 在 Curia .agents 工作区新建或修改文档的完整流程——定家定型、脚手架建档、先核事实再写字、填必备节、落头块、过门禁、必要时晋级或退役。当要写调研报告、实施规格、计划、事故复盘、证据快照、运维手册，决定一篇文档放哪、是什么类型，或用户说「写个文档」「补个规格」「整理成文档」时使用。
+description: 在 Curia .agents 工作区新建或修改文档的完整流程——定家定型、按骨架建档、先核事实再写字、落头块、必要时晋级或退役。当要写调研报告、实施规格、计划、事故复盘、证据快照、运维手册，决定一篇文档放哪、是什么类型，或用户说「写个文档」「补个规格」「整理成文档」时使用。
 ---
 
 # 文档写作（write-doc）
 
-句子与删改看 [prose-standard](../prose-standard/SKILL.md)，决策因果看 [write-note](../write-note/SKILL.md)。本技能是流程；类型的权威是[注册表](../../doc-types.json)，总规格是 [.agents/README.md](../../README.md)。
+句子与删改看 [prose-standard](../prose-standard/SKILL.md)，决策因果看 [write-note](../write-note/SKILL.md)。本技能是流程；类型的权威是[规范全文](../../README.md)的「9 类文档」表。
 
 ## 定家定型（两步）
 
-1. **定家**：按 AGENTS.md 的四句口诀——为什么 → `notes/`（走 write-note）；没做的 → `plans/`（未承诺 → `future/`）；做完的 → `research/`；可复用干法 → `skills/`，冷历史 → `archive/`；**知识与结果** → 按需创建的根 `docs/`，保留原格式与原项目规则，不为普通结果补造过程头块或日志；只有受登记类型约束的文档才走下面的定型与脚手架步骤。
-2. **定型**：同一家里类型互斥，判据现查 `node scripts/new-doc.mjs --list`（每类的装什么/不装什么都在输出里，不要背表）。两组最常混的：`survey` 会过时、`reference` 持续维护带 `Verified:`；`spec` 做完仍是权威（`done` 不退役）、`plan` 做完就是历史。运行登记不再用 `reference`——它只留调研与语料导览性质，知识与结果住根 `docs/`，已有类型、冻结与审批要求继续生效。
+1. **定家**：按四句口诀——为什么 → `notes/`（走 [write-note](../write-note/SKILL.md)）；没做的 → `plans/`；做完的 → `research/`；可复用的干法 → `skills/`；外部事实 → 根 `docs/`；冷历史 → `archive/`。
+2. **定型**：同一家里类型互斥，判据现查 `node .agents/tools/new-doc.mjs --list`（每类的装什么、住哪、建议节都在输出里，不要背表）。两组最常混的：`survey` 会过时、`reference` 持续维护；`spec` 做完仍是权威（`done` 不退役）、`plan` 做完就是历史。
 
 ## 流程
 
-1. **建档**：本步骤只适用于受登记类型约束的文档；普通知识与结果按原格式直接维护。`node scripts/new-doc.mjs --type <type> --topic <topic>`（固定命名类型用 `--name`）；既有文档补头块用 `--adopt <path> --type <type>`。手抄骨架会被门禁拦下（AGENTS.md 第 10 条）。
+1. **建档**：`node .agents/tools/new-doc.mjs --type <type> --topic <topic>`（`skill` 与 `runbook` 的 topic 是目录名，须 kebab-case）；也可以手抄 [.agents/templates/](../../templates/) 里对应骨架。
 2. **先核事实，再写字**：每条命令、默认值、端点、路径、行为都要跑一遍或读到原文；核不到的写「未核实 + 核实归属」，不凭记忆、类比或隔壁文档下笔。
-3. **填必备节**：按模板顺序写完；确实无内容的节只写 `_（无）_`，不删节、不改标题措辞（标题别名由注册表管）。
-4. **写正文**：只写当前状态；篇幅凭判断——事实写够即止、不要太长，没有字数门禁；格式硬规则（一段一行、中英空格、全角标点、术语）在 AGENTS.md 第 9 条，句子层面的自查见 [prose-standard](../prose-standard/SKILL.md)。 AI 辅助起草后独立维护的结果不强制变为生成投影；真正派生内容复用原生来源说明，保留抽取／推断、输入与输出修订及真实运行依据，未知不猜填、历史不补造、敏感提示不默认保存或摘要。
-5. **落头块**：`Updated:` 改今天；跑过一遍的（`evidence`/`reference`/`runbook`）同时改 `Verified:`；有对应决策笔记补 `Note:` 链接。
-6. **过门禁**：`node scripts/run-checks.mjs`；机械类错误（中英空格、全角标点、行尾空白）先 `node scripts/fix-doc.mjs --write <路径>` 一键修复；报错就地修文档，不要改门禁。**本地门禁与 pre-commit 钩子的扫描范围不同：新建文档在暂存前可能扫不到**，于是出现「本地全绿、提交被钩子拦下」（2026-10-15 实测踩过一次）。新文档先 `git add` 再跑门禁，别把钩子当本地自检的替代。
-7. **同批写笔记**：非平凡变更（改行为、结构、契约、流程、工具、格式）同批新增/更新 `notes/`（走 write-note）。
-
-## 外发与镜像（仅显式请求）
-
-任务明确要求写入外部目标时，先读目标的原生发布／同步规则，确认候选、允许范围、目标身份、expected revision 和原生权限。目标状态未知、必要的干净条件不满足或原协议无法防止并发覆盖时停止；不默认推送、覆盖或删除，不把 dry-run 当成目标锁。
-
-使用原项目已有工具及条件写入，保留逐对象回执；非零退出可能已有部分效果，回执丢失先查询，不盲目重试。[项目 guard](../../../scripts/curia-guards.mjs) 的计划和 Run 不代替远端 CAS、认证或审批。普通本地写作不增加这条流程，也不为此自动落 Run。
+3. **填建议节**：按骨架顺序写；确实无内容的节只写 `_（无）_`，不删节。
+4. **写正文**：只写当前状态；篇幅凭判断——事实写够即止，没有字数预算；格式硬规则（一段一行、中英空格、全角标点、禁 emoji）见根 `AGENTS.md` 第 6 条，句子层面的自查见 [prose-standard](../prose-standard/SKILL.md)。
+5. **落头块**：`Updated:` 改今天；`Status: superseded` 必须带 `Superseded-by:` 相对链接。
+6. **自检（可选）**：`node .agents/tools/check-docs.mjs` 报告模式看发现，`--strict` 任一发现即退出码 1；报错就地修文档，不要改脚本。装不装提交钩子归项目自定。
+7. **同批写笔记**：非平凡变更同批新增或更新 `notes/`（走 [write-note](../write-note/SKILL.md)）。
 
 ## 晋级与退役
 
-流转表见[总规格的「晋级与退役」](../../README.md)。三个动词：承诺了迁 `future/` → `plans/`（不留副本）；做完了计划翻 `done`、事实与因果分家互链；过时了优先翻状态，冷历史 `node scripts/archive-doc.mjs <path>`（自动加 `Archived:` 行、封印、列待修入链）。**永不删除。**
+- 承诺了：不承诺的意图落成 `draft` 的 proposal；做完的计划翻 `done`，事实与因果分家互链。
+- 过时了：优先状态翻转（`superseded` / `done` / `historical`）；冷历史走[归档四步](../../archive/README.md)——移动、`Archived:` 行、重写自身相对链接、修入链。**永不删除。**
 
 ## 改类型系统本身
 
-改 `.agents/doc-types.json` 必须同一批做完：更新或新增 `.agents/templates/<type>.md`、实现专属检查、`node scripts/gen-doc-types.mjs` 重生成投影、`scripts/self-test.mjs` 补**必须失败**的负向夹具（输出挂 `[scope/rule]` 规则 ID，缺 ID 被 `meta/missing-rule-id` 拦下）、最后 `node scripts/run-checks.mjs --self`。三件套（类型 ↔ 模板 ↔ 检查）缺一被注册表自洽断言拦下。
+类型有两份表示：规范「9 类文档」表（人读权威）与 `check-docs.mjs` 内联枚举（机器读）。增删类型必须同批改 `.agents/templates/` 目录与脚本内联枚举——脚本启动时比对两者，不一致即报配置错误（退出码 2）。

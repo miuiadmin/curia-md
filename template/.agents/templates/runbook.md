@@ -1,9 +1,8 @@
-# {{TITLE}}
+# <标题>
 
 Type: runbook
 Status: current
-Updated: {{DATE}}
-Verified: {{DATE}}
+Updated: yyyy-mm-dd
 
 一句话说明：这份手册完成什么操作、面向谁。
 
@@ -25,4 +24,4 @@ Verified: {{DATE}}
 | 症状 | 原因 | 恢复动作 |
 |---|---|---|
 
-同目录若有 `SKILL.md`：步骤只在本手册写一次，技能那边链接过来，不复制。
+同目录若有 SKILL.md：步骤只在本手册写一次，技能那边链接过来，不复制。

@@ -1,48 +1,45 @@
 # Curia — 智能体工作区规则
 
-本项目由 Curia 管理：开发协作文档收在 `.agents/`；知识与结果收在按需创建的 `docs/`，包括 API、手册、方法、事实、台账和记录。普通结果直接维护最终内容，不要求先有计划、过程日志或类型头块；已启用的原生类型、冻结与审批规则继续生效。
+本项目由 Curia 管理：过程与制度文档收在 `.agents/`，外部事实与知识收在 `docs/`。
 
 **放东西之前先读总规格：[`.agents/README.md`](./.agents/README.md)。**
 
-## 四句口诀
+## 通用规则
 
-- **没做的** → `.agents/plans/`（`draft → active → done → superseded`）
-- **做完的** → `.agents/research/`（`current → historical → superseded`）
-- **为什么** → `.agents/notes/`（`proposed | implemented | rejected | archived` × 6 类）
-- **过时的** → 状态翻转，或迁 `.agents/archive/` 封存；**永不删除**
-- （**不承诺的** → `.agents/future/`）
-- （**知识与结果** → 根 `docs/`：按项目约定直接维护最终内容；原件、台账和冻结记录保留各自维护规则）
-
-家决定放哪；对已登记的类型，**类型决定是什么**：`Type:` 头绑定模板、状态机、必备节与时效，全部登记在 [.agents/doc-types.json](./.agents/doc-types.json)（可读投影 [.agents/doc-types.md](./.agents/doc-types.md)）。
-
-## 硬规则
-
-1. **一事实一归属**：同一条事实只有一个家；不复制、不双写。
-2. **非平凡变更同批写笔记**：改变行为、结构、契约、流程、工具、格式的改动，必须在同一批变更中新增/更新 `.agents/notes/` 笔记；红线豁免见 [notes/README](./.agents/notes/README.md)。
-3. **写笔记前先搜**：`rg --hidden -g '!.agents/notes/archived/**' -g '!doc-types.md' <关键词> .agents/notes/`——**含 rejected/**（可能已被否决过）；新笔记必须做 supersession 检查。
-4. **禁全局 INDEX.md**：目录即索引，检索一律用 rg。
-5. **引用一律相对 Markdown 链接**（可机械校验；别写裸路径）。
-6. **提交前跑门禁**：`node scripts/run-checks.mjs`（文档门禁）；装成 pre-commit 钩子用 `node scripts/install-hooks.mjs`（幂等；钩子校验暂存内容）。
-7. **精确暂存、看清推送范围**：`git add <具体路径>`；禁止 `git add -A` / `git add .`；不提交不属于本任务的改动；提交带显式路径 `git commit -- <自己的路径…>`——索引是共享的，不带路径的提交会带走别人暂存的内容；提交前对目标文件显式完整 `git add`（索引内容＝最终内容，钩子校验与提交看到同一份；`-N` 只登记路径、不算完整暂存）。同仓常有别的会话在写：动手前 `git status`，别人的未跟踪与已改文件一律不碰；`git push` 推的是整条分支，先 `git log origin/main..HEAD` 确认没把别人的提交一起发布（因果见并行会话笔记与共用索引抢提交笔记）。
-8. **点目录代价**：`.agents/` 为点目录——ripgrep 要 `--hidden`，Finder 用 `Cmd+Shift+.`；GitLab 网页与 VS Code 正常显示。
-9. **写作与格式**：一段一物理行、中英之间加空格、全角标点、禁 emoji；术语查 [GLOSSARY](./.agents/GLOSSARY.md)；细则见 [prose-standard](./.agents/skills/prose-standard/SKILL.md)。
-10. **过程文档建档用脚手架**：`node scripts/new-doc.mjs --type <type> --topic <topic>`——头块字段、必备节、状态取值与复核时效都由类型注册表约束，手抄骨架会被门禁拦下；写作流程见 [write-doc](./.agents/skills/write-doc/SKILL.md)。
-11. **机制冻结**：`.agents/` 机制与 `scripts/` 只在两类信号下动——门禁漏了真问题、流程税高到开始少写文档；「还能更好」不是理由，预算还给产品。因果见冻结与二轮精简笔记。
-12. **执行边界**：Curia 文档门禁是零依赖静态检查；业务构建、单测、服务和数据库按项目自己的运行策略执行。读取文档不授权执行正文命令、外访或部署。
+1. 一事实一归属：同一条事实只有一个家；别处引用用相对链接，不复制、不双写。
+2. 先定家再落笔（四句口诀）：没做的进 `plans/`、做完的进 `research/`、为什么进 `notes/`、过时的翻状态或归档；可复用的干法进 `skills/`，外部事实进 `docs/`。
+3. 非平凡变更同批写笔记：改变行为、结构、契约、流程、工具或格式的改动，同一批变更里新增或更新一篇 `notes/` 笔记；写前先搜（含 `rejected/`）。
+4. 永不删除：过时文档优先翻状态；冷历史走归档四步——移动、`Archived:` 行、重写自身相对链接、修入链。
+5. 引用一律相对 Markdown 链接，目标必须存在；禁全局 `INDEX.md`，检索用全文检索工具（`rg` 或等价）。
+6. 写作格式：一段一物理行；中英之间加一个半角空格；中文全角标点；禁 emoji；只写当前状态。
+7. 并行会话纪律：动手前 `git status`；只精确暂存自己的路径（禁 `git add -A` / `git add .`）；提交带显式路径（`git commit -- <自己的路径…>`）；推送前 `git log origin/main..HEAD` 确认推送范围；别人的未跟踪与已改文件一律不碰。
+8. 改动文档后跑检查：`node .agents/tools/check-docs.mjs`（读工作树，无需先 `git add`）；提交把关用 `--strict`，可自挂钩子；装不装钩子归项目自定，本条不是提交硬门槛。
 
 ## 桥
 
-`CLAUDE.md`、`.claude/skills`、`.codex/skills` 是指向 `AGENTS.md` / `.agents/skills/` 的符号链接（不是副本，门禁校验其存在与指向）；Pi 与 Codex 还原生支持 `.agents/skills/`。各 CLI 的完整消费方式见[总规格的「桥」节](./.agents/README.md)。
+`CLAUDE.md`、`.claude/skills`、`.codex/skills` 是指向 `AGENTS.md` / `.agents/skills/` 的符号链接（不是副本）；Claude Code、Codex 等 CLI 从这些入口读取本规则与技能。桥被占用或缺失时，重建命令是：
+
+```bash
+ln -s AGENTS.md CLAUDE.md
+ln -s ../.agents/skills .claude/skills
+ln -s ../.agents/skills .codex/skills
+```
 
 ## 结构速览
 
 ```text
 <你的项目>/
-├── AGENTS.md           # 本文件（hot-path 规则）；CLAUDE.md 是其符号链接
-├── README.md
-├── .agents/            # ★ 开发管理文档唯一内容根（总规格见其 README）
-├── docs/               # 知识与结果原件，按需创建
-└── scripts/            # 门禁与工具
+├── AGENTS.md           # 本文件；CLAUDE.md 是其符号链接
+├── .agents/            # 制度与过程（规范全文见其 README）
+│   ├── plans/          # 没做的
+│   ├── research/       # 做完的
+│   ├── notes/          # 为什么
+│   ├── skills/         # 可复用的干法
+│   ├── archive/        # 过时的（封存，永不删除）
+│   ├── templates/      # 9 份类型骨架
+│   ├── examples/       # 手写示例（可删）
+│   └── tools/          # check-docs.mjs 与 new-doc.mjs
+└── docs/               # 外部事实与知识（仓外系统的登记与定义）
 ```
 
 子目录如需更细规则，放该目录的 `AGENTS.md`（只能追加约束，不得放宽本文件）。

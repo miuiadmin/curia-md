@@ -6,16 +6,20 @@
  *   node .agents/tools/check-docs.mjs [--strict] [--exclude <路径或 glob>]… [--skip <组号,…>] [路径…]
  *   报告模式列发现不失败（0）；--strict 任一发现即 1；--skip 跳过指定组（如纯英文项目 7,8）；
  *   2 = 无法完成检查：扫描面为空、路径不存在、0 条判据可执行（适用组被 --skip 跳光）、模板枚举
- *   自检不一致、内部错误——两种模式都不得返回 0。未给路径时取默认两根 `.agents/` 与 `docs/`（存在才扫）。
+ *   自检不一致、内部错误——两种模式都不得返回 0。未给路径时取默认两根 `.agents/` 与 `docs/`（存在才扫）；
+ *   默认两根按脚本位置（工作区根）解析，与调用时的工作目录无关——从任意子目录调用结果一致。
  * 取舍：模板目录缺失按配置错误（2，模板是类型枚举的第二份表示）；「跳过 K 项」= 跳过组数；
  *   目录名 kebab-case 只查 `.agents/` 子树；日期型文件名只查 plans/research 家与 notes 活动区；
  *   组 7/8 一行只报第一处；组 0「编码」在文件无法按 UTF-8 解码时报出；纯文件系统遍历，不读 git。
- * 行数：规范「合计目标 ≤ 500 行」——本文件 413 行 + new-doc.mjs 82 行 = 495 行，单支均未超 600 行硬线。
+ * 行数：规范「合计目标 ≤ 500 行」——本文件 426 行 + new-doc.mjs 83 行 = 509 行，小幅超出为修判据误报/漏报（emoji 字符集、引用块围栏、setext 与脚注定义、注释区域级掩码）；硬线为单支 600 行，未超。
  */
 
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+/** 工作区根：脚本住 <root>/.agents/tools/，从脚本位置反推，与当前工作目录无关（与 new-doc.mjs 同一口径）。 */
+const ROOT = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 
 /** 类型枚举（机器读的一份；人读权威在规范「9 类文档」表）：类型 → 家 → 允许状态（null = 无 Status）。 */
 const TYPES = {
@@ -42,21 +46,21 @@ const EMDASH = '—', INLINE_MARK = '\uE000', CJK_CLASS = '\\u3400-\\u4fff\\u4e0
 const CJK_SPACE_RE = new RegExp(`(?:[${CJK_CLASS}])([A-Za-z0-9])|([A-Za-z0-9])([${CJK_CLASS}])`, 'g');
 const CJK_INLINE_RE = new RegExp(`[${CJK_CLASS}]${INLINE_MARK}|${INLINE_MARK}[${CJK_CLASS}]`);
 const HALFWIDTH_PUNCT_RE = new RegExp(`(?:[${CJK_CLASS}])([,;:!?()])|(?:[,;:!?()])([${CJK_CLASS}])`, 'g');
-const EMOJI_RE = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}]/gu; // 规范「功能性符号只放行 →」
+const EMOJI_RE = /[\u{1F000}-\u{1FAFF}]/gu; // 组 8：只查象形符号区 1F000-1FAFF；2600-27BF、2B00-2BFF 与 FE0F 变体混居功能性记号与 ✅❌ 类 emoji（表格里表「是/否」常见），不查——有意留白
 // URL 内不查：整体掩码为拉丁占位 `URL`——保留与相邻中文的边界供组 7 判定；字符集排除空白、CJK 与全角段
 const URL_RE = new RegExp(`[a-zA-Z][a-zA-Z0-9+.-]*:\\/\\/[^\\s\\u3000-\\u303f${CJK_CLASS}\\uff00-\\uffef]+`, 'g');
-const LINK_RE = /\[[^\]]*\]\(([^)\s]+)\)/g; // 组 9：取链接目标
+const LINK_RE = /\[[^\]]*\]\(((?:[^()\s]|\([^()\s]*\))+)(?:\s+(?:"[^"]*"|'[^']*'))?\s*\)/g; // 组 9：取链接目标（一层平衡括号，如 foo(1).md；可带 "title" / 'title'；与 LINK_STRIP_RE 同口径）
 const LINK_STRIP_RE = /!?\[([^\]]*)\]\((?:[^()]|\([^()]*\))*\)/g; // 组 7/8：整条行内链接 → 仅留链接文字
-// 组 6：标题 / 列表项 / 表格行 / 引用 / 围栏行 / 分隔线 / 缩进代码——都不是自然段文本
-const STRUCT_RE = /^(?:\s{0,3}#{1,6}\s|\s*(?:[-*+]|\d+[.)])\s|\s*\||\s*>\s?|\s{0,3}(?:```|~~~)|\s{0,3}(?:-{3,}|\*{3,}|_{3,})\s*$)/;
+// 组 6：标题 / 列表项 / 表格行 / 引用 / 围栏行 / 分隔线 / setext 下划线 / 引用式链接（含脚注）定义 / 缩进代码——都不是自然段文本
+const STRUCT_RE = /^(?:\s{0,3}#{1,6}\s|\s*(?:[-*+]|\d+[.)])\s|\s*\||\s*>\s?|\s{0,3}(?:```|~~~)|\s{0,3}(?:-{3,}|={1,}|\*{3,}|_{3,})\s*$|\s{0,3}\[[^\]]+\]:\s)/;
 const INDENT_RE = /^(?: {4}|\t)/; // 缩进代码块（规范豁免清单「代码块」）
 
-/** 输出用路径：两侧统一 realpath（macOS /tmp → /private/tmp 符号链接下输出才不失真）；失败回退原值。 */
+/** 输出用路径：两侧统一 realpath（macOS /tmp → /private/tmp 符号链接下输出才不失真）；相对工作区根，失败回退原值。 */
 function relOf(abs) {
-  let cwd = process.cwd(), a = abs;
-  try { cwd = realpathSync(cwd); } catch {}
+  let base = ROOT, a = abs;
+  try { base = realpathSync(base); } catch {}
   try { a = realpathSync(abs); } catch {}
-  const r = relative(cwd, a).split(sep).join('/');
+  const r = relative(base, a).split(sep).join('/');
   return r === '' ? '.' : r;
 }
 
@@ -73,7 +77,7 @@ function globToRe(pattern) {
   return new RegExp(`^${re}$`);
 }
 
-/** `--exclude` 匹配：绝对路径按前缀；相对值按 cwd 相对路径前缀或 glob。 */
+/** `--exclude` 匹配：绝对路径按前缀；相对值按工作区根相对路径前缀或 glob（与默认两根同一锚点，调用目录无关）。 */
 function isExcluded(entry, excludes) {
   return excludes.some((e) => {
     if (isAbsolute(e)) {
@@ -142,30 +146,39 @@ function collect(roots, excludes) {
   return { files, dirs };
 }
 
-/** 掩码 fenced 代码与 HTML 注释区域（跨行）；识别文件头 YAML frontmatter 的结束行。 */
+/** 掩码 fenced 代码与 HTML 注释区域（跨行）；cmask = 注释段移除后的可见文本（组 6 至 9 只判它）；识别文件头 YAML frontmatter 的结束行。 */
 function analyze(lines) {
-  const n = lines.length, fenced = new Array(n).fill(false), commented = new Array(n).fill(false);
-  let inFence = false, inComment = false;
+  const n = lines.length, fenced = new Array(n).fill(false), cmask = new Array(n);
+  let inFence = false, fenceQuote = false, inComment = false;
   for (let i = 0; i < n; i++) {
     const l = lines[i];
-    fenced[i] = inFence, commented[i] = inComment;
-    if (!inComment && /^\s{0,3}(?:```|~~~)/.test(l)) { fenced[i] = true; inFence = !inFence; }
-    else if (inFence) fenced[i] = true;
-    if (inFence) continue;
-    const open = inComment ? -1 : l.indexOf('<!--');
-    const close = l.indexOf('-->');
-    if (inComment) { commented[i] = true; if (close !== -1) inComment = false; }
-    else if (open !== -1) { commented[i] = true; if (close === -1 || close < open) inComment = true; }
+    fenced[i] = inFence;
+    const fm = inComment ? null : /^\s{0,3}(?:>\s?)*(?:```|~~~)/.exec(l); // 引用块里的围栏也是围栏
+    if (fm) {
+      fenced[i] = true;
+      const q = /^\s{0,3}>/.test(l);
+      if (!inFence) { inFence = true; fenceQuote = q; }
+      else if (!q || q === fenceQuote) inFence = false; // 裸围栏可闭合任意围栏；引用围栏行不闭合裸围栏（裸围栏内的 `> ``` ` 是内容）
+    } else if (inFence) fenced[i] = true;
+    if (inFence) { cmask[i] = l; continue; } // 围栏内不进组 6 至 9；cmask 占位保持数组完整
+    let rest = inComment ? l : maskInline(l), out = ''; // 行内代码里的 `<!--` 不是注释起点（注释内容里的反引号不算代码）
+    for (;;) {
+      const at = inComment ? rest.indexOf('-->') : rest.indexOf('<!--');
+      if (at === -1) { if (!inComment) out += rest; break; }
+      if (!inComment) out += rest.slice(0, at); // 注释段本身不进判定文本，注释之外的文本照常判定
+      rest = rest.slice(at + (inComment ? 3 : 4)), inComment = !inComment;
+    }
+    cmask[i] = out;
   }
-  let fmEnd = 0;
-  if ((lines[0] ?? '').trim() === '---') { fmEnd = n; for (let i = 1; i < n; i++) if (lines[i].trim() === '---') { fmEnd = i + 1; break; } }
-  return { fenced, commented, fmEnd };
+  let fmEnd = 0; // 只有闭合的 `---` 才算 frontmatter 块；首行 `---` 无闭合时按正文判（否则第 6 组整篇失效）
+  if ((lines[0] ?? '').trim() === '---') for (let i = 1; i < n; i++) if (lines[i].trim() === '---') { fmEnd = i + 1; break; }
+  return { fenced, cmask, fmEnd };
 }
 
-/** 头块 = 首个标题后连续的 `键: 值` 行块（至第一个空行或非字段行为止）。组 1/2/4 只读它。 */
-function parseHeader(lines) {
+/** 头块 = 首个标题后连续的 `键: 值` 行块（至第一个空行或非字段行为止）。组 1/2/4 只读它；围栏内标题不参与定位（豁免清单）。 */
+function parseHeader(lines, fenced) {
   let titleIdx = -1;
-  for (let i = 0; i < lines.length; i++) if (/^#{1,6}\s/.test(lines[i])) { titleIdx = i; break; }
+  for (let i = 0; i < lines.length; i++) if (!fenced[i] && /^#{1,6}\s/.test(lines[i])) { titleIdx = i; break; }
   const fields = [];
   let i = titleIdx + 1;
   while (titleIdx !== -1 && i < lines.length && lines[i].trim() === '') i++;
@@ -243,11 +256,11 @@ function checkSuperseded(rel, dir, hdr, out) {
   if (p && !targetExists(dir, p)) add(out, 2, rel, supF.idx + 1, `Superseded-by 裸路径目标不存在：${supF.value}（建议改写成相对 Markdown 链接）`);
 }
 
-/** 组 3：活动笔记头——必须在 lifecycle 目录下、标题后第一个非空行是 `Status:`、取值与目录一致、rejected 原因非空。 */
-function checkNoteHeader(rel, lines, loc, out) {
+/** 组 3：活动笔记头——必须在 lifecycle 目录下、标题后第一个非空行是 `Status:`、取值与目录一致、rejected 原因非空；围栏内标题不参与定位。 */
+function checkNoteHeader(rel, lines, fenced, loc, out) {
   if (!loc.inNotesActive) { add(out, 3, rel, 1, '笔记不在 lifecycle 目录（proposed / implemented / rejected）下'); return; }
   let titleIdx = -1;
-  for (let i = 0; i < lines.length; i++) if (/^#{1,6}\s/.test(lines[i])) { titleIdx = i; break; }
+  for (let i = 0; i < lines.length; i++) if (!fenced[i] && /^#{1,6}\s/.test(lines[i])) { titleIdx = i; break; }
   if (titleIdx === -1) { add(out, 3, rel, 1, '笔记缺标题行（头块两行：标题与 `Status:`）'); return; }
   let statusIdx = titleIdx, statusRaw = null;
   for (let i = titleIdx + 1; i < lines.length; i++) {
@@ -282,7 +295,7 @@ function checkHomeName(rel, hdr, loc, base, isIndex, out) {
   if (dated && !isIndex && !DATED_NAME_RE.test(base)) add(out, 5, rel, 1, '日期型文档文件名应以 `yyyy-mm-dd-` 开头');
 }
 
-/** 组 6/7/8：段落连排、中英空格、半角标点与 emoji——同一遍行扫描。组 6 豁免头块与 frontmatter（标题之前照查），缩进代码块不是自然段；组 7/8 不查围栏内与行内代码内部。 */
+/** 组 6/7/8：段落连排、中英空格、半角标点与 emoji——同一遍行扫描，判定文本为注释移除后的可见文本。组 6 豁免头块与 frontmatter（标题之前照查），缩进代码块不是自然段；组 7/8 不查围栏内与行内代码内部。 */
 function checkProse(rel, lines, a, hdr, g, out) {
   const exempt = (i) => i < a.fmEnd || (hdr.titleIdx >= 0 && i >= hdr.titleIdx && i < hdr.blockEnd);
   let run = -1;
@@ -291,13 +304,13 @@ function checkProse(rel, lines, a, hdr, g, out) {
     run = -1;
   };
   for (let i = 0; i < lines.length; i++) {
-    const raw = lines[i], masked = a.fenced[i] || a.commented[i];
+    const raw = lines[i], fence = a.fenced[i];
     if (g.has(6)) {
-      const para = !masked && !exempt(i) && raw.trim() !== '' && !INDENT_RE.test(raw) && !STRUCT_RE.test(raw);
+      const para = !fence && !exempt(i) && a.cmask[i].trim() !== '' && !INDENT_RE.test(raw) && !STRUCT_RE.test(raw);
       if (para) { if (run === -1) run = i; } else flush(i);
     }
-    if (masked) continue;
-    const t = maskProse(raw);
+    if (fence) continue;
+    const t = maskProse(a.cmask[i]);
     if (g.has(7)) {
       const m1 = t.match(CJK_SPACE_RE);
       if (m1) add(out, 7, rel, i + 1, `中文与拉丁字母/数字之间缺半角空格：…${snippet(t, m1[0])}…`);
@@ -317,8 +330,8 @@ function checkProse(rel, lines, a, hdr, g, out) {
 function checkLinks(rel, abs, lines, a, out) {
   const dir = dirname(abs);
   for (let i = 0; i < lines.length; i++) {
-    if (a.fenced[i] || a.commented[i]) continue;
-    for (const m of maskInline(lines[i]).matchAll(LINK_RE)) {
+    if (a.fenced[i]) continue;
+    for (const m of maskInline(a.cmask[i]).matchAll(LINK_RE)) {
       const target = m[1].trim();
       if (!target || target.startsWith('#') || SCHEME_RE.test(target)) continue;
       const pathPart = target.split('#')[0];
@@ -350,7 +363,7 @@ function activeGroups(loc, isIndex, skip) {
 function checkDoc(f, skip, out) {
   const { lines, bad } = readLines(f.abs);
   const a = analyze(lines);
-  const hdr = parseHeader(lines);
+  const hdr = parseHeader(lines, a.fenced);
   const loc = locate(f.abs);
   const base = basename(f.abs);
   const isIndex = INDEX_NAMES.has(base) || base === 'SKILL.md'; // 类型化文档的例外名
@@ -358,7 +371,7 @@ function checkDoc(f, skip, out) {
   if (bad) add(out, 0, f.rel, 1, '文件含无法按 UTF-8 解码的字节（疑似非 UTF-8 编码），其余判据不可信');
   if (g.has(1)) checkHeaderBlock(f.rel, hdr, out);
   if (g.has(2)) checkSuperseded(f.rel, dirname(f.abs), hdr, out);
-  if (g.has(3)) checkNoteHeader(f.rel, lines, loc, out);
+  if (g.has(3)) checkNoteHeader(f.rel, lines, a.fenced, loc, out);
   if (g.has(4)) checkArchivedHeader(f.rel, hdr, out);
   if (g.has(5)) checkHomeName(f.rel, hdr, loc, base, isIndex, out);
   if (!loc.inArchive) checkProse(f.rel, lines, a, hdr, g, out);
@@ -388,7 +401,7 @@ function main(argv) {
   if (opts.help) { console.log(USAGE); return 0; }
   const confErr = selfCheck();
   if (confErr) { console.error(`配置错误：${confErr}`); return 2; }
-  const roots = opts.paths.length ? opts.paths.map((p) => resolve(p)) : [resolve('.agents'), resolve('docs')].filter((p) => existsSync(p));
+  const roots = opts.paths.length ? opts.paths.map((p) => resolve(p)) : [join(ROOT, '.agents'), join(ROOT, 'docs')].filter((p) => existsSync(p));
   if (opts.paths.length) for (const [i, r] of roots.entries()) if (!existsSync(r)) { console.error(`路径不存在：${opts.paths[i]}`); return 2; }
   if (!roots.length) { console.error('未检查任何文件：默认两根 `.agents/` 与 `docs/` 均不存在'); return 2; }
   const { files, dirs } = collect(roots, opts.excludes);

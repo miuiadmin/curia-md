@@ -295,7 +295,7 @@ function checkHomeName(rel, hdr, loc, base, isIndex, out) {
   if (dated && !isIndex && !DATED_NAME_RE.test(base)) add(out, 5, rel, 1, '日期型文档文件名应以 `yyyy-mm-dd-` 开头');
 }
 
-/** 组 6/7/8：段落连排、中英空格、半角标点与 emoji——同一遍行扫描，判定文本为注释移除后的可见文本。组 6 豁免头块与 frontmatter（标题之前照查），缩进代码块不是自然段；组 7/8 不查围栏内与行内代码内部。 */
+/** 组 6/7/8：段落连排、中英空格、半角标点与 emoji——同一遍行扫描，判定文本为注释移除后的可见文本。组 6 豁免头块与 frontmatter（标题之前照查），缩进代码块不是自然段；组 7/8 不查围栏内、行内代码内部与 YAML frontmatter（元数据不是正文，其中的半角逗号是 YAML 语法；头块字段的值是散文，照查）。 */
 function checkProse(rel, lines, a, hdr, g, out) {
   const exempt = (i) => i < a.fmEnd || (hdr.titleIdx >= 0 && i >= hdr.titleIdx && i < hdr.blockEnd);
   let run = -1;
@@ -309,7 +309,7 @@ function checkProse(rel, lines, a, hdr, g, out) {
       const para = !fence && !exempt(i) && a.cmask[i].trim() !== '' && !INDENT_RE.test(raw) && !STRUCT_RE.test(raw);
       if (para) { if (run === -1) run = i; } else flush(i);
     }
-    if (fence) continue;
+    if (fence || i < a.fmEnd) continue;
     const t = maskProse(a.cmask[i]);
     if (g.has(7)) {
       const m1 = t.match(CJK_SPACE_RE);

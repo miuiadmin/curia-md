@@ -13,7 +13,7 @@
 | `postmortem` | 事故的时间线、因果链、影响、预防 | 行动项全部关闭后翻 `historical` |
 | `reference` | 长期事实参考：持续维护的映射与导览 | 外部事实登记去根 `docs/` |
 
-建议节与骨架见[规范全文](../README.md)，骨架实物见 [survey 骨架](../templates/survey.md)。
+建议节见[规范全文](../README.md)，骨架实物见 [survey 骨架](../templates/survey.md)。
 
 ## 状态
 

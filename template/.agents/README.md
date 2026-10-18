@@ -142,40 +142,7 @@ Updated: yyyy-mm-dd
 
 proposal 把「步骤 / 未完成事项」换成「目标 / 成功判据 / 方案选项」；spec 换成「范围 / 契约 / 验收标准 / 适用边界」——完整列见 9 类文档表。
 
-**research 族骨架（survey / evidence / postmortem / reference）。** 以 survey 为例：
-
-```markdown
-# <标题>
-
-Type: survey
-Status: current
-Updated: yyyy-mm-dd
-
-一句话说明：查了什么，最关键的结论是什么。
-
-## 问题
-
-调研要回答的具体问题。
-
-## 方法与来源
-
-怎么查的、查了哪些对象（路径、URL、版本）；方法要能被别人重跑。
-
-## 结论
-
-- 一条结论一句；结论必须能追到证据。
-
-## 证据与出处
-
-| 结论 | 证据 | 出处 |
-|---|---|---|
-
-## 适用边界
-
-样本范围、未验证项、结论不成立的条件。
-```
-
-evidence 用「采集内容 / 采集方式 / 适用边界」；postmortem 用「事故概述 / 时间线 / 影响 / 因果链 / 预防 / 行动项」；reference 用「事实映射 / 方法与来源 / 维护方式 / 适用边界」；runbook 与 skill 按 9 类文档表的建议节列。
+**research 族骨架（survey / evidence / postmortem / reference）。** survey 用「问题 / 方法与来源 / 结论 / 证据与出处 / 适用边界」；evidence 用「采集内容 / 采集方式 / 适用边界」；postmortem 用「事故概述 / 时间线 / 影响 / 因果链 / 预防 / 行动项」；reference 用「事实映射 / 方法与来源 / 维护方式 / 适用边界」；runbook 与 skill 按 9 类文档表的建议节列。
 
 `SKILL.md` 用 frontmatter：`name:` 取技能目录名，`description:` 写触发场景与关键词；正文为「步骤」「边界」两节。
 

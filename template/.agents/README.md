@@ -88,7 +88,7 @@ Updated: yyyy-mm-dd
 
 - 条件行两条：`Status: superseded` 必须带 `Superseded-by: <相对链接>`；归档件必须带 `Archived: yyyy-mm-dd`。
 - `Updated:` 是最近一次实质改动日——改内容就改它；诚实性靠写作者，机器只查格式。
-- 笔记、`skill` 与 `docs/` 文档不适用本头块——笔记用上面的两行形态，skill 用 frontmatter，`docs/` 无头块。
+- 笔记、`skill` 与 `docs/` 文档不适用本头块——笔记用上面的两行形态，`SKILL.md` 用 frontmatter，`docs/` 无头块；技能目录内非 `SKILL.md` 的辅助文档按类型化文档处理（`Type:` 取 `skill`、不写 `Status:`、照填 `Updated:`），或整目录放 `.agents-raw` 免检。
 - 字段值不得残留 `<占位符>`。
 
 **状态与退役。**
@@ -177,7 +177,7 @@ Updated: yyyy-mm-dd
 
 evidence 用「采集内容 / 采集方式 / 适用边界」；postmortem 用「事故概述 / 时间线 / 影响 / 因果链 / 预防 / 行动项」；reference 用「事实映射 / 方法与来源 / 维护方式 / 适用边界」；runbook 与 skill 按 9 类文档表的建议节列。
 
-skill 用 frontmatter：`name:` 取技能目录名，`description:` 写触发场景与关键词；正文为「步骤」「边界」两节。
+`SKILL.md` 用 frontmatter：`name:` 取技能目录名，`description:` 写触发场景与关键词；正文为「步骤」「边界」两节。
 
 **note 骨架。**
 

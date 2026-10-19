@@ -19,4 +19,4 @@
 
 ## 桥的代价
 
-本目录经符号链接暴露给 Claude Code 与 Codex（`.claude/skills`、`.codex/skills`）；Codex 也原生读取 `.agents/skills/`。代价是**本目录下不要放与技能无关的文件**——它们会被一起分发。
+本目录暴露给各 CLI 的方式依宿主而定：Codex 等原生读取 `.agents/skills/`；Claude Code 面由 `init` 在目标路径空闲时建符号链接（`.claude/skills`），被占用时保留原物并打印手工命令。代价是**本目录下不要放与技能无关的文件**——它们会被一起分发。

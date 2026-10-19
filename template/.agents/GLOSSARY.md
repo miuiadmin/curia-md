@@ -18,7 +18,7 @@
 
 **笔记（note）**：`notes/` 下的决策因果记录，头块两行，取值与所在 lifecycle 目录一致。_Avoid_: 日记、流水账
 
-**桥（bridge）**：把 `.agents/` 挂给各 CLI 的符号链接入口（`CLAUDE.md`、`.claude/skills`、`.codex/skills`）。_Avoid_: 适配层、同步脚本
+**桥（bridge）**：把 `.agents/` 暴露给各 CLI 的入口（`CLAUDE.md`、`.claude/skills`、`.codex/skills`）——`init` 在目标路径空闲时建符号链接，被占用时保留原物并打印手工命令。_Avoid_: 适配层、同步脚本
 
 **技能（skill）**：`skills/<name>/SKILL.md`——按需加载的工作流；frontmatter 的 `description` 决定触发时机。_Avoid_: 提示词模板、脚本
 

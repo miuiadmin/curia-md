@@ -17,7 +17,7 @@ description: 在 Curia .agents 工作区新建或修改文档的完整流程—�
 1. **建档**：按[规范全文](../../README.md)「规范格式（骨架）」手抄骨架、定文件名（日期型带 `yyyy-mm-dd-` 前缀；`skill` 与 `runbook` 的 topic 是目录名，须 kebab-case）。
 2. **先核事实，再写字**：每条命令、默认值、端点、路径、行为都要跑一遍或读到原文；核不到的写「未核实 + 核实归属」，不凭记忆、类比或隔壁文档下笔。
 3. **填建议节**：按骨架顺序写；无内容的节可写 `_（无）_`；同族类型可按内容增删节，但不搬另一个家的事实。
-4. **写正文**：只写当前状态；篇幅凭判断——事实写够即止，没有字数预算；格式硬规则（一段一行、中英空格、全角标点、禁 emoji）见根 `AGENTS.md` 第 6 条，句子层面的自查见 [prose-standard](../prose-standard/SKILL.md)。
+4. **写正文**：只写当前状态；篇幅凭判断——事实写够即止，没有字数预算；格式硬规则（一段一行、中英空格、全角标点、禁 emoji）见[规范「写作规则」节](../../README.md)，句子层面的自查见 [prose-standard](../prose-standard/SKILL.md)。
 5. **落头块**：`Updated:` 改今天；`Status: superseded` 必须带 `Superseded-by:` 相对链接。
 6. **自检（可选）**：`node .agents/tools/check-docs.mjs` 报告模式看发现，`--strict` 任一发现即退出码 1；报错就地修文档，不要改脚本。装不装提交钩子归项目自定。
 7. **同批写笔记**：非平凡变更同批新增或更新 `notes/`（走 [write-note](../write-note/SKILL.md)）。

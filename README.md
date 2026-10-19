@@ -8,7 +8,7 @@ Curia 是一套可移植的文档管理方案：两根布局（`.agents/` 管过
 
 ## 三步上手
 
-1. 在目标仓库运行 `npm create curia`（等价 `npx create-curia`）；未发布时从源码运行 `node create-curia/bin/init.mjs --dir <目标目录>`。
+1. 把载荷复制进目标仓库：`node create-curia/bin/init.mjs --dir <目标目录>`；或直接把 `create-curia/template/` 的内容拷到目标仓根（非空树用 `cp -an` 保留既有文件）。两种形态等价，都是本包的分发方式。
 2. `init` 复制载荷并创建三个桥符号链接（`CLAUDE.md`、`.claude/skills`、`.codex/skills`）；被占用的路径打印手工命令并跳过，既有文件一律不覆盖。
 3. 读 `.agents/README.md`（规范全文）按「规范格式（骨架）」手抄第一篇文档；自检跑 `node .agents/tools/check-docs.mjs`（可选）；要提交拦截，自己写一行 pre-commit（见规范「钩子归采用方」）。
 
@@ -55,6 +55,6 @@ create-curia/
 4. **零依赖**：`rg -n "from ['\"]|require\(|import\(" template/.agents/tools/check-docs.mjs` → 只应出现 `node:` 前缀的内置模块名。
 5. **可移植**：把 `.agents/` 拷进无 git、无 `node_modules` 的临时目录，跑 `node .agents/tools/check-docs.mjs --strict` → 与源目录同一判定。
 
-## 发布边界
+## 分发边界
 
-包尚未发布到 npm，当前设置 `private: true` 使用 npm 原生防误发限制；这不妨碍本地打包、离线安装与生成，也不是私有 registry 的发布或访问权限设置。正式发布前须先由 Owner 确认包名、registry、版本、许可证与仓库地址，再显式移除该标记；发布前按「三步上手」第 1 条的源码入口运行。
+本包**不分发到公共 registry**，分发方式是源码入口与载荷直拷两条（见「三步上手」第 1 条）。`package.json` 的 `private: true` 是常设的防误发限制，不是待移除的过渡标记——不要移除它。包名、registry、版本号、许可证与仓库地址因此不需要确认；`repository` 字段的占位值不影响使用。

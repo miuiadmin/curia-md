@@ -129,7 +129,7 @@ function collect(roots, excludes) {
       if (SKIP_DIR_NAMES.has(basename(cur.abs)) || existsSync(join(cur.abs, '.agents-raw'))) continue;
       if (isExcluded(cur, excludes)) continue;
       dirs.push(cur);
-      for (const ent of readdirSync(cur.abs)) stack.push({ abs: join(cur.abs, ent), rel: `${cur.rel}/${ent}` });
+      for (const ent of readdirSync(cur.abs)) stack.push({ abs: join(cur.abs, ent), rel: cur.rel === '.' ? ent : `${cur.rel}/${ent}` });
     } else if (st.isFile() && MD_RE.test(cur.abs) && !isExcluded(cur, excludes)) files.push(cur);
   }
   return { files, dirs };

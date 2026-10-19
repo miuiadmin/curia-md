@@ -1,8 +1,8 @@
 {
   "name": "create-curia",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
-  "description": "Scaffold a Curia 2.1 documentation workspace into any repository (npm create curia).",
+  "description": "Scaffold a Curia 2.2 documentation workspace into any repository (npm create curia).",
   "keywords": [
     "curia",
     "scaffold",
@@ -22,7 +22,6 @@
   "files": [
     "bin/",
     "template/",
-    "template/.gitignore",
     "README.md"
   ],
   "engines": {

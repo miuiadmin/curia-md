@@ -13,7 +13,7 @@
 | `postmortem` | 事故的时间线、因果链、影响、预防 | 行动项全部关闭后翻 `historical` |
 | `reference` | 长期事实参考：持续维护的映射与导览 | 外部事实登记去根 `docs/` |
 
-建议节见[规范全文](../README.md)，骨架实物见 [survey 骨架](../templates/survey.md)。
+建议节与骨架见[规范全文](../README.md)的「规范格式（骨架）」节。
 
 ## 状态
 
@@ -24,4 +24,4 @@
 - **来源可回溯**：每条结论要有出处（相对链接、URL、commit SHA）。
 - **事实与因果分家**：研究支撑了某个决策时，研究留在这里，决策写 [../notes/](../notes/)，两边互链。
 - **批量原始语料**：整目录镜像放进来时，在该目录放一个名为 `.agents-raw` 的空标记文件整目录免检，并另写一篇 `survey` 或 `reference` 说明它是什么、怎么采的。
-- 建档：`node .agents/tools/new-doc.mjs --type <type> --topic <topic>`。
+- 建档：按[规范全文](../README.md)「规范格式（骨架）」手抄，文件名用 `yyyy-mm-dd-topic-title.md`。

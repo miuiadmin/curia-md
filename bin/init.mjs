@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * create-curia —— Curia 2.1 文档工作区生成器（`npm create curia` 的入口）。
+ * create-curia —— Curia 2.2 文档工作区生成器（`npm create curia` 的入口）。
  *
  * 定位（红线，见 ../README.md）：生成器，不是运行时。只做三件事：
  *   - 复制包内 template/ 载荷（逐项；桥树留给桥步）；
@@ -48,7 +48,7 @@ const die = (msg) => {
 };
 
 function usage() {
-  console.log(`create-curia —— 把 Curia 2.1 文档工作区生成到你的仓库（生成器，不是运行时）。
+  console.log(`create-curia —— 把 Curia 2.2 文档工作区生成到你的仓库（生成器，不是运行时）。
 
 用法：
   npm create curia -- [--dir <目标目录>] [--defaults]
@@ -127,7 +127,7 @@ function isMain() {
 /* ------------------------------------------------------------------ 主流程 */
 
 function run(opts) {
-  log('create-curia：把 Curia 2.1 文档工作区生成到你的仓库（生成器，不是运行时）');
+  log('create-curia：把 Curia 2.2 文档工作区生成到你的仓库（生成器，不是运行时）');
   if (opts.defaults) log('--defaults：直通（init 无提问，参数为兼容保留）');
 
   /* 1) 先验证载荷完整性，再碰目标目录 */
@@ -192,20 +192,10 @@ function run(opts) {
   let kept = 0;
   const conflicts = [];
   const copyErrors = [];
-  // npm 安装会把包内 .gitignore 重命名为 .npmignore（实查 npm 11：tarball 里是 .gitignore，
-  // 装进 node_modules 后变 .npmignore）。载荷里两种名字都当 gitignore 样例，落盘统一为 .gitignore；
-  // 两者同时存在时以 .gitignore 为准，.npmignore 不再落盘（避免在用户仓库留下同名杂物）。
-  const hasGitignoreEntry = entries.some((e) => e.rel === '.gitignore');
-  const dstRelOf = (rel) => {
-    if (rel === '.npmignore') return hasGitignoreEntry ? null : '.gitignore';
-    return rel;
-  };
   for (const entry of entries) {
     if (inBridgeTree(entry.rel)) continue;
     if (entry.kind === 'dir' && bridgeParentDirs.has(entry.rel)) continue;
-    const dstRel = dstRelOf(entry.rel);
-    if (dstRel === null) continue;
-    const dst = join(target, dstRel);
+    const dst = join(target, entry.rel);
     try {
       if (entry.kind === 'dir') {
         mkdirSync(dst, { recursive: true });
@@ -235,14 +225,14 @@ function run(opts) {
           continue;
         }
         kept++;
-        conflicts.push(dstRel);
+        conflicts.push(entry.rel);
         continue;
       }
       mkdirSync(dirname(dst), { recursive: true });
       writeFileSync(dst, content, { mode });
       created++;
     } catch (e) {
-      copyErrors.push(`${dstRel} — ${e.message}`);
+      copyErrors.push(`${entry.rel} — ${e.message}`);
     }
   }
 
@@ -289,7 +279,7 @@ function run(opts) {
   /* 6) 下一步 */
   console.log('下一步：');
   console.log('  1. 读 `.agents/README.md`（规范全文）与 `AGENTS.md`，在 AGENTS.md 里补上你的项目名与既有约束。');
-  console.log('  2. 建档：`node .agents/tools/new-doc.mjs --type <type> --topic <topic>`（类型表加 --list 查看），或手抄 `.agents/templates/` 里的骨架。');
+  console.log('  2. 建档：按 `.agents/README.md` 的「规范格式（骨架）」节手抄骨架，落 3 行头块。');
   console.log('  3. 自检：`node .agents/tools/check-docs.mjs`（可选）；要提交拦截，自己写一行 pre-commit：`node .agents/tools/check-docs.mjs --strict`。');
   console.log('  之后一切修改都是你的（fork-and-own）：本工具只有 init，没有 upgrade / check 驻留子命令。');
 }

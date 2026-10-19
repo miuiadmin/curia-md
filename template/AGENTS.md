@@ -37,9 +37,7 @@ ln -s ../.agents/skills .codex/skills
 │   ├── notes/          # 为什么
 │   ├── skills/         # 可复用的干法
 │   ├── archive/        # 过时的（封存，永不删除）
-│   ├── templates/      # 9 份类型骨架
-│   ├── examples/       # 手写示例（可删）
-│   └── tools/          # check-docs.mjs 与 new-doc.mjs
+│   └── tools/          # check-docs.mjs（轻量自检）
 └── docs/               # 外部事实与知识（仓外系统的登记与定义）
 ```
 

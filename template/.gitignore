@@ -1,8 +1,0 @@
-# 本地缓存与环境真值
-.DS_Store
-node_modules/
-
-# 环境真值默认留在本地；需要样例时只提交占位符
-.env
-.env.*
-!.env.example

@@ -14,7 +14,7 @@ Curia 2.2 是一套可移植的文档管理方案：两根布局——`.agents/`
 
 ## 装上去
 
-包里只有六样：`bin/init.mjs`（生成器）、`template/`（载荷，21 个文件加 3 条桥符号链接）、`guide/`（设计由来与研究导读，纯文本）、本 README、`package.json`、`LICENSE`——整个目录自足，拷到你机器上任意位置即可用，不需要网络与任何外部件。
+包里只有六样：`bin/init.mjs`（生成器）、`template/`（载荷，21 个文件加 3 条桥符号链接）、`guide/`（设计由来与研究导读，纯文本；**不给采用方看**，见「维护这个包的人读这里」）、本 README、`package.json`、`LICENSE`——整个目录自足，拷到你机器上任意位置即可用，不需要网络与任何外部件。
 
 前置只有一条：Node ≥ 18。用法如下（`<包路径>` 指包目录在你机器上的路径）：
 
@@ -125,11 +125,13 @@ node .agents/tools/check-docs.mjs --strict
 
 **没有 Node ≥ 18 又有占用路径。** 这一组合最麻烦：直拷不报告冲突、`init` 要 Node。出路是手工挑拣——把 `template/` 下的载荷件逐件比对后拷进去，再手工补三条桥 `ln -s`。
 
+**宿主已有存量文档树要纳入 Curia。** 纳入纪律（登记根、规则不回溯、闸门只挂默认面等六条）见规范「存量树只读纳管」节（目标仓 `.agents/README.md`，包内 [template/.agents/README.md](template/.agents/README.md)）；本包不提供迁移工具与批量修复。
+
 处理完任何一项，都用「跑完怎么确认装对了」的桥核对与自检收尾。
 
 ## 下一步
 
-`init` 跑完会打印三条编号项加一行 fork-and-own 收尾，对应这里：
+`init` 跑完会打印三条编号项加一行 fork-and-own 收尾，**内容与这里一致、顺序略有不同**：
 
 1. **写第一篇文档**：规范全文在目标仓 `.agents/README.md`（包内位置 [template/.agents/README.md](template/.agents/README.md)）——查「9 类文档」表选类型，按「规范格式（骨架）」节抄骨架、落 3 行头块；也可以直接让 Claude Code / Codex 用装好的 `write-doc`、`write-note`、`prose-standard` 技能代劳。
 2. **补 `AGENTS.md`**：补上项目名（「结构速览」的 `<你的项目>` 占位）与你的既有约束（追加一节）；宿主原有 `AGENTS.md` 被保留时，别忘了把三节通用内容并入（见「采用到已有仓库」）。
@@ -181,7 +183,7 @@ diff -rq <tmp>/package/template template    # 预期差异恰为 3 条桥（CLAU
 
 ### 分发边界
 
-本包**不分发到公共 registry**，分发方式是源码入口、载荷直拷与发布制品（tarball，见「版本纪律」）三条。[package.json](package.json) 的 `private: true` 是常设的防误发限制，不是待移除的过渡标记——不要移除它。
+本包**不分发到公共 registry**，分发方式是源码入口、载荷直拷与发布制品（tarball，见「版本纪律」）三条。发布制品以 `curia-v<版本>` tag 与 tarball asset 的形态发布（首个制品 `curia-v0.3.1`）；发布处与获取方式登记在 o参考实现仓 `docs/env-registry.md`。[package.json](package.json) 的 `private: true` 是常设的防误发限制，不是待移除的过渡标记——不要移除它。
 
 `npm pack` 会静默丢弃载荷里的 3 个桥符号链接（源载荷 3 条 → tarball 内 0 条，零 warning）——tarball 采用方一律走 `init`（建桥由桥步完成，不依赖载荷里的链接），或手工补三条 `ln -s`；从 tarball 直拷得到的是零桥工作区。
 

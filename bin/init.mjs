@@ -163,6 +163,18 @@ function run(opts) {
   if (inside(target) || inside(targetReal)) {
     die(`目标不能落在 create-curia 包内：${target}；请在你要接入的仓库里运行（不指定 --dir 时用当前工作目录）`);
   }
+  // 落点判据（复制步与桥步共用）：真解析后必须落在目标仓内——目标仓里预先做成的、指向仓外的符号链接一律拦下
+  const insideTarget = (p) => p === targetReal || p.startsWith(targetReal + sep);
+  /** 自 p 上溯到最近的存在祖先再真解析——嵌套新目录自身不存在，只看它会漏掉「父级是仓外符号链接」这一形态 */
+  const landsInside = (p) => {
+    for (let cur = p; ;) {
+      try { return insideTarget(realpathSync(cur)); } catch {
+        const up = dirname(cur);
+        if (up === cur) return true;
+        cur = up;
+      }
+    }
+  };
   if (lstatExists(target)) {
     let isDir = false;
     try {
@@ -198,6 +210,13 @@ function run(opts) {
     if (inBridgeTree(entry.rel)) continue;
     if (entry.kind === 'dir' && bridgeParentDirs.has(entry.rel)) continue;
     const dst = join(target, entry.rel);
+    // 落点必须在目标仓内：目标仓若把 .agents/、docs/ 之类预先做成指向仓外的符号链接，
+    // 载荷会整份写到仓外、git 完全看不见（与桥父级同族的假成功）
+    const landPath = entry.kind === 'dir' ? dst : dirname(dst);
+    if (!landsInside(landPath)) {
+      copyErrors.push(`${entry.rel} — 落点 ${landPath} 解析到目标仓之外；载荷会写到仓外、git 看不见（先决定该符号链接的去留再重跑）`);
+      continue;
+    }
     try {
       if (entry.kind === 'dir') {
         mkdirSync(dst, { recursive: true });
@@ -241,7 +260,6 @@ function run(opts) {
   /* 4) 桥：空闲即建符号链接；被占用打印命令跳过。三分计数——「装了」与「接上了」必须可分辨。
      判据是「真解析得到、且落在目标仓内」：readlink 字符串相等不够——父级是符号链接时链接会落到仓外并悬空。 */
   const bridgesCreated = [], bridgesAlready = [], bridgesMissing = [];
-  const insideTarget = (p) => p === targetReal || p.startsWith(targetReal + sep);
   for (const b of BRIDGES) {
     const dst = join(target, b.path);
     const linkTargetAbs = resolve(join(target, dirname(b.path)), b.target);

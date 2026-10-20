@@ -8,9 +8,10 @@
  *   2 = 无法完成检查：扫描面为空、路径不存在、根锚点缺失、内部错误——两种模式都不得返回 0。
  * 锚点：工作区根 = 调用时的工作目录，该目录须自身含 `.agents/` 目录——默认调用下不满足即退出码 2，
  *   不自脚本位置、不向父目录上溯（上溯会命中 `~/.agents` 一类无关祖先）；脚本文件位置不限，一律以调用目录为基准。
- *   结构判定以根下 `.agents/` 目录为锚；显式路径的面内无 `.agents/` 子树时结构组不执行，stderr 注明、汇总行自带标注。
+ *   结构判定以根下 `.agents/` 目录为锚；显式路径的面内无 `.agents/` 子树时结构组不执行，stderr 注明、汇总行自带标注；
+ *   结构锚下五个家一个都没有时同样标注（空 `.agents/` 会与完整树同形全绿）。
  * 扫描面：未给路径时取默认两根 `.agents/` 与 `docs/`（`.agents/` 是根锚点，缺失即退出码 2；`docs/` 存在才扫），
- *   默认两根与 --exclude 的相对值以调用目录（即工作区根）为基准。
+ *   默认两根与 --exclude 的相对值以调用目录（即工作区根）为基准；只收 `.md`（大小写不敏感），`.mdx`/`.markdown` 不进面。
  * 取舍：目录名 kebab-case 只查 `.agents/` 子树；日期型文件名只查 plans/research 家与 notes 活动区；
  *   组 0「编码」在文件无法按 UTF-8 解码或含 NUL 字节时报出；纯文件系统遍历，不读 git；
  *   仅 POSIX 实测：Windows 未实测、路径大小写不做归一（绝对 --exclude 按逐字前缀比较）。
@@ -39,6 +40,7 @@ const TYPES = {
 const GROUP_NAMES = { 0: '编码', 1: '头块与生命周期', 2: '家与命名', 3: '链接' };
 const SKIP_DIR_NAMES = new Set(['.git', 'node_modules']);
 const TYPED_HOMES = new Set(['plans', 'research', 'skills']); // 3 行头块的三个类型化家
+const HOMES = ['plans', 'research', 'notes', 'skills', 'archive']; // `.agents/` 下五个家——结构组「有没有结构可判」的判据
 const NOTE_STATUSES = new Set(['proposed', 'implemented', 'rejected']);
 const INDEX_NAMES = new Set(['README.md', 'AGENTS.md']); // 目录说明文件不进类型化面
 const MD_RE = /\.[mM][dD]$/, DATE_RE = /^\d{4}-\d{2}-\d{2}$/, DATED_NAME_RE = /^\d{4}-\d{2}-\d{2}-/; // 扩展名大小写不敏感
@@ -264,11 +266,13 @@ function checkArchivedHeader(rel, hdr, out) {
   else if (!DATE_RE.test(archF.value)) add(out, 1, rel, archF.idx + 1, `Archived 值 \`${archF.value}\` 非 yyyy-mm-dd`);
 }
 
-/** 组 2：`.agents/` 下类型与家不符（`docs/` 等面外文档不进此判定）；日期型文件名不以 `yyyy-mm-dd-` 开头。 */
+/** 组 2：`.agents/` 下类型与家不符；带类型头块的文档住到 `.agents/` 之外（如 `docs/`）同样报；日期型文件名不以 `yyyy-mm-dd-` 开头。 */
 function checkHomeName(rel, hdr, loc, base, isIndex, out) {
   const typeF = hdr.fields.find((f) => f.key === 'Type');
   const def = typeF && TYPES[typeF.value];
-  if (def && loc.inAgents && loc.home !== def.home) add(out, 2, rel, typeF.idx + 1, `类型 \`${typeF.value}\` 应住 \`${def.home}/\`，实际在 \`${loc.home ?? '（不在任何家）'}\``);
+  if (def && !isIndex && loc.inAgents && loc.home !== def.home) add(out, 2, rel, typeF.idx + 1, `类型 \`${typeF.value}\` 应住 \`${def.home}/\`，实际在 \`${loc.home ?? '（不在任何家）'}\``);
+  // 面外类型化文档：结构锚存在时可判（规范「docs/ 不装计划与提案」——九类的家都在 `.agents/` 下）；扫描面内无锚时不判，避免误伤外部路径巡检
+  else if (def && !isIndex && !loc.inAgents && STRUCT_ANCHORS.length) add(out, 2, rel, typeF.idx + 1, `类型 \`${typeF.value}\` 的文档住在 \`.agents/\` 之外（应住 \`.agents/${def.home}/\`）——\`docs/\` 等面外根不装带类型头块的文档`);
   const dated = loc.home === 'plans' || loc.home === 'research' || loc.inNotesActive;
   if (dated && !isIndex && !DATED_NAME_RE.test(base)) add(out, 2, rel, 1, '日期型文档文件名应以 `yyyy-mm-dd-` 开头');
 }
@@ -345,22 +349,27 @@ function main(argv) {
   console.log(`被检树：${process.cwd()}（${explicit ? `显式面 ${roots.length} 个路径` : '默认面 .agents/ + docs/'}）`);
   const { files, dirs } = collect(roots, opts.excludes);
   if (!files.length) { console.error(`未检查任何文件：扫描面为空（${roots.map(relOf).join('、')}）`); return 2; }
-  let structSkipped = false;
+  let structNote = '';
   if (explicit) {
     STRUCT_ANCHORS = dirs.filter((d) => basename(d.abs) === '.agents').map((d) => d.abs);
     if (!STRUCT_ANCHORS.length) {
-      structSkipped = true;
+      structNote = '结构组未执行：扫描面内无 `.agents/` 子树';
       console.error('注：扫描面内没有 `.agents/` 子树，结构组不执行（只跑编码预检与链接组）');
     }
   } else {
     STRUCT_ANCHORS = [realOr(join(ROOT, '.agents'))];
+  }
+  // 锚存在不等于有结构可判：空 `.agents/`（部分载荷落地、文件级搬运后的形态）会与完整树同形全绿
+  if (!structNote && STRUCT_ANCHORS.length && !STRUCT_ANCHORS.some((a) => HOMES.some((h) => existsSync(join(a, h))))) {
+    structNote = '结构组无判定对象：`.agents/` 下无任何家目录（plans / research / notes / skills / archive）';
+    console.error(`注：${structNote}——只跑编码预检与链接组`);
   }
   const out = [];
   for (const f of files) checkDoc(f, out);
   checkDirNames(dirs, out);
   out.sort((x, y) => (x.rel < y.rel ? -1 : x.rel > y.rel ? 1 : x.line - y.line || x.group - y.group));
   for (const x of out) console.log(`[组 ${x.group} · ${GROUP_NAMES[x.group]}] ${x.line > 0 ? `${x.rel}:${x.line}` : `${x.rel}/`} — ${x.msg}`);
-  console.log(`检查 ${files.length} 篇 / 告警 ${out.length} 条${structSkipped ? '（结构组未执行：扫描面内无 `.agents/` 子树）' : ''}`);
+  console.log(`检查 ${files.length} 篇 / 告警 ${out.length} 条${structNote ? `（${structNote}）` : ''}`);
   if (out.length && opts.strict) { console.error(`✗ --strict：${out.length} 条告警`); return 1; }
   return 0;
 }

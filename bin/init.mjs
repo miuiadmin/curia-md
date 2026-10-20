@@ -238,8 +238,10 @@ function run(opts) {
     }
   }
 
-  /* 4) 桥：空闲即建符号链接；被占用打印命令跳过。三分计数——「装了」与「接上了」必须可分辨 */
+  /* 4) 桥：空闲即建符号链接；被占用打印命令跳过。三分计数——「装了」与「接上了」必须可分辨。
+     判据是「真解析得到、且落在目标仓内」：readlink 字符串相等不够——父级是符号链接时链接会落到仓外并悬空。 */
   const bridgesCreated = [], bridgesAlready = [], bridgesMissing = [];
+  const insideTarget = (p) => p === targetReal || p.startsWith(targetReal + sep);
   for (const b of BRIDGES) {
     const dst = join(target, b.path);
     const linkTargetAbs = resolve(join(target, dirname(b.path)), b.target);
@@ -249,10 +251,27 @@ function run(opts) {
       bridgesMissing.push({ path: b.path, why });
       continue;
     }
+    // 父级必须真解析到目标仓内：父级是符号链接（如 .claude 指向 dotfiles 共享目录）时，
+    // 相对目标 ../.agents/skills 会按落点解析到仓外，桥必然悬空——建了也是死桥，且写到仓外
+    const parent = dirname(dst);
+    let parentReal = null;
+    try { parentReal = realpathSync(parent); } catch { /* 父级尚不存在，稍后 mkdirSync 创建 */ }
+    if (parentReal !== null && !insideTarget(parentReal)) {
+      const why = `父级目录 ${parent} 解析到目标仓之外（${parentReal}）——相对目标 ${b.target} 在这里解析不到，桥必然悬空；先决定该符号链接的去留（删掉，或换一种暴露方式）再重跑`;
+      warn(`未创建 ${b.path}：${why}`);
+      bridgesMissing.push({ path: b.path, why });
+      continue;
+    }
     if (lstatExists(dst)) {
-      if (isSymlinkTo(dst, b.target)) {
+      if (isSymlinkTo(dst, b.target) && existsSync(dst)) {
         log(`桥已就位：${b.path} -> ${b.target}`);
         bridgesAlready.push(b.path);
+        continue;
+      }
+      if (isSymlinkTo(dst, b.target)) {
+        const why = `符号链接指向正确但解析不到（悬空）——按它所在位置解析 ${b.target} 不存在；备份移走后重跑 init`;
+        warn(`未创建 ${b.path}：${why}`);
+        bridgesMissing.push({ path: b.path, why });
         continue;
       }
       const why = `路径已被占用（不是指向 ${b.target} 的符号链接）——备份移走后重跑 init，或手工执行：mv ${b.path} ${b.path}.pre-curia && ln -s ${b.target} ${b.path}`;
@@ -269,14 +288,21 @@ function run(opts) {
       bridgesMissing.push({ path: b.path, why });
       continue;
     }
+    if (!existsSync(dst)) {
+      const why = `刚建的符号链接解析不到（悬空）——按它所在位置解析 ${b.target} 不存在`;
+      warn(`未创建 ${b.path}：${why}`);
+      bridgesMissing.push({ path: b.path, why });
+      continue;
+    }
     bridgesCreated.push(b.path);
     log(`已创建桥：${b.path} -> ${b.target}`);
   }
 
   /* 5) 汇总 */
   if (conflicts.length) {
-    const head = conflicts.slice(0, 8).map((p) => `\`${p}\``).join('、');
-    warn(`以下 ${conflicts.length} 项已存在且内容不同，未覆盖：${head}${conflicts.length > 8 ? ' 等' : ''}；如需载荷版本：备份后移走再重跑，或手工合并`);
+    warn(`以下 ${conflicts.length} 项已存在且内容不同，未覆盖（逐条列出，不截断）：`);
+    for (const p of conflicts) console.error(`create-curia:   ${p}`);
+    warn('如需载荷版本：备份后移走再重跑，或手工合并');
   }
   if (copyErrors.length) {
     for (const e of copyErrors) console.error(`create-curia: 复制失败 — ${e}`);

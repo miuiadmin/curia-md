@@ -58,7 +58,7 @@ node <包路径>/bin/init.mjs --dir <目标仓路径>
 cp -an template/. <目标仓>/
 ```
 
-`cp -R template/*` 会静默漏掉 `.agents/`、`.claude/`、`.codex/` 三个点目录——退出码 0、不报错，落出一个没有框架的树；不要用这种写法。
+`cp -R template/*` 会静默漏掉 `.agents/`、`.claude/`、`.codex/` 三个点目录——退出码 0、不报错，落出一个没有框架的树；不要用这种写法。**`cp -R`（不带 `-n`）还会覆盖宿主的同名文件**——包括未提交的改动与未跟踪的文件，那些字节在 git 历史里也找不回来。**直拷一律带 `-n`**，且拷之前先 `git status` 确认没有未提交内容。
 
 直拷的短处是不报告跳过了什么：目标已有同名文件时 `cp -an` 静默跳过（实测 macOS 的 BSD cp 以退出码 1 结束、stderr 为空），三条桥可能静默缺失——所以直拷后不能只看退出码，务必按「跑完怎么确认装对了」把三条桥数一遍。目标仓已有自己的 `AGENTS.md`、`CLAUDE.md` 或 `.claude/skills` 时，优先用 `init`：它会逐条报告哪条桥没接上。
 
@@ -91,7 +91,7 @@ cp -an template/. <目标仓>/
 ls -l CLAUDE.md .claude/skills .codex/skills
 ```
 
-三条都要在，且分别指向 `AGENTS.md`、`../.agents/skills`、`../.agents/skills`；打开 `.claude/skills`，应能列出 `write-doc`、`write-note`、`prose-standard` 三个技能目录。
+三条都要在，且分别指向 `AGENTS.md`、`../.agents/skills`、`../.agents/skills`。**光看 `readlink` 不够——要打开它**：`ls .claude/skills` 应能列出 `write-doc`、`write-note`、`prose-standard` 三个技能目录。字符串对而打不开是可能的——父级目录（如 `.claude`）本身是指向仓外的符号链接时，链接会被建到仓外、按落点解析后悬空。`init` 现在按「**真解析得到、且落在目标仓内**」判定，所以它报「未接上」就是真没接上；这种形态下它也不会在仓外写任何东西。
 
 第三，跑一次自检（在目标仓根）：
 
@@ -112,6 +112,8 @@ node .agents/tools/check-docs.mjs --strict
 **宿主已有 `CLAUDE.md`（真文件，不是桥链接）。** 桥建不上，`init` 会逐条警告并具名列出，汇总退出码 `3`。做法：把它备份移走、内容并入 `AGENTS.md`，重跑 `init`（已一致的文件自动跳过）。桥的语义是 `CLAUDE.md` 成为 `AGENTS.md` 的指针——指针不藏内容。
 
 **宿主已有 `.claude/skills` 目录（或指向别处的链接）。** 同样退出码 `3`。做法：把其中有用的技能内容迁入 `.agents/skills/`，备份移走占用路径，重跑 `init`。`init` 打印的手工命令形如 `mv <路径> <路径>.pre-curia && ln -s <目标> <路径>`，可直接照抄（先备份再建链，两条一起跑）。**不要自己写裸的 `ln -s <目标> <路径>`**：路径已是目录时，它会在目录里建出一个同名子链接、退出码 `0`，桥却没接上——静默假成功。
+
+**宿主根上 `.claude` 或 `.codex` 本身是指向仓外的符号链接**（dotfiles 共享配置的常见形态）。这时相对目标 `../.agents/skills` 会按落点解析到仓外、必然悬空，`init` 直接判「未接上」并说明父级解析到了哪里，**不在仓外写任何东西**。要接上得先决定那个符号链接的去留（删掉换真目录，或换一种暴露方式）。这是本包早期版本的又一个静默假成功：桥被建到仓外、`readlink` 字符串逐字正确、退出码 `0`、自检全绿，而桥是死的且根本不在仓里。
 
 **宿主已有 `docs/README.md`。** 影响最小：它是 `docs/` 的根约定，该目录按需启用、不启用也不影响 `.agents/` 完整使用——并入与否都不挡路。
 
@@ -165,6 +167,9 @@ diff -rq <tmp>/package/template template    # 预期差异恰为 3 条桥（CLAU
 6. **桥断言**：`init` 到空宿主 → 退出码 0、汇总行「桥 3 条：新建 3、已就位 0、未接上 0」，对同一空宿主重跑 → 「新建 0、已一致 21、保留 0；桥 3 条：新建 0、已就位 3、未接上 0」、退出码 0；`init` 到已有 `CLAUDE.md` 真文件的宿主 → 退出码 3 并具名列出未接上的桥（该宿主重跑仍为退出码 3——占用路径没清障前不会自己变好）。
 7. **退出码断言**：`node bin/init.mjs --bogus` → 退出码 2；`node bin/init.mjs --dir <包内路径>` → 退出码 2；`node bin/init.mjs --help` → 退出码 0。
 8. **版本纪律目检**（发布前，人工）：`git log -1 --stat -- create-curia` 显示包内有改动（`template/`、`bin/`、`README.md` 任一），而 `package.json` 的 `version` 未随之跳号 → 制品身份与字节脱钩，不许发布。
+9. **桥解析断言**：`init` 到「`.claude` 是指向目标仓之外符号链接」的宿主 → 退出码 3、具名报出「父级目录……解析到目标仓之外」，且**仓外那个目录零写入**（前后 `ls -A` 计数不变）。
+10. **结构组假绿断言**：造一棵只有 `.agents/README.md` 与 `.agents/tools/check-docs.mjs`、五个家（`plans/ research/ notes/ skills/ archive/`）一个都没有的树，跑默认调用 → 汇总行带「结构组无判定对象」（是标注，退出码仍按告警数走）。
+11. **面外类型化断言**：把一份带 `Type: plan` 三行头块的文档放进 `docs/`、同内容放 `.agents/plans/` → 组 2 只报 `docs/` 里那份（「类型 `plan` 的文档住在 `.agents/` 之外」），`--strict` 退出码 1。
 
 ### 分发边界
 

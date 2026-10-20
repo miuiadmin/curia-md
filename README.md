@@ -131,7 +131,7 @@ node .agents/tools/check-docs.mjs --strict
 
 1. **写第一篇文档**：规范全文在目标仓 `.agents/README.md`（包内位置 [template/.agents/README.md](template/.agents/README.md)）——查「9 类文档」表选类型，按「规范格式（骨架）」节抄骨架、落 3 行头块；也可以直接让 Claude Code / Codex 用装好的 `write-doc`、`write-note`、`prose-standard` 技能代劳。
 2. **补 `AGENTS.md`**：补上项目名（「结构速览」的 `<你的项目>` 占位）与你的既有约束（追加一节）；宿主原有 `AGENTS.md` 被保留时，别忘了把三节通用内容并入（见「采用到已有仓库」）。
-3. **提交拦截（可选）**：规范不装钩子，装不装归你——要拦截就自己写一行 pre-commit：`node .agents/tools/check-docs.mjs --strict`（细节见规范「钩子归采用方」一节）；日常自检用不带 `--strict` 的报告模式即可。
+3. **提交拦截（可选）**：规范不装钩子，装不装归你——要拦截就在 `.git/hooks/pre-commit` 里写一行 `node .agents/tools/check-docs.mjs --strict`，再 `chmod +x .git/hooks/pre-commit`（不加执行位 git 会静默忽略钩子）；装完验证：提交一份坏文档应被拦下（细节见规范「钩子归采用方」一节）；日常自检用不带 `--strict` 的报告模式即可。
 4. **之后都是你的**（`init` 的收尾行）：生成后的文档树与本包脱钩（fork-and-own）——本包只有 `init`，没有驻留子命令，不会再来碰你的仓。
 
 ## 维护这个包的人读这里

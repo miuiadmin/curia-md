@@ -26,8 +26,8 @@ import { fileURLToPath } from 'node:url';
 
 /* ------------------------------------------------------------------ 常量 */
 
-/** 包根：bin/ 的上一级。经 npm 安装后 import.meta.url 指向真实文件（Node 默认解析符号链接）。 */
-const PKG_ROOT = fileURLToPath(new URL('../', import.meta.url));
+/** 包根：bin/ 的上一级。入口文件先过 realpath 再上溯——preserve-symlinks-main 形态下 import.meta.url 停在符号链接上，直接上溯会把包根指到链接所在目录、模板找不到。 */
+const PKG_ROOT = dirname(dirname(realpathSync(fileURLToPath(import.meta.url))));
 const TEMPLATE_DIR = join(PKG_ROOT, 'template');
 const MIN_NODE_MAJOR = 18;
 
@@ -120,7 +120,8 @@ const isSymlinkTo = (p, target) => {
 function isMain() {
   if (!process.argv[1]) return false;
   try {
-    return realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
+    // 两侧都过 realpath：preserve-symlinks-main 形态下 import.meta.url 停在符号链接上，只解析 argv[1] 会判假、入口静默空转（无输出、退出码 0）
+    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
   } catch {
     return false;
   }
@@ -338,7 +339,7 @@ function run(opts) {
   console.log('下一步：');
   console.log('  1. 读 `.agents/README.md`（规范全文）与 `AGENTS.md`，在 AGENTS.md 里补上你的项目名与既有约束。');
   console.log('  2. 建档：按 `.agents/README.md` 的「规范格式（骨架）」节手抄骨架，落 3 行头块。');
-  console.log('  3. 自检：`node .agents/tools/check-docs.mjs`（可选）；要提交拦截，自己写一行 pre-commit：`node .agents/tools/check-docs.mjs --strict`。');
+  console.log('  3. 自检：`node .agents/tools/check-docs.mjs`（可选）；要提交拦截，在 `.git/hooks/pre-commit` 里写一行 `node .agents/tools/check-docs.mjs --strict`，再 `chmod +x .git/hooks/pre-commit`——不加执行位 git 会静默忽略钩子；装完验证：提交一份坏文档应被拦下。');
   console.log('  之后一切修改都是你的（fork-and-own）：本工具只有 init，没有 upgrade / check 驻留子命令。');
 }
 

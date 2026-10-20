@@ -1,6 +1,6 @@
 # curia-guide — Curia 设计由来与研究导读
 
-**Version: 0.1.8**
+**Version: 0.1.9**
 **内容截止：2026-10-20**（对应 Curia 2.2、create-curia 0.3.x）
 
 ## 这是什么

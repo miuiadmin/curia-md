@@ -13,7 +13,7 @@
  *   node bin/init.mjs [--dir <目标目录>] [--defaults]
  *
  * --defaults 兼容保留：init 已无提问，等价默认行为。退出码：0 载荷落地且三条桥全部接上；
- * 1 复制失败；2 用法与守卫；3 桥未接上——写操作完成但机制没接上，不静默当成功。
+ * 1 复制失败（I/O、落点出仓、落点在别的 git 仓）；2 用法与守卫；3 桥未接上——写操作完成但机制没接上，不静默当成功。
  */
 
 import {
@@ -58,7 +58,7 @@ function usage() {
   --defaults     兼容保留：init 无提问，等价默认行为
   -h, --help     显示本帮助
 
-退出码：0 载荷落地且三条桥全部接上；1 复制失败；2 用法与守卫；3 桥未接上。`);
+退出码：0 载荷落地且三条桥全部接上；1 复制失败（I/O、落点出仓、落点在别的 git 仓）；2 用法与守卫；3 桥未接上。`);
 }
 
 /* ------------------------------------------------------------------ 小工具 */
@@ -166,6 +166,15 @@ function run(opts) {
   }
   // 落点判据（复制步与桥步共用）：真解析后必须落在目标仓内——目标仓里预先做成的、指向仓外的符号链接一律拦下
   const insideTarget = (p) => p === targetReal || p.startsWith(targetReal + sep);
+  /** 落点是否落在目标仓自己的 git 边界内：自 p 上溯，若在到达目标仓之前先撞上另一个 `.git`，说明落点是别的仓的工作树（子模块、嵌套克隆）——那里的文件宿主仓 git 永远追不到。 */
+  const inOwnGitTree = (p) => {
+    for (let cur = p; ;) {
+      const up = dirname(cur);
+      if (up === cur || up === target || up === targetReal) return true;
+      if (lstatExists(join(up, '.git'))) return false;
+      cur = up;
+    }
+  };
   /** 自 p 上溯到最近的存在祖先再真解析——嵌套新目录自身不存在，只看它会漏掉「父级是仓外符号链接」这一形态 */
   const landsInside = (p) => {
     for (let cur = p; ;) {
@@ -216,6 +225,10 @@ function run(opts) {
     const landPath = entry.kind === 'dir' ? dst : dirname(dst);
     if (!landsInside(landPath)) {
       copyErrors.push(`${entry.rel} — 落点 ${landPath} 解析到目标仓之外；载荷会写到仓外、git 看不见（先决定该符号链接的去留再重跑）`);
+      continue;
+    }
+    if (!inOwnGitTree(landPath)) {
+      copyErrors.push(`${entry.rel} — 落点 ${landPath} 在另一个 git 仓里（子模块或嵌套克隆）；载荷会写进那个仓，宿主仓 git 追不到`);
       continue;
     }
     try {

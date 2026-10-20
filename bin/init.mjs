@@ -42,9 +42,10 @@ const BRIDGES = [
 
 const log = (msg) => console.log(msg);
 const warn = (msg) => console.warn(`warning: create-curia: ${msg}`);
-const die = (msg) => {
+/** 用法与守卫错误 → 退出码 2；I/O 类失败显式传 1（口径见文件头与 --help 的退出码表）。 */
+const die = (msg, code = 2) => {
   console.error(`create-curia: ${msg}`);
-  process.exit(1);
+  process.exit(code);
 };
 
 function usage() {
@@ -174,7 +175,7 @@ function run(opts) {
     try {
       mkdirSync(target, { recursive: true });
     } catch (e) {
-      die(`无法创建目标目录：${target} — ${e.message}`);
+      die(`无法创建目标目录：${target} — ${e.message}`, 1);
     }
     log(`已新建目标目录：${target}`);
   }
@@ -254,7 +255,7 @@ function run(opts) {
         bridgesAlready.push(b.path);
         continue;
       }
-      const why = `路径已被占用（不是指向 ${b.target} 的符号链接）——备份后删除该路径再重跑，或手工执行 ln -s ${b.target} ${b.path}`;
+      const why = `路径已被占用（不是指向 ${b.target} 的符号链接）——备份移走后重跑 init，或手工执行：mv ${b.path} ${b.path}.pre-curia && ln -s ${b.target} ${b.path}`;
       warn(`未创建 ${b.path}：${why}`);
       bridgesMissing.push({ path: b.path, why });
       continue;
@@ -263,7 +264,7 @@ function run(opts) {
       mkdirSync(dirname(dst), { recursive: true });
       symlinkSync(b.target, dst);
     } catch (e) {
-      const why = `${e.message}——占用路径先备份移走再重跑，或手工执行 ln -s ${b.target} ${b.path}`;
+      const why = `${e.message}——占用路径先备份移走再重跑，或手工执行：mv ${b.path} ${b.path}.pre-curia && ln -s ${b.target} ${b.path}`;
       warn(`未创建 ${b.path}：${why}`);
       bridgesMissing.push({ path: b.path, why });
       continue;

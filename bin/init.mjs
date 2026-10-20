@@ -134,7 +134,7 @@ function run(opts) {
 
   /* 1) 先验证载荷完整性，再碰目标目录 */
   if (!existsSync(TEMPLATE_DIR)) {
-    die(`包内 template/ 载荷缺失：${TEMPLATE_DIR}；分发件不完整——重新取一份完整的分发包（源码树或发布制品 tarball），或改用「克隆模板仓自改」形态`);
+    die(`包内 template/ 载荷缺失：${TEMPLATE_DIR}；分发件不完整——重新取一份完整的分发包（源码树或发布制品 tarball）`);
   }
   const entries = walkTemplate(TEMPLATE_DIR);
   if (entries.length === 0) die('包内 template/ 为空：没有可复制内容；安装包不完整，请重试');
@@ -349,7 +349,7 @@ function main() {
     return;
   }
   if (Number(process.versions.node.split('.')[0]) < MIN_NODE_MAJOR) {
-    die(`需要 Node >= ${MIN_NODE_MAJOR}（当前 ${process.versions.node}）：升级 node 后重跑，或改用「克隆模板仓自改」形态`);
+    die(`需要 Node >= ${MIN_NODE_MAJOR}（当前 ${process.versions.node}）：升级 node 后重跑；没有 Node 的环境可只采用载荷的文本约定部分（规范「适用边界」）`);
   }
   run(opts);
 }

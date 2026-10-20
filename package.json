@@ -22,6 +22,7 @@
   "files": [
     "bin/",
     "template/",
+    "guide/",
     "README.md"
   ],
   "engines": {

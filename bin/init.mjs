@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * create-curia —— Curia 2.2 文档工作区生成器（`npm create curia` 的入口）。
+ * create-curia —— Curia 2.2 文档工作区生成器。
  *
  * 定位（红线，见 ../README.md）：生成器，不是运行时。只做三件事：
  *   - 复制包内 template/ 载荷（逐项；桥树留给桥步）；
@@ -10,10 +10,10 @@
  * 只列出。生成后目标仓与本包再无关系（fork-and-own）——本工具只有 init，没有驻留子命令。
  *
  * 用法：
- *   npm create curia [-- --dir <目标目录>] [-- --defaults]
  *   node bin/init.mjs [--dir <目标目录>] [--defaults]
  *
- * --defaults 兼容保留：init 已无提问，等价默认行为（CI 与自动化可继续直传）。
+ * --defaults 兼容保留：init 已无提问，等价默认行为。退出码：0 载荷落地且三条桥全部接上；
+ * 1 复制 I/O 失败；2 用法与守卫；3 桥未接上——写操作完成但机制没接上，不静默当成功。
  */
 
 import {
@@ -51,12 +51,13 @@ function usage() {
   console.log(`create-curia —— 把 Curia 2.2 文档工作区生成到你的仓库（生成器，不是运行时）。
 
 用法：
-  npm create curia -- [--dir <目标目录>] [--defaults]
   node bin/init.mjs [--dir <目标目录>] [--defaults]
 
   --dir <path>   生成目标目录（默认当前工作目录）
   --defaults     兼容保留：init 无提问，等价默认行为
-  -h, --help     显示本帮助`);
+  -h, --help     显示本帮助
+
+退出码：0 载荷落地且三条桥全部接上；1 复制 I/O 失败；2 用法与守卫；3 桥未接上。`);
 }
 
 /* ------------------------------------------------------------------ 小工具 */
@@ -132,7 +133,7 @@ function run(opts) {
 
   /* 1) 先验证载荷完整性，再碰目标目录 */
   if (!existsSync(TEMPLATE_DIR)) {
-    die(`包内 template/ 载荷缺失：${TEMPLATE_DIR}；安装包不完整——用 npm create curia@latest 重试，或改用「克隆模板仓自改」形态`);
+    die(`包内 template/ 载荷缺失：${TEMPLATE_DIR}；分发件不完整——重新取一份完整的分发包（源码树或发布制品 tarball），或改用「克隆模板仓自改」形态`);
   }
   const entries = walkTemplate(TEMPLATE_DIR);
   if (entries.length === 0) die('包内 template/ 为空：没有可复制内容；安装包不完整，请重试');
@@ -236,28 +237,35 @@ function run(opts) {
     }
   }
 
-  /* 4) 桥：空闲即建符号链接；被占用打印命令跳过 */
-  const bridgesCreated = [];
+  /* 4) 桥：空闲即建符号链接；被占用打印命令跳过。三分计数——「装了」与「接上了」必须可分辨 */
+  const bridgesCreated = [], bridgesAlready = [], bridgesMissing = [];
   for (const b of BRIDGES) {
     const dst = join(target, b.path);
     const linkTargetAbs = resolve(join(target, dirname(b.path)), b.target);
     if (!existsSync(linkTargetAbs)) {
-      warn(`未创建 ${b.path}：链接目标 ${b.target} 在目标仓不存在——先确认载荷已复制，或手工 ln -s ${b.target} ${b.path}`);
+      const why = `链接目标 ${b.target} 在目标仓不存在——先确认载荷已复制，或手工 ln -s ${b.target} ${b.path}`;
+      warn(`未创建 ${b.path}：${why}`);
+      bridgesMissing.push({ path: b.path, why });
       continue;
     }
     if (lstatExists(dst)) {
       if (isSymlinkTo(dst, b.target)) {
         log(`桥已就位：${b.path} -> ${b.target}`);
+        bridgesAlready.push(b.path);
         continue;
       }
-      warn(`未创建 ${b.path}：路径已被占用（不是指向 ${b.target} 的符号链接）——备份后删除该路径再重跑，或手工执行 ln -s ${b.target} ${b.path}`);
+      const why = `路径已被占用（不是指向 ${b.target} 的符号链接）——备份后删除该路径再重跑，或手工执行 ln -s ${b.target} ${b.path}`;
+      warn(`未创建 ${b.path}：${why}`);
+      bridgesMissing.push({ path: b.path, why });
       continue;
     }
     try {
       mkdirSync(dirname(dst), { recursive: true });
       symlinkSync(b.target, dst);
     } catch (e) {
-      warn(`未创建 ${b.path}：${e.message}——占用路径先备份移走再重跑，或手工执行 ln -s ${b.target} ${b.path}`);
+      const why = `${e.message}——占用路径先备份移走再重跑，或手工执行 ln -s ${b.target} ${b.path}`;
+      warn(`未创建 ${b.path}：${why}`);
+      bridgesMissing.push({ path: b.path, why });
       continue;
     }
     bridgesCreated.push(b.path);
@@ -274,7 +282,12 @@ function run(opts) {
     console.error(`create-curia: ${copyErrors.length} 项复制失败，工作区可能不完整；修好后重跑（已一致的文件会自动跳过）`);
     process.exitCode = 1;
   }
-  log(`完成：目标 ${target} — 新建 ${created}、已一致 ${unchanged}、保留 ${kept}；桥 ${bridgesCreated.length} 条`);
+  log(`完成：目标 ${target} — 新建 ${created}、已一致 ${unchanged}、保留 ${kept}；桥 ${BRIDGES.length} 条：新建 ${bridgesCreated.length}、已就位 ${bridgesAlready.length}、未接上 ${bridgesMissing.length}`);
+  if (bridgesMissing.length) {
+    console.error(`create-curia: ${bridgesMissing.length} 条桥未接上——载荷已落地，但 agent CLI 读不到规则与技能（退出码 3）：`);
+    for (const m of bridgesMissing) console.error(`create-curia:   ${m.path} — ${m.why}`);
+    if (!process.exitCode) process.exitCode = 3;
+  }
 
   /* 6) 下一步 */
   console.log('下一步：');

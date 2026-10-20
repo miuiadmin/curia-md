@@ -6,10 +6,11 @@
  *   node .agents/tools/check-docs.mjs [--strict] [--exclude <路径或 glob>]… [路径…]
  *   报告模式列发现不失败（0）；--strict 任一发现即 1；
  *   2 = 无法完成检查：扫描面为空、路径不存在、根锚点缺失、内部错误——两种模式都不得返回 0。
- * 锚点：结构判定以根下 `.agents/` 目录为锚——默认调用自脚本位置上溯找含 `.agents/` 的根，找不到即退出码 2，
- *   不静默降级；显式路径的面内无 `.agents/` 子树时结构组不执行、输出注明（只跑编码预检与链接组）。
+ * 锚点：工作区根 = 调用时的工作目录，该目录须自身含 `.agents/` 目录——默认调用下不满足即退出码 2，
+ *   不自脚本位置、不向父目录上溯（上溯会命中 `~/.agents` 一类无关祖先）；脚本文件位置不限，一律以调用目录为基准。
+ *   结构判定以根下 `.agents/` 目录为锚；显式路径的面内无 `.agents/` 子树时结构组不执行，stderr 注明、汇总行自带标注。
  * 扫描面：未给路径时取默认两根 `.agents/` 与 `docs/`（`.agents/` 是根锚点，缺失即退出码 2；`docs/` 存在才扫），
- *   默认两根与 --exclude 的相对值按工作区根解析、与调用时的工作目录无关。
+ *   默认两根与 --exclude 的相对值以调用目录（即工作区根）为基准。
  * 取舍：目录名 kebab-case 只查 `.agents/` 子树；日期型文件名只查 plans/research 家与 notes 活动区；
  *   组 0「编码」在文件无法按 UTF-8 解码或含 NUL 字节时报出；纯文件系统遍历，不读 git；
  *   仅 POSIX 实测：Windows 未实测、路径大小写不做归一（绝对 --exclude 按逐字前缀比较）。
@@ -17,19 +18,9 @@
 
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-/** 工作区根：自脚本所在目录上溯，取第一个含 `.agents/` 目录的祖先；找不到返回 null（默认调用下即根锚点缺失）。 */
-function findRoot(start) {
-  let dir = start;
-  for (;;) {
-    try { if (statSync(join(dir, '.agents')).isDirectory()) return dir; } catch {}
-    const parent = dirname(dir);
-    if (parent === dir) return null;
-    dir = parent;
-  }
-}
-const ROOT = findRoot(dirname(fileURLToPath(import.meta.url)));
+/** 工作区根：调用时的工作目录，须自身含 `.agents/` 目录；否则 null（默认调用下即根锚点缺失）。不做上溯——上溯会命中 `~/.agents` 一类无关祖先。 */
+const ROOT = (() => { try { return statSync(join(process.cwd(), '.agents')).isDirectory() ? process.cwd() : null; } catch { return null; } })();
 const realOr = (p) => { try { return realpathSync(p); } catch { return p; } };
 
 /** 类型枚举（机器读的一份；人读权威在规范「9 类文档」表）：类型 → 家 → 允许状态（null = 无 Status）。 */
@@ -59,9 +50,9 @@ const LINK_RE = /\[[^\]]*\]\(((?:[^()\s]|\([^()\s]*\))+)(?:\s+(?:"[^"]*"|'[^']*'
 /** 结构锚（绝对路径）：结构判定以这些 `.agents/` 目录为锚——默认调用为根下 `.agents/`；显式路径为扫描面内找到的 `.agents/` 目录（无则不判结构）。 */
 let STRUCT_ANCHORS = [];
 
-/** 输出用路径：两侧统一 realpath（macOS /tmp → /private/tmp 符号链接下输出才不失真）；相对工作区根，失败回退原值。 */
+/** 输出用路径：两侧统一 realpath（macOS /tmp → /private/tmp 符号链接下输出才不失真）；相对工作区根（= 调用目录），失败回退原值。 */
 function relOf(abs) {
-  let base = ROOT ?? process.cwd(), a = abs;
+  let base = process.cwd(), a = abs;
   try { base = realpathSync(base); } catch {}
   try { a = realpathSync(abs); } catch {}
   const r = relative(base, a).split(sep).join('/');
@@ -81,7 +72,7 @@ function globToRe(pattern) {
   return new RegExp(`^${re}$`);
 }
 
-/** `--exclude` 匹配：绝对路径按前缀；相对值按工作区根相对路径前缀或 glob（与默认两根同一锚点，调用目录无关）。 */
+/** `--exclude` 匹配：绝对路径按前缀；相对值按工作区根（= 调用目录）的相对路径前缀或 glob（与默认两根同一锚点）。 */
 function isExcluded(entry, excludes) {
   return excludes.some((e) => {
     if (isAbsolute(e)) {
@@ -104,6 +95,8 @@ function parseArgs(argv) {
     else if (a === '--exclude') {
       if (!v) throw new UsageError(`${a} 缺参数`);
       i++;
+      // 归一后为空（如 `./`）会静默不排除任何路径——当作用法错误报出，不静默空转
+      if (!isAbsolute(v) && v.replace(/^\.\//, '').replace(/\/+$/, '') === '') throw new UsageError(`${a} 的值 \`${v}\` 归一后为空，不会排除任何路径`);
       opts.excludes.push(v);
     } else if (a === '--help' || a === '-h') opts.help = true;
     else if (a.startsWith('--')) throw new UsageError(`未知参数：${a}`);
@@ -344,17 +337,21 @@ function main(argv) {
     for (const [i, r] of roots.entries()) if (!existsSync(r)) { console.error(`路径不存在：${opts.paths[i]}`); return 2; }
   } else {
     if (ROOT === null) {
-      console.error('根锚点缺失：自脚本位置上溯未找到含 `.agents/` 目录的根；默认调用一律退出码 2，不静默降级（显式传路径可只跑编码预检与链接组）');
+      console.error(`根锚点缺失：调用目录 ${process.cwd()} 自身不含 \`.agents/\` 目录；默认调用一律退出码 2，不静默降级、不向父目录上溯（先 cd 到工作区根，或显式传路径只跑编码预检与链接组）`);
       return 2;
     }
     roots = [join(ROOT, '.agents'), join(ROOT, 'docs')].filter((p) => existsSync(p));
   }
-  if (!roots.length) { console.error('未检查任何文件：默认两根 `.agents/` 与 `docs/` 均不存在'); return 2; }
+  console.log(`被检树：${process.cwd()}（${explicit ? `显式面 ${roots.length} 个路径` : '默认面 .agents/ + docs/'}）`);
   const { files, dirs } = collect(roots, opts.excludes);
   if (!files.length) { console.error(`未检查任何文件：扫描面为空（${roots.map(relOf).join('、')}）`); return 2; }
+  let structSkipped = false;
   if (explicit) {
     STRUCT_ANCHORS = dirs.filter((d) => basename(d.abs) === '.agents').map((d) => d.abs);
-    if (!STRUCT_ANCHORS.length) console.log('注：扫描面内没有 `.agents/` 子树，结构组不执行（只跑编码预检与链接组）');
+    if (!STRUCT_ANCHORS.length) {
+      structSkipped = true;
+      console.error('注：扫描面内没有 `.agents/` 子树，结构组不执行（只跑编码预检与链接组）');
+    }
   } else {
     STRUCT_ANCHORS = [realOr(join(ROOT, '.agents'))];
   }
@@ -363,7 +360,7 @@ function main(argv) {
   checkDirNames(dirs, out);
   out.sort((x, y) => (x.rel < y.rel ? -1 : x.rel > y.rel ? 1 : x.line - y.line || x.group - y.group));
   for (const x of out) console.log(`[组 ${x.group} · ${GROUP_NAMES[x.group]}] ${x.line > 0 ? `${x.rel}:${x.line}` : `${x.rel}/`} — ${x.msg}`);
-  console.log(`检查 ${files.length} 篇 / 告警 ${out.length} 条`);
+  console.log(`检查 ${files.length} 篇 / 告警 ${out.length} 条${structSkipped ? '（结构组未执行：扫描面内无 `.agents/` 子树）' : ''}`);
   if (out.length && opts.strict) { console.error(`✗ --strict：${out.length} 条告警`); return 1; }
   return 0;
 }

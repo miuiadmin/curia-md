@@ -2,7 +2,7 @@
 
 一句话：本章回答九条问题里的第 5 条（迁移/采用一棵文档树时的静默失败清单与找坑方法；清单按实测给，完整性边界见「诚实条款」），并给出「无损迁移」今天能承诺的四条可判定事实、四条明示的不可判定面；底线只有一条——已修的是一批实测形态，不是「不会再有」。
 
-本章源料（参考实现仓内相对路径，正文引用用简称加小节标题）：定义调研＝`.agents/research/2026-10-20-curia-lossless-migration-definition.md`；稳定性调研＝`.agents/research/2026-10-20-curia-migration-stability.md`；修复笔记＝`.agents/notes/implemented/bug-fix/2026-10-20-curia-lossless-migration-fixes.md`；裁定笔记＝`.agents/notes/implemented/process/2026-10-20-curia-migration-stability-decisions.md`；包 README＝`create-curia/README.md`；规范＝`.agents/README.md`；仓规则＝`AGENTS.md`。
+本章源料（除注明外，均为 参考实现仓内相对路径；正文引用用简称加小节标题）：定义调研＝`.agents/research/2026-10-20-curia-lossless-migration-definition.md`；稳定性调研＝`.agents/research/2026-10-20-curia-migration-stability.md`；修复笔记＝`.agents/notes/implemented/bug-fix/2026-10-20-curia-lossless-migration-fixes.md`；裁定笔记＝`.agents/notes/implemented/process/2026-10-20-curia-migration-stability-decisions.md`；包 README＝本仓 `README.md`；规范＝`.agents/README.md`；仓规则＝`AGENTS.md`。
 
 ## 「无损」的定义：四条可判定事实
 

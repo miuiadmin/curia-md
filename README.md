@@ -142,6 +142,8 @@ node .agents/tools/check-docs.mjs --strict
 
 采用方读到这里就够了；以下各节讲这个包自身的契约、发布与验收。
 
+本仓是 Curia 的母仓，独立于任何采用方发展；参考实现仓 是参考实现兼采用方，只保留载荷副本（fork-and-own）。
+
 **这个包为什么是现在这样**——设计由来、什么试过不行、新机制怎么裁决——见同目录的 [`guide/`](./guide/README.md)——**设计由来与研究导读**，五章、纯文本、零脚本。它**不给采用方看**；接手本包或要研究 Curia 演进的人读它。
 
 ### 红线
@@ -174,7 +176,7 @@ diff -rq <tmp>/package/template template    # 预期差异恰为 3 条桥（CLAU
 5. **可移植**：把 `.agents/` 拷进无 git、无 `node_modules` 的临时目录，跑 `node .agents/tools/check-docs.mjs --strict` → 与源目录同一判定。
 6. **桥断言**：`init` 到空宿主 → 退出码 0、汇总行「桥 3 条：新建 3、已就位 0、未接上 0」，对同一空宿主重跑 → 「新建 0、已一致 21、保留 0；桥 3 条：新建 0、已就位 3、未接上 0」、退出码 0；`init` 到已有 `CLAUDE.md` 真文件的宿主 → 退出码 3 并具名列出未接上的桥（该宿主重跑仍为退出码 3——占用路径没清障前不会自己变好）。
 7. **退出码断言**：`node bin/init.mjs --bogus` → 退出码 2；`node bin/init.mjs --dir <包内路径>` → 退出码 2；`node bin/init.mjs --help` → 退出码 0。
-8. **版本纪律目检**（发布前，人工）：`git log -1 --stat -- create-curia` 显示包内有改动（`template/`、`bin/`、`README.md` 任一），而 `package.json` 的 `version` 未随之跳号 → 制品身份与字节脱钩，不许发布。
+8. **版本纪律目检**（发布前，人工）：`git log -1 --stat` 显示本仓有改动（`template/`、`bin/`、`README.md` 任一），而 `package.json` 的 `version` 未随之跳号 → 制品身份与字节脱钩，不许发布。
 9. **桥解析断言**：`init` 到「`.claude` 是指向目标仓之外符号链接」的宿主 → 退出码 3、具名报出「父级目录……解析到目标仓之外」，且**仓外那个目录零写入**（前后 `ls -A` 计数不变）。
 10. **结构组假绿断言**：造一棵只有 `.agents/README.md` 与 `.agents/tools/check-docs.mjs`、五个家（`plans/ research/ notes/ skills/ archive/`）一个都没有的树，跑默认调用 → 汇总行带「结构组无判定对象」（是标注，退出码仍按告警数走）。
 11. **面外类型化断言**：把一份带 `Type: plan` 三行头块的文档放进 `docs/`、同内容放 `.agents/plans/` → 组 2 只报 `docs/` 里那份（「类型 `plan` 的文档住在 `.agents/` 之外」），`--strict` 退出码 1。
@@ -183,7 +185,7 @@ diff -rq <tmp>/package/template template    # 预期差异恰为 3 条桥（CLAU
 
 ### 分发边界
 
-本包**不分发到公共 registry**，分发方式是源码入口、载荷直拷与发布制品（tarball，见「版本纪律」）三条。发布制品以 `curia-v<版本>` tag 与 tarball asset 的形态发布（首个制品 `curia-v0.3.1`）；发布处与获取方式登记在 参考实现仓 `docs/env-registry.md`。[package.json](package.json) 的 `private: true` 是常设的防误发限制，不是待移除的过渡标记——不要移除它。
+本包**不分发到公共 registry**，分发方式是源码入口、载荷直拷与发布制品（tarball，见「版本纪律」）三条。发布制品以 `curia-v<版本>` tag 与 tarball asset 的形态发布在本仓（首个制品 `curia-v0.3.1`；`curia-v0.3.1` 至 `curia-v0.3.10` 已随拆分迁入本仓）。[package.json](package.json) 的 `private: true` 是常设的防误发限制，不是待移除的过渡标记——不要移除它。
 
 `npm pack` 会静默丢弃载荷里的 3 个桥符号链接（源载荷 3 条 → tarball 内 0 条，零 warning）——tarball 采用方一律走 `init`（建桥由桥步完成，不依赖载荷里的链接），或手工补三条 `ln -s`；从 tarball 直拷得到的是零桥工作区。
 

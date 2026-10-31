@@ -1,9 +1,9 @@
 # curia-guide — Curia 设计由来与研究导读
 
-**Version: 0.1.11**
+**Version: 0.1.12**
 **内容截止：2026-10-20**（对应 Curia 2.2、create-curia 0.3.x）
 
-**仓属：** 2026-10-31 起本导读随 Curia 拆入独立仓；正文出处仍是 参考实现仓内相对路径（历史出处，不随仓移动）。
+**仓属：** 2026-10-31 起本导读随 Curia 拆入独立仓；Curia 设计史料同步切到本仓 `史料/`，正文出处见「路径翻译」。
 
 ## 这是什么
 
@@ -59,7 +59,7 @@
 
 出处指向的是参考实现仓 参考实现仓。**你手上如果只有这个包**，出处读不到——那不影响结论的可用性，但意味着你无法自行复核。要复核就得拿到 参考实现仓。
 
-**路径翻译（2026-10-31）：** 文中历史出处写于 参考实现仓 2026-10-30 重构之前——`.agents/` 下的决策笔记、调研、计划、归档与 `GLOSSARY.md` 现存于 参考实现仓 的 `legacy/.agents/` 同路径，`docs/README.md` 现存于 `legacy/docs/README.md`；现行规范（`.agents/README.md`）、检查器（`.agents/tools/check-docs.mjs`）与根 `AGENTS.md` 路径不变。`create-curia/...` 形态的出处自拆分起对应本仓根目录。
+**路径翻译（2026-10-31）：** 文中历史出处写于 参考实现仓 2026-10-30 重构之前。同日，有 Curia 信号的 100 篇旧文档（文件名含 curia、正文提到 curia 或本导读引用）已从 参考实现仓 `legacy/.agents/` 切到本仓 `史料/.agents/` 同路径——文中 `.agents/` 下的决策笔记、调研、计划、归档与 `GLOSSARY.md` 先到 `史料/.agents/` 找。现行规范（`.agents/README.md`）、检查器（`.agents/tools/check-docs.mjs`）与技能说明（`.agents/skills/README.md`）路径不变；`docs/README.md` 的引用指 参考实现仓 `legacy/docs/README.md`；`create-curia/...` 形态的出处对应本仓根目录。2.0 期已退役的 `.agents/templates/`、`.agents/examples/`、`.agents/doc-types.json`、`.agents/.rule-hits.jsonl` 任何现树都没有，属历史叙述。
 
 ## 体量与口径
 

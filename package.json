@@ -1,12 +1,14 @@
 {
   "name": "create-curia",
-  "version": "0.3.14",
+  "version": "0.3.15",
   "private": true,
   "description": "Scaffold a Curia 2.2 documentation workspace into any repository.",
   "keywords": [
     "curia",
     "scaffold",
     "documentation",
+    "docs-as-code",
+    "ai-agents",
     "agents",
     "claude-code",
     "codex"
@@ -14,7 +16,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/example/create-curia.git"
+    "url": "https://github.com/OWNER/curia-md.git"
   },
   "bin": {
     "create-curia": "bin/init.mjs"
@@ -23,7 +25,8 @@
     "bin/",
     "template/",
     "guide/",
-    "README.md"
+    "README.md",
+    "README.en.md"
   ],
   "engines": {
     "node": ">=18"

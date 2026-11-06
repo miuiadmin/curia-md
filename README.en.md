@@ -1,6 +1,6 @@
 # Curia MD
 
-> Curia 2.2 — a portable documentation management scheme: two roots, 9 document types, 3-line header blocks, a zero-dependency checker, and a scaffold. Humans and AI agents read and write by the same rules.
+> Curia 2.3 — a portable documentation management scheme: two roots, 9 document types, 3-line header blocks, a supersession chain that resolves to the current version, a zero-dependency checker, and a scaffold. Humans and AI agents read and write by the same rules.
 
 **English** | [简体中文](./README.md)
 
@@ -14,7 +14,7 @@
 
 ## What it is
 
-Curia 2.2 is a portable documentation management scheme: two roots — `.agents/` holds process and institution (plans, research, decision notes, skills, archive), while `docs/` holds external facts and knowledge; 9 document types each have a home and a skeleton; typed documents carry a fixed 3-line header block; and one zero-dependency checker, `check-docs.mjs` (Node ≥ 18, no network), ships with it. Once adopted, where a document goes, what it looks like, how it is referenced, and how it retires are all written down; humans and agents read and write by the same rules.
+Curia 2.3 is a portable documentation management scheme: two roots — `.agents/` holds process and institution (plans, research, decision notes, skills, archive), while `docs/` holds external facts and knowledge; 9 document types each have a home and a skeleton; typed documents carry a fixed 3-line header block; outdated documents flip status and a supersession chain resolves them to the current version; and one zero-dependency checker, `check-docs.mjs` (Node ≥ 18, no network), ships with it. Once adopted, where a document goes, what it looks like, how it is referenced, and how it retires are all written down; humans and agents read and write by the same rules.
 
 `create-curia` is its local distribution package and generator: it copies the payload into your repository, creates three bridging symlinks (`CLAUDE.md`, `.claude/skills`, `.codex/skills` — so CLIs such as Claude Code and Codex read the rules and skills directly), and prints the next steps. It asks no questions, installs no hooks, and runs no script from the payload. One run and the tree is fork-and-own — the generated documentation tree is yours to maintain; this package has no resident `upgrade` / `check` subcommands.
 
@@ -82,7 +82,19 @@ Status: <a value allowed for that type>
 Updated: yyyy-mm-dd
 ```
 
-`Status: superseded` must carry `Superseded-by: <relative link>`; archived documents must carry `Archived: yyyy-mm-dd`. Notes use a two-line header (title plus `Status:`); `docs/` has no header block. The full rules are in the payload's [`.agents/README.md`](./template/.agents/README.md).
+`Status: superseded` must carry `Superseded-by: <relative link>`, and that chain must terminate at a typed document in a current status; archived documents must carry `Archived: yyyy-mm-dd`. Notes use a two-line header (title plus `Status:`); `docs/` has no header block. The full rules are in the payload's [`.agents/README.md`](./template/.agents/README.md).
+
+### Outdated documents and supersession
+
+An outdated document is not deleted; its status flips to `superseded`. But a status flip only says "the old one no longer counts" — it does not say where the new one is. So this scheme makes supersession a **chain that must reach an end**.
+
+- The old document carries `Superseded-by: <relative link>`; the successor does not write a back-reference field, and the reverse index is computed on demand (spec, "Links and search", recipe 6).
+- The chain may take several hops, but it must terminate at a **typed document in a current status that is not archived**. Cycles, a pointer to a note or to `docs/` (no `Status`, so the chain cannot be judged there), a pointer to an archived document, or a terminal status that has retired — all count as errors and the checker reports them.
+- **One current carrier per topic**: new global guidance has only two legitimate forms — edit that document in place (what a `spec` does; history lives in git), or add a new document and have it supersede the old one. Keeping both and letting both claim to be the standard is a violation; this one rests on review, because the machine cannot tell whether two documents cover the same topic.
+- Institution and standards (writing standard, layout standard, process conventions) do not go into `docs/`: `docs/` has no header block and no state machine, so a document placed there leaves the supersession chain behind.
+- The reader does one thing: **look at the status first**; if it is `superseded`, follow the chain to its end before reading. Documents under `plans/` and `skills/` that link to a superseded document get reported; `research/` is a snapshot of one moment, so citing old text there is not judged.
+
+In one sentence: keeping an old document is not the problem — keeping it while the chain cannot resolve to the current version is.
 
 ### Checker
 
@@ -91,7 +103,7 @@ node .agents/tools/check-docs.mjs            # report mode: list findings, do no
 node .agents/tools/check-docs.mjs --strict   # strict mode: fail on any finding
 ```
 
-It checks only the mechanical subset: encoding, header block and lifecycle, home and naming, relative links. Zero dependencies, no network, no execution of code inside documents. **A passing check does not mean the documents are compliant** — section completeness, factual truth, conclusion quality, and freshness are outside the machine's judgment.
+It checks only the mechanical subset: encoding, header block and lifecycle (including whether a supersession chain reaches the current version), home and naming, relative links (including whether a current document still points at a superseded one). Zero dependencies, no network, no execution of code inside documents. **A passing check does not mean the documents are compliant** — section completeness, factual truth, conclusion quality, and freshness are outside the machine's judgment.
 
 ### Three bridges
 
@@ -127,7 +139,7 @@ One run does three things: copy 21 payload files (the `check-docs.mjs` checker a
 
 ```text
 <target repo>/
-├── AGENTS.md               # Curia general rules (8 rules)
+├── AGENTS.md               # Curia general rules (9 rules)
 ├── CLAUDE.md               # -> AGENTS.md (bridge)
 ├── .agents/
 │   ├── README.md           # full spec (the single authority; skeleton text included)
@@ -176,7 +188,7 @@ Exit codes:
 
 **The criteria are exit code `0` and "not connected 0"**; the "created / already identical / preserved" numbers vary with the host's shape (in a repository with existing content, "created" will not be 21 and "preserved" will not be 0), so do not compare them literally.
 
-When wiring `init` into CI: if all three bridge paths are free, the exit code is `0` and the pipeline proceeds; if a bridge path in the host is occupied, it returns `3` and the pipeline turns red — clear the obstruction first, per "Adopting into an existing repository". Note that exit code `0` answers "no copy failed and all three bridges connected" — "preserved N items" does not change it; when the host's existing `AGENTS.md` is preserved, the 8 general rules were not installed, as described in the next section.
+When wiring `init` into CI: if all three bridge paths are free, the exit code is `0` and the pipeline proceeds; if a bridge path in the host is occupied, it returns `3` and the pipeline turns red — clear the obstruction first, per "Adopting into an existing repository". Note that exit code `0` answers "no copy failed and all three bridges connected" — "preserved N items" does not change it; when the host's existing `AGENTS.md` is preserved, the 9 general rules were not installed, as described in the next section.
 
 Second, verify that all three bridges are connected:
 
@@ -200,7 +212,7 @@ Fourth, rerun idempotently: run `init` again against the same target; the exit c
 
 `init` never overwrites existing files — good for safety, but it means "exit code `0`" does not equal "everything was installed". Each case is spelled out below.
 
-**The host already has its own `AGENTS.md` (the most common real-world case).** `init` preserves it and lists it under "already exists with different content, not overwritten"; the payload's 8 general rules are not installed — the three bridges still connect, and the exit code may still be `0`. You need to merge the rules yourself: merge all three sections "General rules", "Bridges", and "Structure at a glance" from [template/AGENTS.md](template/AGENTS.md) into your `AGENTS.md` (merge all three together — the project-name placeholder mentioned in "next steps" lives in "Structure at a glance"; merging only "General rules" leaves that pointer pointing at nothing). One check is enough: search your `AGENTS.md` for "one fact, one home" (rule 1) — if it is missing, the rules were not installed. After merging, the "already exists with different content, not overwritten" line **reappears on every rerun**; that is expected, not a sign that the merge did not take effect.
+**The host already has its own `AGENTS.md` (the most common real-world case).** `init` preserves it and lists it under "already exists with different content, not overwritten"; the payload's 9 general rules are not installed — the three bridges still connect, and the exit code may still be `0`. You need to merge the rules yourself: merge all three sections "General rules", "Bridges", and "Structure at a glance" from [template/AGENTS.md](template/AGENTS.md) into your `AGENTS.md` (merge all three together — the project-name placeholder mentioned in "next steps" lives in "Structure at a glance"; merging only "General rules" leaves that pointer pointing at nothing). One check is enough: search your `AGENTS.md` for "one fact, one home" (rule 1) — if it is missing, the rules were not installed. After merging, the "already exists with different content, not overwritten" line **reappears on every rerun**; that is expected, not a sign that the merge did not take effect.
 
 **The host already has `CLAUDE.md` (a real file, not a bridge link).** The bridge cannot be created; `init` warns case by case and names it, and the summary exit code is `3`. To fix: back it up and move it away, merge its content into `AGENTS.md`, and rerun `init` (already-identical files are skipped). The semantics of the bridge are that `CLAUDE.md` becomes a pointer to `AGENTS.md` — a pointer does not hide content.
 
@@ -217,6 +229,8 @@ Fourth, rerun idempotently: run `init` again against the same target; the exit c
 **The host made `.agents/` a git submodule (or a nested clone).** The payload would be written entirely into **that repository's working tree**, and the host repository's git would never track it (`git add -A` only records the submodule pointer) — while `init` reports "Done". The destination check now extends to git boundaries: a destination inside another git repository is blocked, named item by item, with exit code `1`. To fix: first decide whether `.agents` stays a submodule or becomes a normal directory.
 
 **No Node ≥ 18 and occupied paths.** This combination is the most troublesome: a direct copy does not report conflicts, and `init` needs Node. The way out is manual selection — compare the payload files under `template/` one by one, copy them in, and add the three `ln -s` bridges by hand.
+
+**Upgrading from 2.2 to 2.3.** 2.3 tightens exactly one thing: `Superseded-by:` must terminate at a typed document in a current status (2.2 only required the line to exist). Measure before you change anything: `rg --hidden -l '^Superseded-by:' .agents/ | wc -l` — an output of `0` (the payload tree reports `0`) means the upgrade has no effect on that tree and the checker can simply be swapped in; above `0`, read each finding, and there are only three fixes: repoint the pointer at the chain's terminal, land the terminal as a `spec` document (when it currently points at a note or a `docs/` page), or archive the old document through the four archiving steps. None of the three requires touching the old document's body. Existing trees still follow "rules do not apply retroactively", and the new judgement carries no cleanup deadline.
 
 **The host has an existing documentation tree to bring under Curia.** The adoption discipline (six rules: register the roots, do not retro-fit, gate only the default surface, and so on) is in the spec's "Read-only adoption of an existing tree" section (target repo `.agents/README.md`, package copy [template/.agents/README.md](template/.agents/README.md)); this package provides no migration tooling or bulk repair.
 
@@ -242,7 +256,7 @@ After handling any item, finish with the bridge verification and self-check from
 
 Adopters can stop here; the sections below describe this package's own contract, release process, and acceptance checks.
 
-This repository is the Curia mother repository, developed independently of any adopter. It also contains [`史料/`](./史料/README.md): Curia design history cut from the reference implementation repository, frozen, read-only, and excluded from npm artifacts.
+This repository is the Curia mother repository, developed independently of any adopter. The design-history corpus is not published with this repository: citations in [`guide/`](./guide/README.md) identify sources rather than resolve to files inside this repository, and a source that cannot be read is treated as unverifiable.
 
 **Why the package is the way it is** — design history, what was tried and failed, and how new mechanisms are judged — is in [`guide/`](./guide/README.md), the **design history and reading guide**: five chapters, plain text, zero scripts. It is **not for adopters**; it is for whoever takes over this package or studies Curia's evolution.
 
@@ -282,6 +296,8 @@ Each criterion below is runnable; the object under acceptance is the payload its
 11. **Out-of-surface typed-document assertion**: put a document with a `Type: plan` three-line header into `docs/`, and the same content into `.agents/plans/` → group 2 reports only the one in `docs/` ("a document of type `plan` lives outside `.agents/`"), and `--strict` exits with code 1.
 12. **Destination assertion**: the host pre-makes `.agents/` (or `docs/`, or a nested `.agents/plans/`) a symlink pointing outside the repository → `init` exits with code `1`, naming item by item "destination … resolves outside the target repository", and **zero writes to that outside directory** (the `ls -A` count is unchanged before and after).
 13. **Git-boundary assertion**: the host makes `.agents` a git submodule → `init` exits with code `1`, naming item by item "inside another git repository", and **zero writes to the submodule's working tree**.
+14. **Supersession-chain assertion**: build three `Type: spec` documents A `superseded` → B `superseded` → C `active`; the chain should exit `0`. Then build four counter-cases — A→B→A cycle, A→archived document, A→note (no `Type`), A→survey with `Status: historical` — each must report a group-1 finding and exit `1` under `--strict`.
+15. **Current-reference assertion**: an `active` plan under `plans/` linking to a `superseded` spec → a group-3 finding that names the current version; the same link written inside a `research/` survey or a `notes/` note → no finding.
 
 ### Distribution boundary
 

@@ -1,6 +1,6 @@
 # 03 失败史与退役面
 
-本章是这套指南的「负向方法」：记录什么试过不行、为什么不行。它回答九条问题里的第 3、5、9 条——被裁掉的六个治理面各是什么、迁移与采用一棵文档树时静默失败的清单与找法、检查器为什么只报不改。**本章的清单与第五章互补，两章都不是完整清单**（第五章末三条形态未进本章，口径差见第五章「迁移的失败形态」节）。按体裁，本章写历史：出现「当时」「一度」的段落都是历史叙述，现行形态一律以 Curia 2.2 规范与各决策笔记为准。下文引用的路径均为 参考实现仓内相对路径；台账与命中类数字已按减重调研的「复算配方」回源复算。
+本章是这套指南的「负向方法」：记录什么试过不行、为什么不行。它回答九条问题里的第 3、5、9 条——被裁掉的六个治理面各是什么、迁移与采用一棵文档树时静默失败的清单与找法、检查器为什么只报不改。**本章的清单与第五章互补，两章都不是完整清单**（第五章末三条形态未进本章，口径差见第五章「迁移的失败形态」节）。按体裁，本章写历史：出现「当时」「一度」的段落都是历史叙述，现行形态一律以 Curia 2.2 规范与各决策笔记为准。下文引用的路径均为参考实现仓内相对路径；台账与命中类数字已按减重调研的「复算配方」回源复算。
 
 时间线一句话（供下文引用）：Curia 2.0 是一版重治理设计——默认两根、三档保证（基础纳管 / 事实核验 / 受保护交付）、四个治理对象（Registry、Envelope、Assertion、Run），配一整套 `curia-*` 工具链与 7 道门禁（`.agents/plans/2026-10-14-curia-2-0-master-architecture.md`「一页架构」节）。2.1 是收敛——把 2.0 机械整体删除（一批 51,313 行），换成单脚本多组检查（`.agents/notes/implemented/simplification/2026-10-17-curia-2-1-retirement-and-gate-switch.md`「Decision」节）。2.2 删风格三组、去 `--skip`、载荷从 36 件裁到 21 件（`.agents/notes/implemented/simplification/2026-10-19-curia-2-2-check-groups-and-payload-trim.md`「Decision」节）。2026-10-20 的两轮迁移调研修掉最后一族静默失败（见本章第二节）。
 
@@ -30,7 +30,7 @@ Curia 2.2 规范用一句话给出这份名单：「保留持续拦截真实错�
 
 当时长什么样（字段级）：`Run = run-id + workflow-id + execution-mode + input-snapshot + checks + outputs + unresolved + outcome`；受跟踪执行才增加 failure policy、steps、evidence completeness 与终态。每个已结束的受跟踪命令只能有一个 `terminal=true`；run-id 与 workflow-id 一经持久化不可重用，step 与 finding 只追加，达到终态后冻结；更正、补证据或重跑必须新开 Run 并携带 corrects / retried-from 引用（无环图）。事件有稳定序号、前一事件的完整摘要和真实时点，排他创建的临时文件加不可覆盖的原子链接发布，竞争同一序号最多一方成功；`check-records.mjs` 校验事件合同与摘要链（规则 ID `records/integrity`），记录存储侧的合同拒绝用 `records/contract`（两者同批出现于台账）（`.agents/plans/2026-10-14-curia-2-0-master-architecture.md`「轻量 workflow 与受跟踪 Run」节；run-records 笔记「Decision」节）。
 
-为什么从未触发：存储只在唯一 Registry 的 `instance.recordStore` 显式启用，而本仓根 Registry 从未启用——「参考实现仓 根 Registry 没有启用此能力，参考项目没有被迁移」（run-records 笔记「Consequences」节）。台账里 `records/contract` 与 `records/integrity` 各 1 次命中，同在 2026-10-15 23:32 的一分钟内（同一条记录里是这两条）；相邻一秒的另一条记录里是 `curia2/git-env-override` 与 `tools/cli-failed`——与自证套件调用 CLI 的形态一致；确切调用来源未核实（台账只记时点与 ID），判读同前：没有产生过真实拦截。
+为什么从未触发：存储只在唯一 Registry 的 `instance.recordStore` 显式启用，而本仓根 Registry 从未启用——「参考实现仓根 Registry 没有启用此能力，参考项目没有被迁移」（run-records 笔记「Consequences」节）。台账里 `records/contract` 与 `records/integrity` 各 1 次命中，同在 2026-10-15 23:32 的一分钟内（同一条记录里是这两条）；相邻一秒的另一条记录里是 `curia2/git-env-override` 与 `tools/cli-failed`——与自证套件调用 CLI 的形态一致；确切调用来源未核实（台账只记时点与 ID），判读同前：没有产生过真实拦截。
 
 退役判词：随 2.1 删除面整体退役——52 支 `curia-*` 脚本 14,356 行、26 支自证 8,610 行、`run-checks` 编排与旧钩子同批删除，git 历史保留（退役笔记「删除面」节）。「普通阅读不留痕、按需记录」的立场被 2.1 收敛继承为不做——现行规范里没有 Run 概念（`.agents/README.md`）。
 
@@ -116,7 +116,7 @@ Curia 2.2 规范用一句话给出这份名单：「保留持续拦截真实错�
 
 ## 三、为什么检查器只报不改（没有 `--fix`）
 
-问题原文：检查器为什么没有 `--fix`、从不写回文件——这个取舍被论证过吗？先检索再答：在 参考实现仓 `.agents/` 下检索 `fix-doc|--fix|写回|自动修`，成文记录多处命中；按层次列出如下。结论先行：被论证过，而且论证了三次——一次是门禁语义，一次是写入工具的风险史，一次是实测否决。
+问题原文：检查器为什么没有 `--fix`、从不写回文件——这个取舍被论证过吗？先检索再答：在参考实现仓 `.agents/` 下检索 `fix-doc|--fix|写回|自动修`，成文记录多处命中；按层次列出如下。结论先行：被论证过，而且论证了三次——一次是门禁语义，一次是写入工具的风险史，一次是实测否决。
 
 第一层，门禁与修复器分家（2026-10-02，1.0 时代）：当时确实存在一个独立修复器 `fix-doc.mjs`（对显式路径自动修机械错误，默认 dry-run，`--write` 才落盘；它本身随 2.1 删除面退场）；但「fix-doc 做成门禁的 `--fix` 选项」被明确否决——「门禁语义是「拦下将要提交的内容」，修复器是写入工具；混在一起会让守卫在跑检查时顺手改文件。显式路径 + 默认 dry-run 是更保守的契约。」（`.agents/notes/implemented/process/2026-10-02-gate-toolchain-optimization.md`「Alternatives considered」节）
 

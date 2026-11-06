@@ -37,6 +37,12 @@ const TYPES = {
   skill: { home: 'skills', statuses: null },
 };
 
+/** 现行态集（取代链终点判据用）：该类型的 Status 落在集合内才算「现行依据」，取代链必须终结在这里。`spec` 的 `done` 仍是权威（规范「状态与退役」）；`plan`/`proposal` 的 `done` 是历史；`research` 三类的 `historical` 是时效过去。 */
+const CURRENT = {
+  proposal: ['active'], spec: ['draft', 'active', 'done'], plan: ['draft', 'active'],
+  survey: ['current'], evidence: ['current'], postmortem: ['current'], reference: ['current'], runbook: ['current'],
+};
+
 const GROUP_NAMES = { 0: '编码', 1: '头块与生命周期', 2: '家与命名', 3: '链接' };
 const SKIP_DIR_NAMES = new Set(['.git', 'node_modules']);
 const TYPED_HOMES = new Set(['plans', 'research', 'skills']); // 3 行头块的三个类型化家
@@ -226,15 +232,91 @@ function targetExists(dir, target) {
   try { return existsSync(resolve(dir, decodeURIComponent(target))); } catch { return false; }
 }
 
+/** 从 `Superseded-by` 字段值取目标路径：Markdown 链接形态或裸路径；去锚点。取不到时返回空串。 */
+function supersededTarget(value) {
+  const linkRe = new RegExp(LINK_RE.source, '');
+  const m = linkRe.exec(value);
+  const raw = m ? m[1] : value;
+  return raw.split('#')[0].trim();
+}
+
+/** 读一份文件的类型化头块（只读需要的那几个字段）；读不出或二进制化时返回 null。 */
+function readTypedHeader(abs) {
+  let text; try { text = readFileSync(abs, 'utf8'); } catch { return null; }
+  text = text.replace(/^\uFEFF/, '');
+  const lines = text.split(/\r\n|\r|\n/);
+  if (lines.some((l) => l.includes('\u0000'))) return null;
+  const { fenced } = analyze(lines);
+  const hdr = parseHeader(lines, fenced);
+  const get = (k) => hdr.fields.find((f) => f.key === k);
+  const typeF = get('Type'), statusF = get('Status'), supF = get('Superseded-by');
+  return { type: typeF ? typeF.value : null, status: statusF ? statusF.value : null,
+    archived: Boolean(get('Archived')), sup: supF ? supF.value : null };
+}
+
+/** 解析相对链接目标为绝对路径（含 URL 解码回退）；不存在时 null。 */
+function resolveTargetPath(dir, target) {
+  const p = resolve(dir, target);
+  if (existsSync(p)) return p;
+  try { const q = resolve(dir, decodeURIComponent(target)); return existsSync(q) ? q : null; } catch { return null; }
+}
+
+/** 沿取代链走到终点，返回终点文件名；链断、成环或解析不到时返回 null（报错归 checkSupersededChain，这里只回答「现行版本是谁」）。 */
+function resolveChainTerminal(abs) {
+  let curAbs = resolve(abs); const seen = new Set([curAbs]);
+  for (let hop = 0; hop < 16; hop++) {
+    const doc = readTypedHeader(curAbs);
+    if (!doc) return null;
+    if (doc.status !== 'superseded') return basename(curAbs);
+    if (!doc.sup) return null;
+    const target = supersededTarget(doc.sup);
+    const next = target ? resolveTargetPath(dirname(curAbs), target) : null;
+    if (!next || seen.has(next)) return null;
+    seen.add(next); curAbs = next;
+  }
+  return null;
+}
+
 /** 组 1：`Status: superseded` 必须带 `Superseded-by:`；链接形态目标存在性归组 3，裸路径形态在此查存在性。 */
-function checkSuperseded(rel, dir, hdr, out) {
+function checkSuperseded(rel, abs, hdr, out) {
   const statusF = hdr.fields.find((f) => f.key === 'Status' && f.value === 'superseded');
   if (!statusF) return;
   const supF = hdr.fields.find((f) => f.key === 'Superseded-by');
   if (!supF || supF.value === '') { add(out, 1, rel, statusF.idx + 1, '`Status: superseded` 缺 `Superseded-by:` 行'); return; }
-  if (supF.value.includes('](')) return; // Markdown 链接形态：目标存在性由组 3 负责
-  const p = supF.value.split('#')[0].trim();
-  if (p && !targetExists(dir, p)) add(out, 1, rel, supF.idx + 1, `Superseded-by 裸路径目标不存在：${supF.value}（建议改写成相对 Markdown 链接）`);
+  if (!supF.value.includes('](')) { // Markdown 链接形态：目标存在性由组 3 负责
+    const p = supF.value.split('#')[0].trim();
+    if (p && !targetExists(dirname(abs), p)) { add(out, 1, rel, supF.idx + 1, `Superseded-by 裸路径目标不存在：${supF.value}（建议改写成相对 Markdown 链接）`); return; }
+  }
+  checkSupersededChain(rel, abs, supF, out);
+}
+
+/** 组 1：取代链必须终结在类型化、未再被取代、未归档的文档上——「任何一篇旧文档都能机械解析到现行版本」。 */
+function checkSupersededChain(rel, abs0, supF, out) {
+  const chain = [basename(abs0)];
+  const seen = new Set([resolve(abs0)]);
+  let curDir = dirname(abs0), value = supF.value, hop = 0;
+  while (hop++ < 16) {
+    const target = supersededTarget(value);
+    if (!target) return; // 空值等形态问题由缺行判据负责
+    const abs = resolveTargetPath(curDir, target);
+    if (!abs) return; // 目标不存在：组 3 或裸路径存在性已报
+    const label = basename(abs);
+    chain.push(label);
+    if (seen.has(abs)) { add(out, 1, rel, supF.idx + 1, `Superseded-by 取代链成环：${chain.join(' → ')}`); return; }
+    seen.add(abs);
+    const doc = readTypedHeader(abs);
+    if (!doc) { add(out, 1, rel, supF.idx + 1, `Superseded-by 取代链第 ${hop} 跳指向无法读取的文件：${target}`); return; }
+    if (!doc.type || !TYPES[doc.type]) { add(out, 1, rel, supF.idx + 1, `Superseded-by 取代链未终结在类型化文档：${label} 无 Type 头块——被取代的指导要有类型化的现行版本`); return; }
+    if (locate(abs).inArchive || doc.archived) { add(out, 1, rel, supF.idx + 1, `Superseded-by 取代链终结于归档件 ${label}：归档件是冷历史，不能充当现行版本`); return; }
+    if (doc.status !== 'superseded') { // 终点：必须落在现行态
+      const allowed = CURRENT[doc.type] || [];
+      if (!allowed.includes(doc.status)) add(out, 1, rel, supF.idx + 1, `Superseded-by 取代链终点不是现行态：${label} 的 Status 是 ${doc.status || '（空）'}，现行态为 ${allowed.join('/') || '（无）'}`);
+      return;
+    }
+    if (!doc.sup) { add(out, 1, rel, supF.idx + 1, `Superseded-by 取代链在 ${label} 断开：它是 superseded 却缺 Superseded-by:`); return; }
+    curDir = dirname(abs); value = doc.sup;
+  }
+  add(out, 1, rel, supF.idx + 1, `Superseded-by 取代链超过 16 跳仍未终结：${chain.join(' → ')}`);
 }
 
 /** 组 1：活动笔记头——必须在 lifecycle 目录下、标题后第一个非空行是 `Status:`、取值与目录一致、rejected 原因非空；围栏内标题不参与定位。 */
@@ -278,8 +360,13 @@ function checkHomeName(rel, hdr, loc, base, isIndex, out) {
 }
 
 /** 组 3：相对 Markdown 链接目标不存在（锚点与外部 URL 跳过，含协议相对 `//`；扫描含归档区）。 */
-function checkLinks(rel, abs, lines, a, out) {
+function checkLinks(rel, abs, lines, a, out, hdr, loc) {
   const dir = dirname(abs);
+  const typeF = hdr ? hdr.fields.find((f) => f.key === 'Type') : null;
+  const statusF = hdr ? hdr.fields.find((f) => f.key === 'Status') : null;
+  // 「现行依据」只可能是 plans/ 与 skills/ 里、自身未被取代的类型化文档：research/ 是某一时点的快照，引用旧文本属正常；笔记与归档区同理
+  const referrerCurrent = Boolean(typeF) && (!statusF || statusF.value !== 'superseded')
+    && Boolean(loc) && (loc.home === 'plans' || loc.home === 'skills') && !loc.inArchive && !loc.inNotesActive;
   for (let i = 0; i < lines.length; i++) {
     if (a.fenced[i]) continue;
     const masked = maskInline(a.cmask[i]);
@@ -289,7 +376,14 @@ function checkLinks(rel, abs, lines, a, out) {
       if (target.startsWith('<') && target.endsWith('>')) target = target.slice(1, -1).trim(); // CommonMark 尖括号目标：剥 `<` `>` 再判存在性
       if (!target || target.startsWith('#') || target.startsWith('//') || SCHEME_RE.test(target)) continue;
       const pathPart = target.split('#')[0];
-      if (pathPart && !targetExists(dir, pathPart)) add(out, 3, rel, i + 1, `相对链接目标不存在：${target}`);
+      if (pathPart && !targetExists(dir, pathPart)) { add(out, 3, rel, i + 1, `相对链接目标不存在：${target}`); continue; }
+      if (!referrerCurrent || !pathPart || !MD_RE.test(pathPart)) continue;
+      const tAbs = resolveTargetPath(dir, pathPart);
+      const tDoc = tAbs ? readTypedHeader(tAbs) : null;
+      if (tDoc && tDoc.status === 'superseded') {
+        const term = resolveChainTerminal(tAbs);
+        add(out, 3, rel, i + 1, `引用了已被取代的文档 ${basename(tAbs)}${term ? `，现行版本是 ${term}` : '，且取代链未解析到现行版本'}——现行依据应指向取代者，历史说明写进笔记`);
+      }
     }
   }
 }
@@ -309,10 +403,10 @@ function checkDoc(f, out) {
     if (!isIndex) checkNoteHeader(f.rel, lines, hdr, loc, out);
   } else if (TYPED_HOMES.has(loc.home) && !isIndex) {
     checkHeaderBlock(f.rel, hdr, out);
-    checkSuperseded(f.rel, dirname(f.abs), hdr, out);
+    checkSuperseded(f.rel, f.abs, hdr, out);
   }
   if (!loc.inArchive) checkHomeName(f.rel, hdr, loc, base, isIndex, out);
-  checkLinks(f.rel, f.abs, lines, a, out);
+  checkLinks(f.rel, f.abs, lines, a, out, hdr, loc);
 }
 
 /** 组 2：`.agents/` 子树内目录名 kebab-case（归档区只受组 1 与组 3 管辖，不查）。返回实际检查的目录数。 */

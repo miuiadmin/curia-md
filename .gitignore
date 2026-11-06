@@ -3,3 +3,6 @@
 
 # Node
 node_modules/
+
+# Playwright MCP 抓取残留
+.playwright-mcp/

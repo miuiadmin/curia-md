@@ -16,7 +16,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/OWNER/curia-md.git"
+    "url": "https://github.com/miuiadmin/curia-md.git"
   },
   "bin": {
     "create-curia": "bin/init.mjs"

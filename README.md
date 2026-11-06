@@ -325,7 +325,7 @@ diff -rq <tmp>/package/template template    # 预期差异恰为 3 条桥（CLAU
 
 ### 分发边界
 
-本包**不分发到公共 registry**，分发方式是源码入口、载荷直拷与发布制品（tarball，见「版本纪律」）三条。发布制品以 `curia-v<版本>` tag 与 tarball asset 的形态发布在本仓；首个公开发布的制品是 `curia-v2.3.0`，更早的制品（旧编号 `0.3.x`）属独立开发期，未随本仓公开发布。[package.json](package.json) 的 `private: true` 是常设的防误发限制，不是待移除的过渡标记——不要移除它。
+本包**不分发到公共 registry**，分发方式是源码入口、载荷直拷与发布制品（tarball，见「版本纪律」）三条。发布制品以 `curia-v<版本>` tag 与 tarball asset 的形态发布在本仓；首个公开发布的制品是 `curia-v2.3.1`，更早的制品（旧编号 `0.3.x` 与未定稿的 `2.3.0`）属独立开发期，未随本仓公开发布。[package.json](package.json) 的 `private: true` 是常设的防误发限制，不是待移除的过渡标记——不要移除它。
 
 `npm pack` 会静默丢弃载荷里的 3 个桥符号链接（源载荷 3 条 → tarball 内 0 条，零 warning）——tarball 采用方一律走 `init`（建桥由桥步完成，不依赖载荷里的链接），或手工补三条 `ln -s`；从 tarball 直拷得到的是零桥工作区。
 

@@ -96,6 +96,15 @@ An outdated document is not deleted; its status flips to `superseded`. But a sta
 
 In one sentence: keeping an old document is not the problem — keeping it while the chain cannot resolve to the current version is.
 
+### Module design documents
+
+Every module needs one overall design document; knowing the module's name should be enough to find it and see its version. This uses a **fixed path plus a fixed field** — no registry, no index file:
+
+- The location is `.agents/plans/<module>/design.md`: the directory name is the module identifier, and `design.md` is a fixed name (the same family as `skills/<skill>/SKILL.md`), so it is exempt from the date prefix.
+- The title must contain the module identifier; the human-readable name is free — `# chat-bridge (chat bridge) overall design` and `# Chat bridge (chat-bridge) overall design` are both valid. The path carries stable identity, the title carries a readable name.
+- The header block carries `Version: MAJOR.MINOR.PATCH`, **the design's own version**: MAJOR for contract-incompatible changes, MINOR for compatible additions, PATCH for clarifications and wording. It is independent of the package version and of the supersession chain — the chain answers "which document is current", `Version` answers "how far this one has evolved".
+- The default is to edit in place and increment `Version`, with history in git; only a split, rename, or full rewrite creates a new document and flips the old one to `superseded`.
+- Discovery is the directory: `ls .agents/plans/*/design.md` lists every module, and `rg -n '^Version:' .agents/plans/*/design.md` lists the versions at once. **No `INDEX.md`** — an index drifts from reality, a path does not.
 ### Checker
 
 ```bash
@@ -103,7 +112,7 @@ node .agents/tools/check-docs.mjs            # report mode: list findings, do no
 node .agents/tools/check-docs.mjs --strict   # strict mode: fail on any finding
 ```
 
-It checks only the mechanical subset: encoding, header block and lifecycle (including whether a supersession chain reaches the current version), home and naming, relative links (including whether a current document still points at a superseded one). Zero dependencies, no network, no execution of code inside documents. **A passing check does not mean the documents are compliant** — section completeness, factual truth, conclusion quality, and freshness are outside the machine's judgment.
+It checks only the mechanical subset: encoding, header block and lifecycle (including whether a supersession chain reaches the current version and the `Version:` of module design documents), home and naming, relative links (including whether a current document still points at a superseded one). Zero dependencies, no network, no execution of code inside documents. **A passing check does not mean the documents are compliant** — section completeness, factual truth, conclusion quality, and freshness are outside the machine's judgment.
 
 ### Three bridges
 
@@ -303,6 +312,7 @@ Each criterion below is runnable; the object under acceptance is the payload its
 13. **Git-boundary assertion**: the host makes `.agents` a git submodule → `init` exits with code `1`, naming item by item "inside another git repository", and **zero writes to the submodule's working tree**.
 14. **Supersession-chain assertion**: build three `Type: spec` documents A `superseded` → B `superseded` → C `active`; the chain should exit `0`. Then build four counter-cases — A→B→A cycle, A→archived document, A→note (no `Type`), A→survey with `Status: historical` — each must report a group-1 finding and exit `1` under `--strict`.
 15. **Current-reference assertion**: an `active` plan under `plans/` linking to a `superseded` spec → a group-3 finding that names the current version; the same link written inside a `research/` survey or a `notes/` note → no finding.
+16. **Module design document assertion**: build `.agents/plans/chat-bridge/design.md` (`Type: spec`, `Version: 1.4.2`, title containing `chat-bridge`) → exit `0`; then remove `Version:`, write `Version` as `v1.4`, drop the module identifier from the title, change `Type` to `reference`, and move the file to `.agents/plans/design.md` → each reports a group-1 or group-2 finding and exits `1` under `--strict`; add a `roadmap.md` beside it → still reported under the date-prefix rule.
 
 ### Distribution boundary
 

@@ -96,6 +96,15 @@ Updated: yyyy-mm-dd
 
 一句话：旧文档留着不是问题，留着却解析不到现行版本才是问题。
 
+### 模块设计文档
+
+一个模块要有一份总体设计；知道模块名，就该能一步找到它，并看出版本。这件事用**固定路径加固定字段**做，不建注册表、不建索引文件：
+
+- 位置是 `.agents/plans/<模块>/design.md`：目录名即模块标识，`design.md` 是固定名（和 `skills/<技能>/SKILL.md` 同族），所以免日期前缀。
+- 标题里必须出现模块标识，人话名随意——`# chat-bridge（聊天桥接）总体设计`、`# 聊天桥接（chat-bridge）总体设计` 都合法。路径承担稳定身份，标题承担可读的名字。
+- 头块带 `Version: MAJOR.MINOR.PATCH`，是**这份设计自己的版本**：MAJOR 是契约不兼容的变更，MINOR 是兼容新增，PATCH 是澄清改字。它与包版本、与取代链各管一件事——取代链说「哪份是现行」，`Version` 说「这份自己演进到哪」。
+- 默认原地改、`Version` 递增、历史在 git；只有模块被拆分、改名或整体重做，才新建一份并让旧的翻 `superseded`。
+- 发现靠目录：`ls .agents/plans/*/design.md` 就是全部模块，`rg -n '^Version:' .agents/plans/*/design.md` 一次列出版本。**不建 `INDEX.md`**——索引会和现实漂移，路径不会。
 ### 检查器
 
 ```bash
@@ -103,7 +112,7 @@ node .agents/tools/check-docs.mjs            # 报告模式：列发现，不失
 node .agents/tools/check-docs.mjs --strict   # 严格模式：任一发现即失败
 ```
 
-只查机械子集：编码、头块与生命周期（含取代链是否走到现行版本）、家与命名、相对链接（含现行文档是否还在引用被取代的文档）。零依赖、不联网、不执行文档内代码。**检查通过不等于文档合规**——节的完整性、事实真假、结论质量、时效新鲜度都不在机器判定面。
+只查机械子集：编码、头块与生命周期（含取代链是否走到现行版本、模块设计文档的 `Version:`）、家与命名、相对链接（含现行文档是否还在引用被取代的文档）。零依赖、不联网、不执行文档内代码。**检查通过不等于文档合规**——节的完整性、事实真假、结论质量、时效新鲜度都不在机器判定面。
 
 ### 三条桥
 
@@ -303,6 +312,7 @@ diff -rq <tmp>/package/template template    # 预期差异恰为 3 条桥（CLAU
 13. **git 边界断言**：宿主把 `.agents` 做成 git 子模块 → `init` 退出码 `1`、逐件具名「在另一个 git 仓里」，且**子模块工作树零写入**。
 14. **取代链断言**：造 `Type: spec` 的 A `superseded` → B `superseded` → C `active`，链路应退出码 `0`；再分别造 A→B→A 成环、A→归档件、A→笔记（无 `Type`）、A→`Status: historical` 的 survey 四种反例 → 各自报组 1 告警、`--strict` 退出码 `1`。
 15. **现行引用断言**：`plans/` 里一份 `active` 的 plan 链接到 `superseded` 的 spec → 报组 3 告警并指出其现行版本；同一链接写进 `research/` 的 survey 或 `notes/` 笔记 → 不报。
+16. **模块设计文档断言**：造 `.agents/plans/chat-bridge/design.md`（`Type: spec`、`Version: 1.4.2`、标题含 `chat-bridge`）→ 退出码 `0`；分别去掉 `Version:`、把 `Version` 写成 `v1.4`、标题去掉模块标识、`Type` 改成 `reference`、把文件挪到 `.agents/plans/design.md` → 各自报组 1 或组 2 告警、`--strict` 退出码 `1`；同目录再放一份 `roadmap.md` → 仍按日期前缀规则报。
 
 ### 分发边界
 

@@ -51,6 +51,7 @@ const NOTE_STATUSES = new Set(['proposed', 'implemented', 'rejected']);
 const INDEX_NAMES = new Set(['README.md', 'AGENTS.md']); // 目录说明文件不进类型化面
 const MD_RE = /\.[mM][dD]$/, DATE_RE = /^\d{4}-\d{2}-\d{2}$/, DATED_NAME_RE = /^\d{4}-\d{2}-\d{2}-/; // 扩展名大小写不敏感
 const KEBAB_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/, SCHEME_RE = /^[a-zA-Z][a-zA-Z0-9+.-]*:/, FIELD_RE = /^\s*([A-Za-z][A-Za-z0-9_-]*):\s*(.*)$/;
+const SEMVER_RE = /^\d+\.\d+\.\d+$/; // 模块设计文档的 `Version:`
 const NOTE_STATUS_LINE_RE = /^Status:\s*(.*)$/, PLACEHOLDER_RE = /<[^<>\n]+>/;
 const EMDASH = '—', INLINE_MARK = '\uE000';
 const LINK_RE = /\[[^\]]*\]\(((?:[^()\s]|\([^()\s]*\))+)(?:\s+(?:"[^"]*"|'[^']*'))?\s*\)/g; // 组 3：取链接目标（一层平衡括号，如 foo(1).md；可带 "title" / 'title'）
@@ -348,15 +349,33 @@ function checkArchivedHeader(rel, hdr, out) {
   else if (!DATE_RE.test(archF.value)) add(out, 1, rel, archF.idx + 1, `Archived 值 \`${archF.value}\` 非 yyyy-mm-dd`);
 }
 
+/** 组 1/2：模块设计文档的固定形态——`plans/<模块>/design.md`，Type 为 spec、带 `Version` semver、标题含模块标识。 */
+function checkModuleDesign(rel, hdr, lines, out) {
+  const parts = rel.split('/'), base = parts[parts.length - 1];
+  if (base !== 'design.md') return;
+  // rel 相对工作区根：合法形态恰为 `.agents/plans/<模块>/design.md`
+  const underAnchor = parts[0] === '.agents' ? parts.slice(1) : parts;
+  if (underAnchor.length !== 3 || underAnchor[0] !== 'plans') { add(out, 2, rel, 1, '`design.md` 是模块设计文档的固定名，应放在 `.agents/plans/<模块>/design.md`'); return; }
+  const slug = underAnchor[1];
+  const typeF = hdr.fields.find((f) => f.key === 'Type');
+  const verF = hdr.fields.find((f) => f.key === 'Version');
+  const anchor = hdr.titleIdx >= 0 ? hdr.titleIdx + 1 : 1;
+  if (!typeF || typeF.value !== 'spec') add(out, 1, rel, anchor, '模块设计文档的 `Type:` 应为 `spec`');
+  if (!verF) add(out, 1, rel, anchor, '模块设计文档缺 `Version:` 行（形如 1.4.2，记这份设计自己的版本）');
+  else if (!SEMVER_RE.test(verF.value)) add(out, 1, rel, verF.idx + 1, `Version 值 \`${verF.value}\` 非 MAJOR.MINOR.PATCH`);
+  const title = hdr.titleIdx >= 0 ? lines[hdr.titleIdx] : '';
+  if (!title.includes(slug)) add(out, 1, rel, hdr.titleIdx >= 0 ? hdr.titleIdx + 1 : 1, `标题应含模块标识 \`${slug}\`——模块设计文档的名字就是这个模块`);
+}
+
 /** 组 2：`.agents/` 下类型与家不符；带类型头块的文档住到 `.agents/` 之外（如 `docs/`）同样报；日期型文件名不以 `yyyy-mm-dd-` 开头。 */
-function checkHomeName(rel, hdr, loc, base, isIndex, out) {
+function checkHomeName(rel, hdr, loc, base, isIndex, out, exemptDated = false) {
   const typeF = hdr.fields.find((f) => f.key === 'Type');
   const def = typeF && TYPES[typeF.value];
   if (def && !isIndex && loc.inAgents && loc.home !== def.home) add(out, 2, rel, typeF.idx + 1, `类型 \`${typeF.value}\` 应住 \`${def.home}/\`，实际在 \`${loc.home ?? '（不在任何家）'}\``);
   // 面外类型化文档：结构锚存在时可判（规范「docs/ 不装计划与提案」——九类的家都在 `.agents/` 下）；扫描面内无锚时不判，避免误伤外部路径巡检
   else if (def && !isIndex && !loc.inAgents && STRUCT_ANCHORS.length) add(out, 2, rel, typeF.idx + 1, `类型 \`${typeF.value}\` 的文档住在 \`.agents/\` 之外（应住 \`.agents/${def.home}/\`）——\`docs/\` 等面外根不装带类型头块的文档`);
   const dated = loc.home === 'plans' || loc.home === 'research' || loc.inNotesActive;
-  if (dated && !isIndex && !DATED_NAME_RE.test(base)) add(out, 2, rel, 1, '日期型文档文件名应以 `yyyy-mm-dd-` 开头');
+  if (dated && !isIndex && !exemptDated && !DATED_NAME_RE.test(base)) add(out, 2, rel, 1, '日期型文档文件名应以 `yyyy-mm-dd-` 开头');
 }
 
 /** 组 3：相对 Markdown 链接目标不存在（锚点与外部 URL 跳过，含协议相对 `//`；扫描含归档区）。 */
@@ -404,8 +423,11 @@ function checkDoc(f, out) {
   } else if (TYPED_HOMES.has(loc.home) && !isIndex) {
     checkHeaderBlock(f.rel, hdr, out);
     checkSuperseded(f.rel, f.abs, hdr, out);
+    checkModuleDesign(f.rel, hdr, lines, out);
   }
-  if (!loc.inArchive) checkHomeName(f.rel, hdr, loc, base, isIndex, out);
+  const relParts = f.rel.split('/'), underAnchorLen = relParts[0] === '.agents' ? relParts.length - 1 : relParts.length;
+  const moduleDesign = base === 'design.md' && underAnchorLen === 3 && relParts.includes('plans'); // 免日期前缀（固定名，见规范「模块设计文档」）
+  if (!loc.inArchive) checkHomeName(f.rel, hdr, loc, base, isIndex, out, moduleDesign);
   checkLinks(f.rel, f.abs, lines, a, out, hdr, loc);
 }
 

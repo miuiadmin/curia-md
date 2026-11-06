@@ -128,7 +128,7 @@ Bridges are pointers, not copies; change the rules only in `AGENTS.md` and `.age
 
 ## Install
 
-The package is small: `bin/init.mjs` (the generator), `template/` (the payload: 21 files plus 3 bridging symlinks), `guide/` (design history and reading guide, plain text; **not for adopters**, see "For the people maintaining this package"), [README.md](./README.md), [README.en.md](./README.en.md), [package.json](./package.json), and [LICENSE](./LICENSE). The directory is self-contained: copy it anywhere on your machine and it works, with no network and no external parts.
+The package is small: `bin/init.mjs` (the generator), `template/` (the payload: 21 files plus 3 bridging symlinks), `guide/` (design history and reading guide, plain text; **not for adopters**, see "For the people maintaining this package"), [INSTALL.md](./INSTALL.md) (a runbook for installing into an **existing** repository, written for the agent doing the work), [README.md](./README.md), [README.en.md](./README.en.md), [package.json](./package.json), and [LICENSE](./LICENSE). The directory is self-contained: copy it anywhere on your machine and it works, with no network and no external parts.
 
 The only prerequisite is Node ≥ 18. Usage (`<package path>` is where the package directory lives on your machine):
 
@@ -218,6 +218,18 @@ Exit code `0` means it passes. **The criterion is the exit code, not the documen
 Fourth, rerun idempotently: run `init` again against the same target; the exit code should be `0` with "not connected" at `0` (in an empty repository: "created 0, already identical 21, preserved 0; bridges 3: created 0, already in place 3, not connected 0"; in a repository with existing content the numbers vary with what was preserved) — rerunning is safe, and already-identical files are skipped automatically.
 
 ## Adopting into an existing repository
+
+`init` never overwrites existing files — good for safety, but it means exit code `0` does not mean everything was installed. The case that bites most often: when the host already has its own `AGENTS.md`, **the 9 general rules are not installed at all** and must be merged by hand.
+
+**When an agent performs the install, hand it [INSTALL.md](./INSTALL.md)** — a runbook ordered as "identify the host shape → three steps to finish → handle the three conflict classes → three checks to accept". One command exists to fetch the merge text:
+
+```bash
+node <package path>/bin/init.mjs --print-merge   # prints the three sections to merge into the host AGENTS.md; writes nothing
+```
+
+The per-case notes below remain for human reference.
+
+### Case-by-case notes
 
 `init` never overwrites existing files — good for safety, but it means "exit code `0`" does not equal "everything was installed". Each case is spelled out below.
 
@@ -313,6 +325,7 @@ Each criterion below is runnable; the object under acceptance is the payload its
 14. **Supersession-chain assertion**: build three `Type: spec` documents A `superseded` → B `superseded` → C `active`; the chain should exit `0`. Then build four counter-cases — A→B→A cycle, A→archived document, A→note (no `Type`), A→survey with `Status: historical` — each must report a group-1 finding and exit `1` under `--strict`.
 15. **Current-reference assertion**: an `active` plan under `plans/` linking to a `superseded` spec → a group-3 finding that names the current version; the same link written inside a `research/` survey or a `notes/` note → no finding.
 16. **Module design document assertion**: build `.agents/plans/chat-bridge/design.md` (`Type: spec`, `Version: 1.4.2`, title containing `chat-bridge`) → exit `0`; then remove `Version:`, write `Version` as `v1.4`, drop the module identifier from the title, change `Type` to `reference`, and move the file to `.agents/plans/design.md` → each reports a group-1 or group-2 finding and exits `1` under `--strict`; add a `roadmap.md` beside it → still reported under the date-prefix rule.
+17. **Guidance assertion**: `init` into a host that already has its own `AGENTS.md` → the "next steps" must state that the rules were not installed and give the `--print-merge` command; `init` into a host with a real `CLAUDE.md` file → exit code `3`, and "next steps" must give the full "merge → `mv CLAUDE.md CLAUDE.md.pre-curia` → rerun" sequence; `node bin/init.mjs --print-merge` prints the three sections (`通用规则`, `桥`, `结构速览`) with exit code `0` and **performs no writes** (the target's `ls -A` count is unchanged before and after).
 
 ### Distribution boundary
 

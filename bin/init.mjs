@@ -52,11 +52,14 @@ function usage() {
   console.log(`create-curia —— 把 Curia 2.3 文档工作区生成到你的仓库（生成器，不是运行时）。
 
 用法：
-  node bin/init.mjs [--dir <目标目录>] [--defaults]
+  node bin/init.mjs [--dir <目标目录>] [--defaults] [--print-merge]
 
-  --dir <path>   生成目标目录（默认当前工作目录）
-  --defaults     兼容保留：init 无提问，等价默认行为
-  -h, --help     显示本帮助
+  --dir <path>    生成目标目录（默认当前工作目录）
+  --defaults      兼容保留：init 无提问，等价默认行为
+  --print-merge   只打印「并入宿主既有 AGENTS.md 的三节」原文，不做任何写操作
+  -h, --help      显示本帮助
+
+装进已有 AGENTS.md / CLAUDE.md 的仓，先读 INSTALL.md（面向执行安装的 agent 的完整步骤）。
 
 退出码：0 载荷落地且三条桥全部接上；1 复制失败（I/O、落点出仓、落点在别的 git 仓）；2 用法与守卫；3 桥未接上。`);
 }
@@ -64,7 +67,7 @@ function usage() {
 /* ------------------------------------------------------------------ 小工具 */
 
 function parseArgs(argv) {
-  const opts = { dir: null, defaults: false, help: false };
+  const opts = { dir: null, defaults: false, help: false, printMerge: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--dir' || a.startsWith('--dir=')) {
@@ -75,6 +78,8 @@ function parseArgs(argv) {
       opts.defaults = true;
     } else if (a === '-h' || a === '--help') {
       opts.help = true;
+    } else if (a === '--print-merge') {
+      opts.printMerge = true;
     } else {
       die(`未知参数 \`${a}\`；可用参数见 node bin/init.mjs --help`);
     }
@@ -348,18 +353,80 @@ function run(opts) {
     if (!process.exitCode) process.exitCode = 3;
   }
 
-  /* 6) 下一步 */
+  /* 6) 下一步：按「装对了没有」分组给可执行指引，而不是只提醒「补项目名」 */
+  const pkgInit = 'node ' + join(PKG_ROOT, 'bin', 'init.mjs');
+  const hostAgentsConflict = conflicts.includes('AGENTS.md');
+  const hostClaudeConflict = conflicts.includes('CLAUDE.md');
+  const bridgeByPath = (p) => bridgesMissing.find((m) => m.path === p);
+
   console.log('下一步：');
-  console.log('  1. 读 `.agents/README.md`（规范全文）与 `AGENTS.md`，在 AGENTS.md 里补上你的项目名与既有约束。');
-  console.log('  2. 建档：按 `.agents/README.md` 的「规范格式（骨架）」节手抄骨架，落 3 行头块。');
-  console.log('  3. 自检：`node .agents/tools/check-docs.mjs`（可选）；要提交拦截，在 `.git/hooks/pre-commit` 里写一行 `node .agents/tools/check-docs.mjs --strict`，再 `chmod +x .git/hooks/pre-commit`——不加执行位 git 会静默忽略钩子；装完验证：提交一份坏文档应被拦下。');
+  let step = 1;
+
+  // (a) 宿主已有 AGENTS.md：规则集没进去，这是最常见也最容易「装了一半」的形态
+  if (hostAgentsConflict) {
+    console.log(`  ${step++}. **宿主的 AGENTS.md 被保留了，9 条通用规则没有装上**——这是「装了一半」的主要来源，必须手工并入，不要跳过：`);
+    console.log(`       - 取原文：\`${pkgInit} --print-merge\`（只打印、不写盘；内容取自 template/AGENTS.md，不在 init 里存第二份）`);
+    console.log('       - 把那三节（通用规则 / 桥 / 结构速览）并进宿主 AGENTS.md：放在宿主自己的规则之后，或在开头加一行指向；**不要整份覆盖**，宿主原有规则要保住。');
+    console.log('       - 核对：在宿主 AGENTS.md 里搜「一事实一归属」——搜不到就是没装上。');
+    console.log('       - 并入后重跑 init 仍会列出「AGENTS.md 已存在且内容不同」，属预期，不是没生效。');
+  }
+
+  // (b) 宿主已有真 CLAUDE.md：桥接不上
+  if (hostClaudeConflict || bridgeByPath('CLAUDE.md')) {
+    console.log(`  ${step++}. **宿主的 CLAUDE.md 是真实文件，桥没建上**——桥的语义是「CLAUDE.md 成为 AGENTS.md 的指针」，指针不藏内容：`);
+    console.log('       - **先并入，再移走**（顺序反了内容就丢了）：读 CLAUDE.md，把它独有的规则并进 AGENTS.md；只写在 CLAUDE.md 里的老规则最容易在这一步丢。');
+    console.log('       - 备份移走：mv CLAUDE.md CLAUDE.md.pre-curia；移走后建议 \`diff\` 一眼——确认要点都在 AGENTS.md 里再删备份。');
+    console.log(`       - 重跑：\`${pkgInit} --dir <目标仓>\`（已一致的文件自动跳过，桥这步会补上）`);
+    console.log('       - 不要手写裸的 ln -s AGENTS.md CLAUDE.md **当路径已是文件时**：先 mv 再 ln，或直接重跑 init。');
+  }
+
+  // (c) 其它桥被占：给逐条命令
+  const otherMissing = bridgesMissing.filter((m) => m.path !== 'CLAUDE.md');
+  if ((!hostClaudeConflict && bridgeByPath('CLAUDE.md')) || otherMissing.length) {
+    for (const m of otherMissing) {
+      console.log(`  ${step++}. **${m.path} 未接上**：${m.why}`);
+    }
+  }
+  if (!hostAgentsConflict && !hostClaudeConflict && !bridgesMissing.length) {
+    console.log(`  ${step++}. 读 \`.agents/README.md\`（规范全文）与 \`AGENTS.md\`，把 AGENTS.md 里的项目名占位换成本项目的名字。`);
+  }
+  console.log(`  ${step++}. 装完必须核一遍（三项都要过）：`);
+  console.log('       - 退出码 `0` 且汇总行「未接上 0」——判据是这两项，不是「新建 21」这种数字；');
+  console.log('       - `ls -l CLAUDE.md .claude/skills .codex/skills` 三条都在，且 `ls .claude/skills` 能列出 write-doc / write-note / prose-standard 三个技能目录；');
+  console.log('       - 在目标仓根跑 `node .agents/tools/check-docs.mjs --strict`，退出码 `0`（纯载荷树是「检查 12 篇 / 告警 0 条」）。');
+  console.log(`  ${step++}. 建档：按 \`.agents/README.md\` 的「规范格式（骨架）」节手抄骨架，落 3 行头块；模块的总体设计固定为 \`plans/<模块>/design.md\`（\`Type: spec\` + \`Version:\`）。`);
+  console.log(`  ${step++}. 要提交拦截（可选）：\`.git/hooks/pre-commit\` 里写一行 \`node .agents/tools/check-docs.mjs --strict\`，再 \`chmod +x\`——不加执行位 git 会静默忽略钩子；装完提交一份坏文档验证它真被拦下。`);
   console.log('  之后一切修改都是你的（fork-and-own）：本工具只有 init，没有 upgrade / check 驻留子命令。');
+}
+
+/** 打印「并入宿主既有 AGENTS.md 的三节」原文：运行时从 template/AGENTS.md 截取，避免在 init 里再存一份副本（第二承载点）。 */
+function printMerge() {
+  const src = readFileSync(join(TEMPLATE_DIR, 'AGENTS.md'), 'utf8').replace(/\r\n?/g, '\n');
+  const want = ['## 通用规则', '## 桥', '## 结构速览'];
+  const idx = want.map((h) => src.indexOf(h));
+  const missing = want.filter((h, i) => idx[i] === -1);
+  if (missing.length) die(`模板 AGENTS.md 缺少小节：${missing.join('、')}——包可能不完整，先核对 template/AGENTS.md`);
+  const start = Math.min(...idx);
+  const blocks = want.map((h, i) => {
+    const from = idx[i];
+    const nextIdx = want.map((x, j) => idx[j]).filter((v) => v > from).sort((a, b) => a - b)[0];
+    return src.slice(from, nextIdx === undefined ? src.length : nextIdx).trimEnd();
+  });
+  console.log(`# 以下三节并入宿主既有 AGENTS.md（勿整份覆盖；顺序按 \`通用规则\` → \`桥\` → \`结构速览\`，放在\n# 宿主自己的规则之后、或在开头加一行指向本节，二选一）；原文取自 template/AGENTS.md。`);
+  console.log('');
+  console.log(blocks.join('\n\n'));
+  console.log('');
+  console.log('# 并入后核对：在宿主的 AGENTS.md 里搜「一事实一归属」（规则第 1 条）——搜不到就是没装上。');
 }
 
 function main() {
   const opts = parseArgs(process.argv.slice(2));
   if (opts.help) {
     usage();
+    return;
+  }
+  if (opts.printMerge) {
+    printMerge();
     return;
   }
   if (Number(process.versions.node.split('.')[0]) < MIN_NODE_MAJOR) {

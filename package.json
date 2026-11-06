@@ -1,6 +1,6 @@
 {
   "name": "create-curia",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "private": true,
   "description": "Scaffold a Curia 2.2 documentation workspace into any repository.",
   "keywords": [
@@ -26,7 +26,8 @@
     "template/",
     "guide/",
     "README.md",
-    "README.en.md"
+    "README.en.md",
+    "INSTALL.md"
   ],
   "engines": {
     "node": ">=18"

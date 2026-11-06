@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * create-curia —— Curia 2.2 文档工作区生成器。
+ * create-curia —— Curia 2.3 文档工作区生成器。
  *
  * 定位（红线，见 ../README.md）：生成器，不是运行时。只做三件事：
  *   - 复制包内 template/ 载荷（逐项；桥树留给桥步）；
@@ -49,7 +49,7 @@ const die = (msg, code = 2) => {
 };
 
 function usage() {
-  console.log(`create-curia —— 把 Curia 2.2 文档工作区生成到你的仓库（生成器，不是运行时）。
+  console.log(`create-curia —— 把 Curia 2.3 文档工作区生成到你的仓库（生成器，不是运行时）。
 
 用法：
   node bin/init.mjs [--dir <目标目录>] [--defaults]
@@ -130,7 +130,7 @@ function isMain() {
 /* ------------------------------------------------------------------ 主流程 */
 
 function run(opts) {
-  log('create-curia：把 Curia 2.2 文档工作区生成到你的仓库（生成器，不是运行时）');
+  log('create-curia：把 Curia 2.3 文档工作区生成到你的仓库（生成器，不是运行时）');
   if (opts.defaults) log('--defaults：直通（init 无提问，参数为兼容保留）');
 
   /* 1) 先验证载荷完整性，再碰目标目录 */

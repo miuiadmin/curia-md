@@ -269,7 +269,12 @@ node .agents/tools/check-docs.mjs --strict
 
 ### 版本纪律
 
-[package.json](package.json) 的 `version` 是制品身份，不是依赖关系——**包内任何文件的改动**必须同批跳 patch 号，使「`create-curia@<版本>`」唯一对应一份字节。判据是**制品**不是载荷：只改本 README 也要跳号，因为 tarball 的字节变了。此前 `0.3.0` 曾跨三份不同字节（2.2 落地之后载荷又改过两次），「无损迁移」因此没有可核对的参照物；本纪律自 `0.3.1` 起生效。
+**版本号只有一个，写在 [package.json](package.json) 的 `version`**，格式 `MAJOR.MINOR.PATCH`，三段各管一件事：
+
+- `MAJOR.MINOR` 是机制代号，与规范题头「Curia 2.3」逐字一致——只有机制级变更（如 2.2 → 2.3）才动它。
+- `PATCH` 是制品字节差异：**包内任何文件的改动**都同批跳一位，使「`create-curia@<版本>`」唯一对应一份字节。判据是**制品**不是载荷：只改本 README 也要跳号，因为 tarball 的字节变了。
+
+`guide/` 不单独编号，跟着这同一个版本走。此前用过另一套编号（`0.3.x`）记同一批制品，2.3.0 起与机制代号对齐——旧号只出现在历史叙述里。
 
 发布制品时记下 `shasum -a 512`，采用方记一行「采用 `create-curia@<版本>`，sha512-…」即获得可复核的身份。发布前另跑一次核对（`npm pack` 丢符号链接是预期行为，不是错误）：
 
@@ -301,7 +306,7 @@ diff -rq <tmp>/package/template template    # 预期差异恰为 3 条桥（CLAU
 
 ### 分发边界
 
-本包**不分发到公共 registry**，分发方式是源码入口、载荷直拷与发布制品（tarball，见「版本纪律」）三条。发布制品以 `curia-v<版本>` tag 与 tarball asset 的形态发布在本仓；首个公开发布的制品是 `curia-v0.3.16`，更早的 `0.3.1`–`0.3.15` 属独立开发期，未随本仓公开发布。[package.json](package.json) 的 `private: true` 是常设的防误发限制，不是待移除的过渡标记——不要移除它。
+本包**不分发到公共 registry**，分发方式是源码入口、载荷直拷与发布制品（tarball，见「版本纪律」）三条。发布制品以 `curia-v<版本>` tag 与 tarball asset 的形态发布在本仓；首个公开发布的制品是 `curia-v2.3.0`，更早的制品（旧编号 `0.3.x`）属独立开发期，未随本仓公开发布。[package.json](package.json) 的 `private: true` 是常设的防误发限制，不是待移除的过渡标记——不要移除它。
 
 `npm pack` 会静默丢弃载荷里的 3 个桥符号链接（源载荷 3 条 → tarball 内 0 条，零 warning）——tarball 采用方一律走 `init`（建桥由桥步完成，不依赖载荷里的链接），或手工补三条 `ln -s`；从 tarball 直拷得到的是零桥工作区。
 

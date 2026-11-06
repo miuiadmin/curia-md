@@ -103,10 +103,10 @@ Updated: yyyy-mm-dd
 
 - `superseded` 是终态：不得迁出；要推翻就新建文档互链，`Superseded-by:` 指向取代者。
 - **取代链必须终结在现行版本上**：从 `Superseded-by:` 逐跳读下去，必须落脚在一份类型化（有 `Type:`）、状态落在该族现行态、且未归档的文档——那是这个主题的现行版本。链断、成环、终结于笔记或 `docs/`（无 `Status`，链在那里不可判）、终结于归档件、终结于已退役态，都算错：旧文档留着不是问题，留着却解析不到现行版本才是问题。
+- **现行态**（链终点判据用的那一份口径）：`proposal`/`plan` 的 `draft`/`active`；`spec` 的 `draft`/`active`/`done`（规格做完仍是权威）；`survey`/`evidence`/`reference`/`postmortem` 的 `current`；`runbook` 的 `current`。其余取值都是历史：`plan` 做完就是历史，`research` 三类的 `historical` 是时效过去——它们可以出现在链上，但不能当链的终点。
 - **一主题一现行承载点**：同一主题（如排版规范、写作约定、发布流程）同一时刻只有一份文档是现行版本。新的全局指导只有两种合法落法——原地改这份（`spec` 的做法，历史在 git），或新开一份并由它取代旧的；两份都留着、都声称是规范，属违规。这条是纪律，机器判不出「两份是否同一主题」，见「适用边界」。
 - `spec` 的 `done` 不是退役——规格是长期契约，后续变更原地改它并更新 `Updated:`；`done` 的 proposal / spec / plan 均留原家，不迁 `research/`。
 - 退役顺序：先状态翻转；冷历史（不再维护、不再被引用）才归档；**永不删除**。
-- **现行态**（链终点判据用的那一份口径）：`proposal`/`plan` 的 `draft`/`active`；`spec` 的 `draft`/`active`/`done`（规格做完仍是权威）；`survey`/`evidence`/`reference`/`postmortem` 的 `current`；`runbook` 的 `current`。其余取值都是历史：`plan` 做完就是历史，`research` 三类的 `historical` 是时效过去——它们可以出现在链上，但不能当链的终点。
 - 翻转状态是取代动作的一部分，不是事后清理：同批把「引用旧文并把它当现行依据」的文档一并改指，`Superseded-by:` 补上；只翻自己的状态、不改引用，等于把旧规则留在别人的正文里继续生效。
 - 写错类型：改 `Type:` 并按新家的命名规则移动文件，同批修入链；`Status` 由改这份文档的人随实质变更同批改，机器只校验取值。
 
@@ -233,7 +233,7 @@ rg --hidden -g '!.agents/archive/**' -g '!.agents/notes/archived/**' -l '<关键
   | while read -r f; do printf '%s\t' "$f"; head -10 "$f" | awk '/^(Type|Status|Superseded-by):/{printf "%s ", $0} END{print ""}'; done
 ```
 
-配方 7 是粗筛：它按「文件里出现过 `superseded` 与归档目录」排除不了正文里的历史引用，判现行的权威仍是各自头块。仓库里 `superseded` 文档多到影响检索时，先问一句：为什么旧版本还没被归档或改干净——多数情况下该修的是取代链的终点，不是检索配方。
+配方 6 与 7 都是粗筛：6 只看 `Superseded-by:` 这一行，7 只抽命中文件前 10 行的头块状态；判现行的权威仍是各自头块。仓库里 `superseded` 文档多到影响检索时，先问一句：为什么旧版本还没被归档或改干净——多数情况下该修的是取代链的终点，不是检索配方。
 
 批量语料目录（外部文档镜像、采集数据）：`rg` 检索补一条 `-g '!<语料目录>/**'`；检查脚本用 `--exclude <语料目录>`（绝对路径的 exclude 按字面比较、经符号链接别名时不生效，见「配套脚本规格」的说明），或在目录内放空标记文件 `.agents-raw` 整目录豁免（见「配套脚本规格」的豁免清单）。
 

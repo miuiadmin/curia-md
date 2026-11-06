@@ -128,7 +128,7 @@ Bridges are pointers, not copies; change the rules only in `AGENTS.md` and `.age
 
 ## Install
 
-The package is small: `bin/init.mjs` (the generator), `template/` (the payload: 21 files plus 3 bridging symlinks), `guide/` (design history and reading guide, plain text; **not for adopters**, see "For the people maintaining this package"), [INSTALL.md](./INSTALL.md) (a runbook for installing into an **existing** repository, written for the agent doing the work), [README.md](./README.md), [README.en.md](./README.en.md), [package.json](./package.json), and [LICENSE](./LICENSE). The directory is self-contained: copy it anywhere on your machine and it works, with no network and no external parts.
+The package is small: `bin/init.mjs` (the generator), `template/` (the payload: 21 files plus 3 bridging symlinks), `guide/` (design history and reading guide, plain text; **not for adopters**, see "For the people maintaining this package"), [ADOPTION.md](./ADOPTION.md) (the adoption manual: first adoption, migrating an existing documentation tree, upgrades, and uninstalling — written for the agent doing the work), [README.md](./README.md), [README.en.md](./README.en.md), [package.json](./package.json), and [LICENSE](./LICENSE). The directory is self-contained: copy it anywhere on your machine and it works, with no network and no external parts.
 
 The only prerequisite is Node ≥ 18. Usage (`<package path>` is where the package directory lives on your machine):
 
@@ -221,7 +221,7 @@ Fourth, rerun idempotently: run `init` again against the same target; the exit c
 
 `init` never overwrites existing files — good for safety, but it means exit code `0` does not mean everything was installed. The case that bites most often: when the host already has its own `AGENTS.md`, **the 9 general rules are not installed at all** and must be merged by hand.
 
-**When an agent performs the install, hand it [INSTALL.md](./INSTALL.md)** — a runbook ordered as "identify the host shape → three steps to finish → handle the three conflict classes → three checks to accept". One command exists to fetch the merge text:
+**When an agent installs, upgrades, or uninstalls, hand it [ADOPTION.md](./ADOPTION.md)** — it covers four scenarios: first adoption (three conflict classes plus three acceptance checks), migrating an existing documentation tree (read-only adoption, no big-bang move), upgrading (compare with `--diff`, then decide file by file), and uninstalling (remove the machinery, keep your own documents). One command exists to fetch the merge text:
 
 ```bash
 node <package path>/bin/init.mjs --print-merge   # prints the three sections to merge into the host AGENTS.md; writes nothing
@@ -267,7 +267,7 @@ After handling any item, finish with the bridge verification and self-check from
 
 **Must I use all 9 document types?** No. The type table is an upper bound, not a quota; drop types and suggested sections, keeping only what you will actually write.
 
-**Can I upgrade after generating?** There is no `upgrade` subcommand. It is fork-and-own: rerun `init` into a new directory and diff, or cherry-pick with git.
+**Can I upgrade after generating?** Yes, but there is no `upgrade` subcommand (fork-and-own). Upgrading is "compare, then rerun": `node <new package>/bin/init.mjs --diff --dir <your repo>` lists four classes read-only — not installed, identical, changed upstream, local-only — and after you decide file by file, rerunning `init` adds the new files; it never overwrites your changes. Full steps and uninstall are in [ADOPTION.md](./ADOPTION.md).
 
 **Can I use it in a monorepo?** Yes. Put the workspace root where you want to manage documents; the default scan covers that root's `.agents/` and `docs/`, and other roots can be inspected with explicit paths.
 
@@ -326,6 +326,7 @@ Each criterion below is runnable; the object under acceptance is the payload its
 15. **Current-reference assertion**: an `active` plan under `plans/` linking to a `superseded` spec → a group-3 finding that names the current version; the same link written inside a `research/` survey or a `notes/` note → no finding.
 16. **Module design document assertion**: build `.agents/plans/chat-bridge/design.md` (`Type: spec`, `Version: 1.4.2`, title containing `chat-bridge`) → exit `0`; then remove `Version:`, write `Version` as `v1.4`, drop the module identifier from the title, change `Type` to `reference`, and move the file to `.agents/plans/design.md` → each reports a group-1 or group-2 finding and exits `1` under `--strict`; add a `roadmap.md` beside it → still reported under the date-prefix rule.
 17. **Guidance assertion**: `init` into a host that already has its own `AGENTS.md` → the "next steps" must state that the rules were not installed and give the `--print-merge` command; `init` into a host with a real `CLAUDE.md` file → exit code `3`, and "next steps" must give the full "merge → `mv CLAUDE.md CLAUDE.md.pre-curia` → rerun" sequence; `node bin/init.mjs --print-merge` prints the three sections (`通用规则`, `桥`, `结构速览`) with exit code `0` and **performs no writes** (the target's `ls -A` count is unchanged before and after).
+18. **Upgrade-diff assertion**: `init --diff --dir <installed repo>` → "not installed 0, identical 24, changed upstream 0", exit code `0`; after editing one payload file → that file appears under "changed upstream"; after adding your own document under `.agents/plans/` → it appears under "local-only" and is not listed as a change; **zero writes throughout** (`git status` output is unchanged before and after).
 
 ### Distribution boundary
 

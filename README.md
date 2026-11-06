@@ -128,7 +128,7 @@ node .agents/tools/check-docs.mjs --strict   # 严格模式：任一发现即失
 
 ## 装上去
 
-包里内容很少：`bin/init.mjs`（生成器）、`template/`（载荷，21 个文件加 3 条桥符号链接）、`guide/`（设计由来与研究导读，纯文本；**不给采用方看**，见「维护这个包的人读这里」）、[INSTALL.md](./INSTALL.md)（装进**已有**仓库的执行手册，给动手装的 agent 读）、[README.md](./README.md)、[README.en.md](./README.en.md)、[package.json](./package.json)、[LICENSE](./LICENSE)——整个目录自足，拷到你机器上任意位置即可用，不需要网络与任何外部件。
+包里内容很少：`bin/init.mjs`（生成器）、`template/`（载荷，21 个文件加 3 条桥符号链接）、`guide/`（设计由来与研究导读，纯文本；**不给采用方看**，见「维护这个包的人读这里」）、[ADOPTION.md](./ADOPTION.md)（采用手册：初次引用、迁移存量文档树、升级、卸载，给动手的 agent 读）、[README.md](./README.md)、[README.en.md](./README.en.md)、[package.json](./package.json)、[LICENSE](./LICENSE)——整个目录自足，拷到你机器上任意位置即可用，不需要网络与任何外部件。
 
 前置只有一条：Node ≥ 18。用法如下（`<包路径>` 指包目录在你机器上的路径）：
 
@@ -221,7 +221,7 @@ node .agents/tools/check-docs.mjs --strict
 
 `init` 的原则是不覆盖既有文件——这对安全是好事，但意味着「退出码 `0`」不等于「一切都装上了」，尤其宿主已有自己的 `AGENTS.md` 时：**9 条通用规则根本不会装入**，必须手工并入。
 
-**让 agent 来装时，把 [INSTALL.md](./INSTALL.md) 交给它**——那是按「先判断宿主形态 → 三步装完 → 三类冲突逐一处理 → 三项验收」写成的执行手册；另有一条命令专门用来取并入片段：
+**让 agent 来装、升级或卸载时，把 [ADOPTION.md](./ADOPTION.md) 交给它**——那份覆盖四个场景：初次引用（含三类冲突与三项验收）、迁移存量文档树（只读纳管，不做大迁移）、升级（`--diff` 比对后逐件裁决）、卸载（拆机制、保住你自己的文档）。另有一条命令专门用来取并入片段：
 
 ```bash
 node <包路径>/bin/init.mjs --print-merge   # 只打印并入宿主 AGENTS.md 的三节原文，不写盘
@@ -263,7 +263,7 @@ node <包路径>/bin/init.mjs --print-merge   # 只打印并入宿主 AGENTS.md 
 
 **9 类文档必须全用吗？** 不必。类型表是上界不是配额；可以删减类型与建议节，只保留你实际会写的。
 
-**生成后还能升级吗？** 没有 `upgrade` 子命令。fork-and-own：重跑 `init` 到新目录做 diff，或 git cherry-pick。
+**生成后还能升级吗？** 能，但没有 `upgrade` 子命令（fork-and-own）。升级是「比对 + 重跑」：`node <新版本包路径>/bin/init.mjs --diff --dir <你的仓>` 只读列出「未安装 / 已一致 / 上游已变 / 本地独有」四类，你逐件裁决后重跑 `init` 补齐新增件——它永不覆盖你的改动。完整步骤与卸载见 [ADOPTION.md](./ADOPTION.md)。
 
 **能用在 monorepo 吗？** 能。工作区根放在你希望管理的目录；默认扫描该根的 `.agents/` 与 `docs/`，其他根用显式路径巡检。
 
@@ -322,6 +322,7 @@ diff -rq <tmp>/package/template template    # 预期差异恰为 3 条桥（CLAU
 15. **现行引用断言**：`plans/` 里一份 `active` 的 plan 链接到 `superseded` 的 spec → 报组 3 告警并指出其现行版本；同一链接写进 `research/` 的 survey 或 `notes/` 笔记 → 不报。
 16. **模块设计文档断言**：造 `.agents/plans/chat-bridge/design.md`（`Type: spec`、`Version: 1.4.2`、标题含 `chat-bridge`）→ 退出码 `0`；分别去掉 `Version:`、把 `Version` 写成 `v1.4`、标题去掉模块标识、`Type` 改成 `reference`、把文件挪到 `.agents/plans/design.md` → 各自报组 1 或组 2 告警、`--strict` 退出码 `1`；同目录再放一份 `roadmap.md` → 仍按日期前缀规则报。
 17. **引导断言**：`init` 到「已有自己的 `AGENTS.md`」的宿主 → 「下一步」必须列出「规则没有装上」并给出 `--print-merge` 的取原文命令；`init` 到「已有真实 `CLAUDE.md` 文件」的宿主 → 退出码 `3`，且「下一步」给出「并入 → `mv CLAUDE.md CLAUDE.md.pre-curia` → 重跑」的完整序列；`node bin/init.mjs --print-merge` 输出含 `通用规则`、`桥`、`结构速览` 三节且退出码 `0`，且**不做任何写操作**（运行前后目标仓 `ls -A` 计数不变）。
+18. **升级比对断言**：`init --diff --dir <已装好的仓>` → 「未安装 0、已一致 24、上游已变 0」、退出码 `0`；改一件载荷文件后再跑 → 该件进「上游已变」；在 `.agents/plans/` 放一份自己的文档后再跑 → 进「本地独有」且不列进改动；**全过程零写入**（运行前后目标仓 `git status` 输出不变）。
 
 ### 分发边界
 

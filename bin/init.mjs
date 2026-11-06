@@ -20,6 +20,7 @@ import {
   existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, realpathSync, statSync,
   symlinkSync, writeFileSync,
 } from 'node:fs';
+import { Buffer } from 'node:buffer';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -28,6 +29,8 @@ import { fileURLToPath } from 'node:url';
 
 /** 包根：bin/ 的上一级。入口文件先过 realpath 再上溯——preserve-symlinks-main 形态下 import.meta.url 停在符号链接上，直接上溯会把包根指到链接所在目录、模板找不到。 */
 const PKG_ROOT = dirname(dirname(realpathSync(fileURLToPath(import.meta.url))));
+/** 包自己的版本：从 package.json 读，是唯一真源（不在代码里写第二个数）。 */
+const PKG_VERSION = (() => { try { return JSON.parse(readFileSync(join(PKG_ROOT, 'package.json'), 'utf8')).version; } catch { return 'unknown'; } })();
 const TEMPLATE_DIR = join(PKG_ROOT, 'template');
 const MIN_NODE_MAJOR = 18;
 
@@ -57,9 +60,10 @@ function usage() {
   --dir <path>    生成目标目录（默认当前工作目录）
   --defaults      兼容保留：init 无提问，等价默认行为
   --print-merge   只打印「并入宿主既有 AGENTS.md 的三节」原文，不做任何写操作
+  --diff          只比对目标仓与本周长版本的载荷差异（升级用），不做任何写操作
   -h, --help      显示本帮助
 
-装进已有 AGENTS.md / CLAUDE.md 的仓，先读 INSTALL.md（面向执行安装的 agent 的完整步骤）。
+初次引用、迁移存量文档树、升级与卸载的完整步骤见 ADOPTION.md。
 
 退出码：0 载荷落地且三条桥全部接上；1 复制失败（I/O、落点出仓、落点在别的 git 仓）；2 用法与守卫；3 桥未接上。`);
 }
@@ -67,7 +71,7 @@ function usage() {
 /* ------------------------------------------------------------------ 小工具 */
 
 function parseArgs(argv) {
-  const opts = { dir: null, defaults: false, help: false, printMerge: false };
+  const opts = { dir: null, defaults: false, help: false, printMerge: false, diff: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--dir' || a.startsWith('--dir=')) {
@@ -80,6 +84,8 @@ function parseArgs(argv) {
       opts.help = true;
     } else if (a === '--print-merge') {
       opts.printMerge = true;
+    } else if (a === '--diff') {
+      opts.diff = true;
     } else {
       die(`未知参数 \`${a}\`；可用参数见 node bin/init.mjs --help`);
     }
@@ -346,7 +352,7 @@ function run(opts) {
     console.error(`create-curia: ${copyErrors.length} 项复制失败，工作区可能不完整；修好后重跑（已一致的文件会自动跳过）`);
     process.exitCode = 1;
   }
-  log(`完成：目标 ${target} — 新建 ${created}、已一致 ${unchanged}、保留 ${kept}；桥 ${BRIDGES.length} 条：新建 ${bridgesCreated.length}、已就位 ${bridgesAlready.length}、未接上 ${bridgesMissing.length}`);
+  log(`完成：create-curia ${PKG_VERSION} → ${target} — 新建 ${created}、已一致 ${unchanged}、保留 ${kept}；桥 ${BRIDGES.length} 条：新建 ${bridgesCreated.length}、已就位 ${bridgesAlready.length}、未接上 ${bridgesMissing.length}`);
   if (bridgesMissing.length) {
     console.error(`create-curia: ${bridgesMissing.length} 条桥未接上——载荷已落地，但 agent CLI 读不到规则与技能（退出码 3）：`);
     for (const m of bridgesMissing) console.error(`create-curia:   ${m.path} — ${m.why}`);
@@ -419,6 +425,54 @@ function printMerge() {
   console.log('# 并入后核对：在宿主的 AGENTS.md 里搜「一事实一归属」（规则第 1 条）——搜不到就是没装上。');
 }
 
+/** 升级用：只读比对目标仓与本周长版本的载荷差异，不做任何写操作。 */
+function reportDiff(targetRaw) {
+  const target = resolve(targetRaw ?? process.cwd());
+  if (!existsSync(target) || !statSync(target).isDirectory()) die(`目标不是已存在的目录：${target}`);
+  const entries = walkTemplate(TEMPLATE_DIR).filter((e) => e.kind === 'file' || e.kind === 'symlink');
+  const rows = { missing: [], same: [], changed: [] };
+  for (const e of entries) {
+    const dst = join(target, e.rel);
+    if (!lstatExists(dst)) { rows.missing.push(e.rel); continue; }
+    let same;
+    try {
+      same = e.kind === 'symlink'
+        ? (lstatSync(dst).isSymbolicLink() && readlinkSync(dst) === readlinkSync(e.abs))
+        : (!lstatSync(dst).isSymbolicLink() && Buffer.compare(readFileSync(e.abs), readFileSync(dst)) === 0);
+    } catch { same = false; }
+    (same ? rows.same : rows.changed).push(e.rel);
+  }
+  // 本地独有：目标 .agents/ 下有、载荷里没有的文件（你自己的文档与技能，升级时一律不动）
+  const payloadSet = new Set(entries.map((e) => e.rel));
+  const localOnly = [];
+  const walkLocal = (rel) => {
+    const abs = join(target, rel);
+    let ents; try { ents = readdirSync(abs, { withFileTypes: true }); } catch { return; }
+    for (const ent of ents) {
+      const r = `${rel}/${ent.name}`;
+      if (ent.isDirectory()) walkLocal(r);
+      else if (!payloadSet.has(r)) localOnly.push(r);
+    }
+  };
+  walkLocal('.agents');
+
+  console.log(`升级比对：${target}`);
+  console.log(`  本周长版本 ${PKG_VERSION}：载荷 ${entries.length} 件 → 未安装 ${rows.missing.length}、已一致 ${rows.same.length}、上游已变 ${rows.changed.length}；本地独有 ${localOnly.length}`);
+  if (rows.changed.length) {
+    console.log('\n以下文件与本周长版本不一致——**重跑 init 不会覆盖它们**，需你逐件判断是「采纳上游」还是「保留本地改」：');
+    for (const p of rows.changed) console.log(`  ~ ${p}`);
+  }
+  if (rows.missing.length) {
+    console.log('\n以下文件在你仓里不存在——重跑 init 会补上（桥见下，由桥步处理）：');
+    for (const p of rows.missing) console.log(`  + ${p}`);
+  }
+  if (localOnly.length) {
+    console.log(`\n本地独有 ${localOnly.length} 件（你自己的文档与技能，升级不触碰，只列前 10 条）：`);
+    for (const p of localOnly.slice(0, 10)) console.log(`  · ${p}`);
+  }
+  console.log('\n升级做法：逐件决定 → 重跑 init 补齐新增件 → 再跑一次 --diff 复核。全过程不自动覆盖你的改动。');
+}
+
 function main() {
   const opts = parseArgs(process.argv.slice(2));
   if (opts.help) {
@@ -427,6 +481,10 @@ function main() {
   }
   if (opts.printMerge) {
     printMerge();
+    return;
+  }
+  if (opts.diff) {
+    reportDiff(opts.dir);
     return;
   }
   if (Number(process.versions.node.split('.')[0]) < MIN_NODE_MAJOR) {

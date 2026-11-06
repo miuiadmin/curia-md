@@ -18,7 +18,7 @@
 
 ## 9 类文档：类型是头块字段，不是目录
 
-**现状。** 9 类：`proposal`、`spec`、`plan` 住 `plans/`；`survey`、`evidence`、`postmortem`、`reference` 住 `research/`；`runbook`、`skill` 住 `skills/`；笔记（note）是独立形态，不带 `Type:` 行（出处：`.agents/README.md`「9 类文档」与「笔记（note）」）。目录名 kebab-case，日期型文档 `yyyy-mm-dd-topic-title.md`（出处：`.agents/README.md`「文件名与目录」）。
+**现状。** 9 类：`proposal`、`spec`、`plan` 住 `plans/`；`survey`、`evidence`、`postmortem`、`reference` 住 `research/`；`runbook`、`skill` 住 `skills/`；笔记（note）是独立形态，不带 `Type:` 行（出处：`.agents/README.md`「9 类文档」与「笔记（note）」）。目录名 kebab-case 或纯中文名（2.3 起放开中文，见本章末节），日期型文档 `yyyy-mm-dd-topic-title.md`（出处：`.agents/README.md`「文件名与目录」）。
 
 **成文推导链。** 起点是「家不够用」：2026-10-02 的类型系统决策指出六个家只有一层维度，`research/` 混装调研报告、复盘、对比分析与回执，同类型文档没有统一骨架、`Status:` 无人守（出处：`.agents/notes/implemented/process/2026-10-02-doc-type-system.md`「Problem」）。处置是「在六个家之上加一层类型维度、目录结构不变」，类型落在头块字段上（同篇「Decision」）。Curia 2.0 把这一层做大：注册表登记 17 类型 / 7 家 / 10 头块字段 / 114 条规则 ID（出处：`.agents/research/2026-10-17-curia-2-1-slimming-research.md`「重量分布」）。2.1 收敛为 9 类：类型清单收进规范 9 类表与脚本内联枚举，注册表、投影与生成器三件退场（出处：`.agents/notes/implemented/architecture/2026-10-17-curia-2-1-convergence.md`「Decision」）；2.2 再裁载荷——9 份模板、3 份示例与建档器删除，骨架文本的唯一家是规范「规范格式」节（出处：`.agents/notes/implemented/simplification/2026-10-19-curia-2-2-check-groups-and-payload-trim.md`「载荷裁剪（36 到 21）」）。
 
@@ -74,7 +74,7 @@
 
 **第二个形状：模块设计文档。** 问题与上面相邻，但落在发现面：一个模块有一份总体设计，可「知道模块名就该一步找到它」原来只能靠检索——检索给的是一堆同名片段，而那份文档也没有自己的版本号，看不出手上是不是第 4 版。
 
-**备选与落选。** 建注册表或 `INDEX.md`：直接撞「禁全局索引、目录即索引」的既定判据，且索引与现实必然漂移，是与现实不同步的第二承载点。给头块加「模块键」新必填字段：等于要求全树回填，而模块是语义概念——「排版」与「写作格式」算不算同一模块机器判不了，判据会立刻变成误报源。放开 `plans/` 用中文文件名：与「目录名 kebab-case」的机械判据正面冲突，中文名在大小写不敏感的文件系统与 URL 场景里也不稳。
+**备选与落选。** 建注册表或 `INDEX.md`：直接撞「禁全局索引、目录即索引」的既定判据，且索引与现实必然漂移，是与现实不同步的第二承载点。给头块加「模块键」新必填字段：等于要求全树回填，而模块是语义概念——「排版」与「写作格式」算不算同一模块机器判不了，判据会立刻变成误报源。放开 `plans/` 用中文文件名：与「目录名 kebab-case」的机械判据正面冲突，中文名在大小写不敏感的文件系统与 URL 场景里不稳——**这条落选记录后来被推翻**：Owner 要「文档的名字就是模块的名字，不能只有英文名」，2.3 于是把目录名判据扩成两种合法形态（kebab-case 或纯中文名，禁混用），代价照旧记着：中文名跨平台与 URL 场景略弱于英文标识，采用方自行取舍。
 
 **落点。** 把身份放进路径，把版本放进字段：`plans/<模块>/design.md`——目录名是模块标识，`design.md` 是固定名（与 `skills/<技能>/SKILL.md`、`RUNBOOK.md` 同族），自然免掉日期前缀；`Version: MAJOR.MINOR.PATCH` 走规范本就允许的「三行之后可追加自定义字段」，不是新必填项。发现靠 `ls`，不建任何文件。判断只看形态：路径对不对、`Type` 是不是 `spec`、`Version` 合不合格式、标题含不含模块标识。
 

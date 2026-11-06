@@ -115,7 +115,7 @@ Updated: yyyy-mm-dd
 
 一个模块要有一份总体设计；知道模块名，就要能一步找到它，并且看得出它演进到哪一版。这件事用**固定路径加固定字段**做——不建注册表、不建 `INDEX.md`、不加第四个根。
 
-- **位置与命名**：`.agents/plans/<模块>/design.md`。目录名是模块标识（kebab-case，英文或拼音），文件名固定 `design.md`——固定名不随落笔日变，因此**免日期前缀**（与 `skills/<技能>/SKILL.md`、`RUNBOOK.md` 同族）；同目录下的计划、提案仍按 `yyyy-mm-dd-topic-title.md` 命名。
+- **位置与命名**：`.agents/plans/<模块>/design.md`。目录名是模块标识，kebab-case 或纯中文名都行（`plans/chat-bridge/design.md`、`plans/聊天桥接/design.md` 同效），文件名固定 `design.md`——固定名不随落笔日变，因此**免日期前缀**（与 `skills/<技能>/SKILL.md`、`RUNBOOK.md` 同族）；同目录下的计划、提案仍按 `yyyy-mm-dd-topic-title.md` 命名。
 - **标题**：`#` 标题里必须出现模块标识，人话名随意——`# chat-bridge（聊天桥接）总体设计` 与 `# 聊天桥接（chat-bridge）总体设计` 都合法。路径承担稳定身份，标题承担可读的名字，两者指向同一个模块。
 - **类型与状态**：`Type: spec`，状态按 spec 的取值（`done` 不是退役）。
 - **版本**：头块加 `Version: MAJOR.MINOR.PATCH`，必填。这是**这份设计自己的版本**，与包版本、与取代链各管一件事：取代链回答「哪一份是现行」，`Version` 回答「这一份自己演进到哪」。MAJOR 是契约不兼容的变更，MINOR 是兼容的新增，PATCH 是澄清与改字。
@@ -129,7 +129,7 @@ Updated: yyyy-mm-dd
 
 **文件名与目录。**
 
-- 目录名 kebab-case 英文；`.agents/` 下五个家：`plans/`、`research/`、`notes/`、`skills/`、`archive/`。
+- 目录名两种形态取一：kebab-case（小写字母、数字、连字符），或纯中文名（中文开头、可续数字、不含空格与标点）。`.agents/` 下五个家：`plans/`、`research/`、`notes/`、`skills/`、`archive/`。中文名便于人读写，英文名便于跨平台与终端；混用两种（如 `chat桥接`）与含空格、连字符的中文名一律算错。
 - 日期型文档：`yyyy-mm-dd-topic-title.md`，日期取首次落笔日；主题段中英文均可。
 - 固定型文件名：技能目录内 `SKILL.md`；人向操作手册 `RUNBOOK.md`；目录入口 `README.md`；模块总体设计 `plans/<模块>/design.md`（只在这一层，见「模块设计文档」）。
 - `docs/` 文档：kebab-case 主题名、无日期前缀——身份是主题，不是落笔时点。
@@ -282,7 +282,7 @@ node .agents/tools/check-docs.mjs --strict [路径…]   # 严格模式：任一
 |---|---|---|
 | 0 | 编码（预检） | 文件含无法按 UTF-8 解码的字节或 NUL 字节（检出 U+FFFD 替换字符或 NUL）——报，并注明其余判据不可信。 |
 | 1 | 头块与生命周期 | 类型化文档（定义见「3 行头块」）必须有 `Type:`、`Status:`、`Updated:` 三行且顺序固定；Type 不在 9 类内、Status 不在该类型允许集内、`Updated:` 非 `yyyy-mm-dd`、字段值残留 `<占位符>`——报。`Status: superseded` 无 `Superseded-by:`——报；`Superseded-by:` 的裸路径形态（非 Markdown 链接）目标不存在——报（Markdown 链接形态的目标存在性归组 3）；`Superseded-by:` 的链未终结于现行态类型化文档——报（判据见「状态与退役」；四种形态：指向归档件、指向笔记或 `docs/` 等无 `Type` 头块的文档、成环、终点非现行态）；链可多跳，多跳不断链不报。模块设计文档（`plans/<模块>/design.md`）：`Type` 不是 `spec`、缺 `Version:` 行、`Version` 非 `MAJOR.MINOR.PATCH`、标题不含模块标识——报。活动笔记（`notes/` 下非 `archived/`）：标题后的第一个非空行必须是 `Status:`，取值与所在 lifecycle 目录一致；`rejected` 的 `—` 后原因为空——报；`notes/` 下不在 lifecycle 目录（proposed / implemented / rejected）的笔记——报。两个归档区（`.agents/archive/**` 与 `.agents/notes/archived/**`）中带类型头块的文档必须有 `Archived: yyyy-mm-dd` 行；目录入口页（`README.md`）与说明性文件不适用。 |
-| 2 | 家与命名 | `.agents/` 下类型与家不符——报；**带类型头块的文档住在 `.agents/` 之外**（如 `docs/`，九类的家都在 `.agents/` 下）——报，扫描面内无结构锚时不判（避免误伤外部路径巡检）；日期型文档文件名不以 `yyyy-mm-dd-` 开头——报（只查 plans/research 家与 notes 活动区；`plans/<模块>/design.md` 是固定名，豁免）；`design.md` 出现在别处——报（模块设计文档只有这一个落点）；目录名不合 kebab-case（小写字母、数字、连字符）——报（只查 `.agents/` 子树）。 |
+| 2 | 家与命名 | `.agents/` 下类型与家不符——报；**带类型头块的文档住在 `.agents/` 之外**（如 `docs/`，九类的家都在 `.agents/` 下）——报，扫描面内无结构锚时不判（避免误伤外部路径巡检）；日期型文档文件名不以 `yyyy-mm-dd-` 开头——报（只查 plans/research 家与 notes 活动区；`plans/<模块>/design.md` 是固定名，豁免）；`design.md` 出现在别处——报（模块设计文档只有这一个落点）；目录名既不合 kebab-case、也不是纯中文名（中文开头、可续数字、不含空格与标点）——报（只查 `.agents/` 子树）。 |
 | 3 | 链接 | 相对 Markdown 链接目标不存在——报（只查行内 `[x](y)` 形态；引用式与脚注定义不查）；锚点、协议相对 `//` 与带 scheme 的外部 URL 跳过；扫描含归档区。**现行依据**（`plans/`、`skills/` 里带 `Type:` 且 `Status` 非 `superseded` 的文档——讲「该怎么做」的那一类）的相对链接指向 `superseded` 文档——报，并指出该文档的现行版本；`research/`（某时点快照）、笔记与归档区一律不判。 |
 
 **不查清单（明示）。** 围栏代码块语言标注、标题层级跳级、表格竖线数、行尾空白、文件末尾换行、段落连排、中英空格、半角标点、emoji——九项机器不查、不进 `--strict`，责任归写作纪律与评审（细则见「写作规则」）：修法没有歧义、收益低，不值得占提交路径。

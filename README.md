@@ -100,7 +100,7 @@ Updated: yyyy-mm-dd
 
 一个模块要有一份总体设计；知道模块名，就该能一步找到它，并看出版本。这件事用**固定路径加固定字段**做，不建注册表、不建索引文件：
 
-- 位置是 `.agents/plans/<模块>/design.md`：目录名即模块标识，`design.md` 是固定名（和 `skills/<技能>/SKILL.md` 同族），所以免日期前缀。
+- 位置是 `.agents/plans/<模块>/design.md`：目录名即模块标识，**kebab-case 或纯中文名都行**（`plans/chat-bridge/`、`plans/聊天桥接/` 同效），`design.md` 是固定名（和 `skills/<技能>/SKILL.md` 同族），所以免日期前缀。
 - 标题里必须出现模块标识，人话名随意——`# chat-bridge（聊天桥接）总体设计`、`# 聊天桥接（chat-bridge）总体设计` 都合法。路径承担稳定身份，标题承担可读的名字。
 - 头块带 `Version: MAJOR.MINOR.PATCH`，是**这份设计自己的版本**：MAJOR 是契约不兼容的变更，MINOR 是兼容新增，PATCH 是澄清改字。它与包版本、与取代链各管一件事——取代链说「哪份是现行」，`Version` 说「这份自己演进到哪」。
 - 默认原地改、`Version` 递增、历史在 git；只有模块被拆分、改名或整体重做，才新建一份并让旧的翻 `superseded`。

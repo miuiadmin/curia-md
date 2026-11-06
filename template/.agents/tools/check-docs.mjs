@@ -50,6 +50,7 @@ const HOMES = ['plans', 'research', 'notes', 'skills', 'archive']; // `.agents/`
 const NOTE_STATUSES = new Set(['proposed', 'implemented', 'rejected']);
 const INDEX_NAMES = new Set(['README.md', 'AGENTS.md']); // 目录说明文件不进类型化面
 const MD_RE = /\.[mM][dD]$/, DATE_RE = /^\d{4}-\d{2}-\d{2}$/, DATED_NAME_RE = /^\d{4}-\d{2}-\d{2}-/; // 扩展名大小写不敏感
+const CJK_DIR_RE = /^[\u4e00-\u9fa5][\u4e00-\u9fa50-9]*$/; // 目录名另一种合法形态：纯中文（可续数字，不含空格与标点）
 const KEBAB_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/, SCHEME_RE = /^[a-zA-Z][a-zA-Z0-9+.-]*:/, FIELD_RE = /^\s*([A-Za-z][A-Za-z0-9_-]*):\s*(.*)$/;
 const SEMVER_RE = /^\d+\.\d+\.\d+$/; // 模块设计文档的 `Version:`
 const NOTE_STATUS_LINE_RE = /^Status:\s*(.*)$/, PLACEHOLDER_RE = /<[^<>\n]+>/;
@@ -431,14 +432,15 @@ function checkDoc(f, out) {
   checkLinks(f.rel, f.abs, lines, a, out, hdr, loc);
 }
 
-/** 组 2：`.agents/` 子树内目录名 kebab-case（归档区只受组 1 与组 3 管辖，不查）。返回实际检查的目录数。 */
+/** 组 2：`.agents/` 子树内目录名——kebab-case 或纯中文名，二者取一（归档区只受组 1 与组 3 管辖，不查）。返回实际检查的目录数。 */
 function checkDirNames(dirs, out) {
   let n = 0;
   for (const d of dirs) {
     const loc = locate(d.abs, true);
     if (!loc.inAgents || loc.home === null || loc.inArchive) continue;
     n++;
-    if (!KEBAB_RE.test(basename(d.abs))) add(out, 2, d.rel, 0, '目录名不合 kebab-case（小写字母、数字、连字符）');
+    const name = basename(d.abs);
+    if (!KEBAB_RE.test(name) && !CJK_DIR_RE.test(name)) add(out, 2, d.rel, 0, '目录名应为 kebab-case（小写字母、数字、连字符）或纯中文名（中文开头，可续数字，不含空格与标点）');
   }
   return n;
 }

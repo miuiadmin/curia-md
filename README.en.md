@@ -100,7 +100,7 @@ In one sentence: keeping an old document is not the problem — keeping it while
 
 Every module needs one overall design document; knowing the module's name should be enough to find it and see its version. This uses a **fixed path plus a fixed field** — no registry, no index file:
 
-- The location is `.agents/plans/<module>/design.md`: the directory name is the module identifier, and `design.md` is a fixed name (the same family as `skills/<skill>/SKILL.md`), so it is exempt from the date prefix.
+- The location is `.agents/plans/<module>/design.md`: the directory name is the module identifier, and **either kebab-case or a plain Chinese name works** (`plans/chat-bridge/` and `plans/聊天桥接/` are equivalent); `design.md` is a fixed name (the same family as `skills/<skill>/SKILL.md`), so it is exempt from the date prefix.
 - The title must contain the module identifier; the human-readable name is free — `# chat-bridge (chat bridge) overall design` and `# Chat bridge (chat-bridge) overall design` are both valid. The path carries stable identity, the title carries a readable name.
 - The header block carries `Version: MAJOR.MINOR.PATCH`, **the design's own version**: MAJOR for contract-incompatible changes, MINOR for compatible additions, PATCH for clarifications and wording. It is independent of the package version and of the supersession chain — the chain answers "which document is current", `Version` answers "how far this one has evolved".
 - The default is to edit in place and increment `Version`, with history in git; only a split, rename, or full rewrite creates a new document and flips the old one to `superseded`.

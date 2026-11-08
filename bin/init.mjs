@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * create-curia —— Curia 2.3 文档工作区生成器。
+ * create-curia —— Curia 2.4 文档工作区生成器。
  *
  * 定位（红线，见 ../README.md）：生成器，不是运行时。只做三件事：
  *   - 复制包内 template/ 载荷（逐项；桥树留给桥步）；
@@ -52,7 +52,7 @@ const die = (msg, code = 2) => {
 };
 
 function usage() {
-  console.log(`create-curia —— 把 Curia 2.3 文档工作区生成到你的仓库（生成器，不是运行时）。
+  console.log(`create-curia —— 把 Curia 2.4 文档工作区生成到你的仓库（生成器，不是运行时）。
 
 用法：
   node bin/init.mjs [--dir <目标目录>] [--defaults] [--print-merge]
@@ -141,7 +141,7 @@ function isMain() {
 /* ------------------------------------------------------------------ 主流程 */
 
 function run(opts) {
-  log('create-curia：把 Curia 2.3 文档工作区生成到你的仓库（生成器，不是运行时）');
+  log('create-curia：把 Curia 2.4 文档工作区生成到你的仓库（生成器，不是运行时）');
   if (opts.defaults) log('--defaults：直通（init 无提问，参数为兼容保留）');
 
   /* 1) 先验证载荷完整性，再碰目标目录 */
@@ -177,12 +177,13 @@ function run(opts) {
   }
   // 落点判据（复制步与桥步共用）：真解析后必须落在目标仓内——目标仓里预先做成的、指向仓外的符号链接一律拦下
   const insideTarget = (p) => p === targetReal || p.startsWith(targetReal + sep);
-  /** 落点是否落在目标仓自己的 git 边界内：自 p 上溯，若在到达目标仓之前先撞上另一个 `.git`，说明落点是别的仓的工作树（子模块、嵌套克隆）——那里的文件宿主仓 git 永远追不到。 */
+  /** 落点是否落在目标仓自己的 git 边界内：自 p 上溯到目标仓根，若途中（含 p 自身）撞上 `.git`，说明落点是别的仓的工作树（子模块、嵌套克隆）——那里的文件宿主仓 git 永远追不到。落点就是目标仓根时直接放行；不检查目标仓根之上的祖先仓，目标仓是外层仓的子目录时仍可安装。 */
   const inOwnGitTree = (p) => {
+    if (p === target || p === targetReal) return true;
     for (let cur = p; ;) {
+      if (lstatExists(join(cur, '.git'))) return false;
       const up = dirname(cur);
       if (up === cur || up === target || up === targetReal) return true;
-      if (lstatExists(join(up, '.git'))) return false;
       cur = up;
     }
   };
@@ -400,7 +401,7 @@ function run(opts) {
   console.log('       - 退出码 `0` 且汇总行「未接上 0」——判据是这两项，不是「新建 21」这种数字；');
   console.log('       - `ls -l CLAUDE.md .claude/skills .codex/skills` 三条都在，且 `ls .claude/skills` 能列出 write-doc / write-note / prose-standard 三个技能目录；');
   console.log('       - 在目标仓根跑 `node .agents/tools/check-docs.mjs --strict`，退出码 `0`（纯载荷树是「检查 12 篇 / 告警 0 条」）。');
-  console.log(`  ${step++}. 建档：按 \`.agents/README.md\` 的「规范格式（骨架）」节手抄骨架，落 3 行头块；模块的总体设计固定为 \`plans/<模块>/design.md\`（\`Type: spec\` + \`Version:\`）。`);
+  console.log(`  ${step++}. 建档：按 \`.agents/README.md\` 的「规范格式（骨架）」节手抄骨架，落 3 行头块；模块的总体设计固定为 \`plans/<模块>/design.md\`（\`Type: spec\` + \`Version:\`）；跨模块/全项目的设计标准放 \`docs/<主题>.md\`（\`Type: standard\` + \`Version:\` + \`Status:\`）。`);
   console.log(`  ${step++}. 要提交拦截（可选）：\`.git/hooks/pre-commit\` 里写一行 \`node .agents/tools/check-docs.mjs --strict\`，再 \`chmod +x\`——不加执行位 git 会静默忽略钩子；装完提交一份坏文档验证它真被拦下。`);
   console.log('  之后一切修改都是你的（fork-and-own）：本工具只有 init，没有 upgrade / check 驻留子命令。');
 }

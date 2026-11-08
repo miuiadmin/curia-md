@@ -90,6 +90,7 @@ node .agents/tools/check-docs.mjs --strict
 ### 三条别踩的线
 
 - **被机器消费的文件不动**：被脚本、构建或注册表按路径引用的清单与生成物，要引用就用链接，不改名不搬家。
+- **存量设计标准不批量转 `standard`**：已有的 `docs/设计规范v1.2.md` 先按自由知识纳管；下次实质修改时再补 `Type: standard`、`Status:`、`Version:`，不设清理期限。
 - **不把「存量清理」当采用前提**：那会让迁移无限期拖下去。
 - **不追求一次性全绿**：存量树永远会有告警，闸门只守默认面，其余交给时间。
 
@@ -114,6 +115,12 @@ node <新版本包路径>/bin/init.mjs --diff --dir <你的仓>
 | 本地独有 | 不动。这是你的资产，升级与卸载都不碰 |
 
 重跑 `init` 后再跑一次 `--diff` 复核：`上游已变` 应当只剩你**有意保留**的那几件。
+
+### 从 2.3 升到 2.4
+
+2.4 新增第 10 类 `standard`：`docs/` 的现行设计标准可以带 `Type: standard`、`Status:`、`Version:`，进入取代链。旧树零影响——`docs/` 自由知识仍是自由知识，`.agents/` 既有文档不改。
+
+先量：`rg -l '^Type: standard$' .agents/ docs/ 2>/dev/null | wc -l`（旧树应为 `0`）。已有的 `docs/设计规范v1.2.md` 可以原样保留，按「规则不回溯」在下次实质修改时再补头块；不要批量转换。检查器新增 docs-only 模式（只有 `docs/` 也能跑），载荷仍是 21 件。
 
 ### 升级不是「覆盖」
 
@@ -147,9 +154,9 @@ node <新版本包路径>/bin/init.mjs --diff --dir <你的仓>
 
 4. **决定文档去留**——这才是重点：
 
-   - `.agents/plans/`、`research/`、`notes/`、`archive/` 里的文件是**你们写的**，纯 Markdown，卸载后照常可读。可以原样留着，也可以整体迁到你们自己的文档目录。
+   - `.agents/plans/`、`research/`、`notes/`、`archive/` 与 `docs/` 里的文件是**你们写的**，纯 Markdown，卸载后照常可读。可以原样留着，也可以整体迁到你们自己的文档目录。
    - 五个家目录的 `README.md` / `AGENTS.md` 是 Curia 的说明文件，可删；`docs/README.md` 同理。
-   - 头块（`Type:` / `Status:` / `Updated:`）只是几行文本，留着不影响任何工具。想清就批量清，不想清就留着。
+   - 头块（`Type:` / `Status:` / `Updated:` / `Version:`）只是几行文本，留着不影响任何工具。想清就批量清，不想清就留着。
 
 5. **收尾**：
 

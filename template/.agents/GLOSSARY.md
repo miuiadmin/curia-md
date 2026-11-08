@@ -4,17 +4,23 @@
 
 ## 制度
 
-**Curia（枢机院）**：本套文档管理制度的总称——两根布局、9 类文档、四句口诀与轻量自检脚本；定位为可移植到任何项目的文档管理方案。_Avoid_: 文档平台、知识库系统
+**Curia（枢机院）**：本套文档管理制度的总称——两根布局、10 类文档、四句口诀与轻量自检脚本；定位为可移植到任何项目的文档管理方案。_Avoid_: 文档平台、知识库系统
 
-**两根（two roots）**：受管文档的封顶布局——`.agents/` 装制度与过程，`docs/` 装外部事实与知识。_Avoid_: 双目录方案
+**两根（two roots）**：受管文档的封顶布局——`.agents/` 装过程与过程产物，`docs/` 装外部事实、自由知识与现行标准。_Avoid_: 双目录方案
 
 **四句口诀**：放哪的最后裁决——没做的→`plans/`、做完的→`research/`、为什么→`notes/`、过时的→翻状态或归档。_Avoid_: 目录规范
 
-**家（home）**：`.agents/` 下的五个归属目录——`plans/`、`research/`、`notes/`、`skills/`、`archive/`。_Avoid_: 分类目录
+**家（home）**：类型对应的固定归属目录——`.agents/` 下五个（`plans/`、`research/`、`notes/`、`skills/`、`archive/`）；`docs/` 是 `standard` 的家。_Avoid_: 分类目录
 
-**类型化文档（typed doc）**：带 `Type:` / `Status:` / `Updated:` 三行头块、按 9 类之一定义、住对应家的文档；目录说明文件、笔记、`skill` 与 `docs/` 文档不适用。_Avoid_: 正式文档
+**类型化文档（typed doc）**：带 `Type:` / `Status:` / `Updated:` 三行头块、按 10 类之一定义、住对应家或 `docs/` 的文档；`docs/` 只允许 `standard`，目录说明文件、笔记、`skill` 与 `docs/` 自由知识不适用。_Avoid_: 正式文档
 
-**头块（header block）**：文档开头的固定字段行块——类型化文档三行固定，笔记两行（标题与 `Status:`），`skill` 用 frontmatter；`docs/` 文档无头块。_Avoid_: frontmatter（只有技能用）
+**头块（header block）**：文档开头的固定字段行块——类型化文档三行固定（`standard` 另加 `Version:`），笔记两行（标题与 `Status:`），`skill` 用 frontmatter；`docs/` 自由知识无头块。_Avoid_: frontmatter（只有技能用）
+
+**标准（standard）**：`docs/` 下带 `Type: standard`、`Version:` 与 `Status:` 的现行契约——设计规范、UI 设计系统、API/数据契约、编码约定、写作与排版约定；状态取 `current` / `historical` / `superseded`。_Avoid_: 规格（`spec` 住 `plans/`）、普通说明
+
+**docs 自由知识（free-form docs）**：`docs/` 下没有 `Type:` 的文档——外部事实、接入说明、架构导览与 FAQ；无状态机，当前文件即真相。_Avoid_: 把所有 `docs/` 文档都叫无头文档
+
+**契约版本（contract version）**：模块设计文档与 `docs/` 标准头块里的 `Version: MAJOR.MINOR.PATCH`——记这份文档自己的契约演进；与包版本、取代链各管一件事。_Avoid_: 文档版本、发布版本
 
 **笔记（note）**：`notes/` 下的决策因果记录，头块两行，取值与所在 lifecycle 目录一致。_Avoid_: 日记、流水账
 

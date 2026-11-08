@@ -1,6 +1,6 @@
 # Curia MD
 
-> Curia 2.3 — a portable documentation management scheme: two roots, 9 document types, 3-line header blocks, a supersession chain that resolves to the current version, a zero-dependency checker, and a scaffold. Humans and AI agents read and write by the same rules.
+> Curia 2.4 — a portable documentation management scheme: two roots, 10 document types, 3-line header blocks, versioned and superseded standards under `docs/`, a zero-dependency checker, and a scaffold. Humans and AI agents read and write by the same rules.
 
 **English** | [简体中文](./README.md)
 
@@ -14,7 +14,7 @@
 
 ## What it is
 
-Curia 2.3 is a portable documentation management scheme: two roots — `.agents/` holds process and institution (plans, research, decision notes, skills, archive), while `docs/` holds external facts and knowledge; 9 document types each have a home and a skeleton; typed documents carry a fixed 3-line header block; outdated documents flip status and a supersession chain resolves them to the current version; and one zero-dependency checker, `check-docs.mjs` (Node ≥ 18, no network), ships with it. Once adopted, where a document goes, what it looks like, how it is referenced, and how it retires are all written down; humans and agents read and write by the same rules.
+Curia 2.4 is a portable documentation management scheme: two roots — `.agents/` holds process and process artifacts (plans, research, decision notes, skills, archive), while `docs/` holds external facts, current standards, and knowledge; 10 document types each have a home and a skeleton; typed documents carry a fixed 3-line header block, and `docs/` standards add a `Version:` line; outdated documents flip status and a supersession chain resolves them to the current version; and one zero-dependency checker, `check-docs.mjs` (Node ≥ 18, no network), ships with it. Once adopted, where a document goes, what it looks like, how it is referenced, and how it retires are all written down; humans and agents read and write by the same rules.
 
 `create-curia` is its local distribution package and generator: it copies the payload into your repository, creates three bridging symlinks (`CLAUDE.md`, `.claude/skills`, `.codex/skills` — so CLIs such as Claude Code and Codex read the rules and skills directly), and prints the next steps. It asks no questions, installs no hooks, and runs no script from the payload. One run and the tree is fork-and-own — the generated documentation tree is yours to maintain; this package has no resident `upgrade` / `check` subcommands.
 
@@ -40,8 +40,8 @@ Should you use it? Two questions decide. If you want project documents to have a
 
 | Root | Holds | Does not hold |
 |---|---|---|
-| `.agents/` | Process and institution: plans, research, decision notes, skills, archive. | External fact registers, reader-facing published content. |
-| `docs/` | Knowledge and external facts: registers and definitions for systems outside the repository (resource IDs, field mappings, endpoints, protocols); the current version is the single source of truth, with no state machine. | Plans and proposals, decision rationale, raw fact snapshots. |
+| `.agents/` | Process and process artifacts: plans, research, decision notes, skills, archive. | External fact registers, cross-module/outward current standards and contracts, reader-facing published content. |
+| `docs/` | Outcome knowledge and contracts: registers and definitions for systems outside the repository (resource IDs, field mappings, endpoints, protocols); free-form knowledge has no header and the current file is the single source of truth; current standards use `Type: standard` with a light state machine and `Version`. | Plans and proposals, decision rationale, raw fact snapshots, process skills and operating manuals. |
 
 The managed surface is capped at these two roots; no third root is added. A project may enable only one of them.
 
@@ -52,9 +52,9 @@ The managed surface is capped at these two roots; no third root is added. A proj
 3. Why → `notes/` (decision rationale, never in research)
 4. Obsolete → flip the status first; cold history goes to `archive/` and is sealed; **never delete**
 
-Also: reusable procedures → `skills/` (skill / runbook); external facts → root `docs/`.
+Also: reusable procedures → `skills/` (skill / runbook); external facts and current standards → root `docs/` — free-form knowledge has no header, current standards use `Type: standard` with `Version:`. A module's overall design remains fixed at `plans/<module>/design.md`.
 
-### 9 document types
+### 10 document types
 
 | Type | Home | What it is | Suggested sections |
 |---|---|---|---|
@@ -67,32 +67,33 @@ Also: reusable procedures → `skills/` (skill / runbook); external facts → ro
 | `reference` | `research/` | Long-lived factual reference: continuously maintained mappings and guides. | Fact mappings, method and sources, maintenance, applicability |
 | `runbook` | `skills/` | A human-facing operating manual: prerequisites, steps, per-step verification, failure recovery. | Prerequisites, steps, verification, failure and recovery |
 | `skill` | `skills/` | A workflow an agent loads on demand: frontmatter plus steps plus boundaries. | Steps, boundaries |
+| `standard` | `docs/` | A current standard or contract: design standards, UI design systems, API/data contracts, coding conventions, writing and layout conventions; documents that need "which version is current". | Background, applicability, contract, version and compatibility, applicability boundaries |
 
 "Suggested sections" are skeleton defaults, not a machine quota; the checker does not verify section completeness. The type table is an upper bound, not a quota — a project dominated by short documents may drop types and suggested sections.
 
 ### 3-line header block
 
-Typed documents (Markdown inside the `plans/`, `research/`, and `skills/` homes) carry a fixed three-line header, in this order:
+Typed documents (Markdown inside the `plans/`, `research/`, and `skills/` homes, plus documents under `docs/` with `Type: standard`) carry a fixed three-line header, in this order:
 
 ```markdown
 # <title>
 
-Type: <one of the 9 types>
+Type: <one of the 10 types>
 Status: <a value allowed for that type>
 Updated: yyyy-mm-dd
 ```
 
-`Status: superseded` must carry `Superseded-by: <relative link>`, and that chain must terminate at a typed document in a current status; archived documents must carry `Archived: yyyy-mm-dd`. Notes use a two-line header (title plus `Status:`); `docs/` has no header block. The full rules are in the payload's [`.agents/README.md`](./template/.agents/README.md).
+`standard` adds `Version: MAJOR.MINOR.PATCH` after the three lines. `Status: superseded` must carry `Superseded-by: <relative link>`, and that chain must terminate at a typed document in a current status; archived documents must carry `Archived: yyyy-mm-dd`. Notes use a two-line header (title plus `Status:`); free-form `docs/` knowledge has no header block. The full rules are in the payload's [`.agents/README.md`](./template/.agents/README.md).
 
 ### Outdated documents and supersession
 
 An outdated document is not deleted; its status flips to `superseded`. But a status flip only says "the old one no longer counts" — it does not say where the new one is. So this scheme makes supersession a **chain that must reach an end**.
 
 - The old document carries `Superseded-by: <relative link>`; the successor does not write a back-reference field, and the reverse index is computed on demand (spec, "Links and search", recipe 6).
-- The chain may take several hops, but it must terminate at a **typed document in a current status that is not archived**. Cycles, a pointer to a note or to `docs/` (no `Status`, so the chain cannot be judged there), a pointer to an archived document, or a terminal status that has retired — all count as errors and the checker reports them.
-- **One current carrier per topic**: new global guidance has only two legitimate forms — edit that document in place (what a `spec` does; history lives in git), or add a new document and have it supersede the old one. Keeping both and letting both claim to be the standard is a violation; this one rests on review, because the machine cannot tell whether two documents cover the same topic.
-- Institution and standards (writing standard, layout standard, process conventions) do not go into `docs/`: `docs/` has no header block and no state machine, so a document placed there leaves the supersession chain behind.
-- The reader does one thing: **look at the status first**; if it is `superseded`, follow the chain to its end before reading. Documents under `plans/` and `skills/` that link to a superseded document get reported; `research/` is a snapshot of one moment, so citing old text there is not judged.
+- The chain may take several hops, but it must terminate at a **typed document in a current status that is not archived**. Cycles, a pointer to a note or to free-form `docs/` knowledge (no `Type`/`Status`, so the chain cannot be judged there), a pointer to an archived document, or a terminal status that has retired — all count as errors and the checker reports them.
+- **One current carrier per topic**: new global guidance has only two legitimate forms — edit that document in place (what a `spec` or `standard` does; history lives in git), or add a new document and have it supersede the old one. Keeping both and letting both claim to be the standard is a violation; this one rests on review, because the machine cannot tell whether two documents cover the same topic. It applies across both roots: `.agents/plans/<module>/design.md` and `docs/<topic>.md` cannot both claim to be the current carrier for the same topic.
+- Process artifacts (plans, proposals, decision rationale, research) do not go into `docs/`; current standards do, but they must carry `Type: standard`, `Status:`, and `Version:` — that is what brings them into the supersession chain. Free-form `docs/` knowledge still has no header block and no state machine.
+- The reader does one thing: **look at the status first**; if it is `superseded`, follow the chain to its end before reading. Documents under `plans/`, `skills/`, and `current` standards under `docs/` that link to a superseded document get reported; `research/` is a snapshot of one moment, so citing old text there is not judged.
 
 In one sentence: keeping an old document is not the problem — keeping it while the chain cannot resolve to the current version is.
 
@@ -105,6 +106,28 @@ Every module needs one overall design document; knowing the module's name should
 - The header block carries `Version: MAJOR.MINOR.PATCH`, **the design's own version**: MAJOR for contract-incompatible changes, MINOR for compatible additions, PATCH for clarifications and wording. It is independent of the package version and of the supersession chain — the chain answers "which document is current", `Version` answers "how far this one has evolved".
 - The default is to edit in place and increment `Version`, with history in git; only a split, rename, or full rewrite creates a new document and flips the old one to `superseded`.
 - Discovery is the directory: `ls .agents/plans/*/design.md` lists every module, and `rg -n '^Version:' .agents/plans/*/design.md` lists the versions at once. **No `INDEX.md`** — an index drifts from reality, a path does not.
+
+### Docs standards
+
+Cross-module, project-wide standards (UI design systems, API/data contracts, coding conventions, writing and layout conventions) live under `docs/` with type `standard`. They must answer "which version is current", so their header carries `Version:` (the same family as module design documents):
+
+```markdown
+# <topic> (v<MAJOR.MINOR>)
+
+Type: standard
+Status: current
+Updated: yyyy-mm-dd
+Version: 1.2.0
+```
+
+- The location is `docs/<topic>.md`; the topic segment is kebab-case or a plain Chinese name. The filename may carry a version (for example `docs/design-standard-v1.2.md`), but the header's `Version:` is authoritative; the filename version must be a prefix of the header version (`v1.2` for `1.2.0`).
+- `Version` follows the same semantics as module design documents: MAJOR for contract-incompatible changes, MINOR for compatible additions, PATCH for clarifications and wording.
+- `Status` is `current` (in effect), `historical` (kept only for legacy or reference), or `superseded` (replaced, and it must carry `Superseded-by:`). `docs/` does not hold `draft` — an unapproved standard lives under `.agents/plans/`.
+- The default is to edit in place and increment `Version`, with history in git; only when major lines must coexist or the topic is rewritten does a new document appear and the old one flip to `superseded` or `historical`.
+- Boundary with module design: a single module's overall design lives in `.agents/plans/<module>/design.md`; cross-module, project-wide, outward contracts live under `docs/`. There is one current carrier per topic; the two link to each other and do not copy the body.
+- Discovery is the directory: `rg -l '^Type: standard$' docs/` lists every standard, and `rg -n '^(Type|Status|Version|Updated):' docs/` shows their headers. No `INDEX.md`.
+- Free-form `docs/` knowledge has no `Type:` and does not participate in the state machine; the current file is the truth, edited in place.
+
 ### Checker
 
 ```bash
@@ -112,7 +135,7 @@ node .agents/tools/check-docs.mjs            # report mode: list findings, do no
 node .agents/tools/check-docs.mjs --strict   # strict mode: fail on any finding
 ```
 
-It checks only the mechanical subset: encoding, header block and lifecycle (including whether a supersession chain reaches the current version and the `Version:` of module design documents), home and naming, relative links (including whether a current document still points at a superseded one). Zero dependencies, no network, no execution of code inside documents. **A passing check does not mean the documents are compliant** — section completeness, factual truth, conclusion quality, and freshness are outside the machine's judgment.
+It checks only the mechanical subset: encoding, header block and lifecycle (including `docs/` standards' `Version:` and filename-version consistency, whether a supersession chain reaches the current version, and the `Version:` of module design documents), home and naming, relative links (including whether a current document still points at a superseded one). Zero dependencies, no network, no execution of code inside documents. **A passing check does not mean the documents are compliant** — section completeness, factual truth, conclusion quality, and freshness are outside the machine's judgment.
 
 ### Three bridges
 
@@ -159,7 +182,7 @@ One run does three things: copy 21 payload files (the `check-docs.mjs` checker a
 │   └── skills/             # write-doc / write-note / prose-standard
 ├── .claude/skills          # -> ../.agents/skills (bridge)
 ├── .codex/skills           # -> ../.agents/skills (bridge)
-└── docs/README.md          # root conventions for external facts and knowledge (enable as needed; see the file)
+└── docs/README.md          # root conventions for external facts, current standards, and knowledge (enable as needed; see the file)
 ```
 
 That is the entire addition: 21 files plus 3 bridges. If the host already has files with the same names, those are left as they are and are not counted here.
@@ -241,7 +264,7 @@ The per-case notes below remain for human reference.
 
 **The host root's `.claude` or `.codex` is itself a symlink pointing outside the repository** (a common shape for shared dotfiles). The relative target `../.agents/skills` then resolves outside the repository through the link and is necessarily dangling; `init` judges "not connected" and explains where the parent resolved, **writing nothing outside the repository**. To connect it, first decide what to do with that symlink (delete it and use a real directory, or expose it another way). This was another silent false success in early versions of this package: the bridge was created outside the repository, `readlink` printed the string exactly right, the exit code was `0`, the self-check was all green — and the bridge was dead and not in the repository at all.
 
-**The host already has `docs/README.md`.** The least disruptive case: it is the root convention for `docs/`, which is enabled as needed and does not affect full use of `.agents/` — merging it or not is not a blocker.
+**The host already has `docs/README.md`.** The least disruptive case: it is the root convention for `docs/` (external facts, current standards, and knowledge), which is enabled as needed and does not affect full use of `.agents/` — merging it or not is not a blocker.
 
 **Where to put backups.** There is no convention: pick a location outside the repository (such as `~/.curia-backup-<date>/`) or an ignored directory inside it. `init` does not manage backups and does not delete anything of yours — the `mv` step is yours to run.
 
@@ -252,6 +275,8 @@ The per-case notes below remain for human reference.
 **No Node ≥ 18 and occupied paths.** This combination is the most troublesome: a direct copy does not report conflicts, and `init` needs Node. The way out is manual selection — compare the payload files under `template/` one by one, copy them in, and add the three `ln -s` bridges by hand.
 
 **Upgrading from 2.2 to 2.3.** 2.3 tightens exactly one thing: `Superseded-by:` must terminate at a typed document in a current status (2.2 only required the line to exist). Measure before you change anything: `rg --hidden -l '^Superseded-by:' .agents/ | wc -l` — an output of `0` (the payload tree reports `0`) means the upgrade has no effect on that tree and the checker can simply be swapped in; above `0`, read each finding, and there are only three fixes: repoint the pointer at the chain's terminal, land the terminal as a `spec` document (when it currently points at a note or a `docs/` page), or archive the old document through the four archiving steps. None of the three requires touching the old document's body. Existing trees still follow "rules do not apply retroactively", and the new judgement carries no cleanup deadline.
+
+**Upgrading from 2.3 to 2.4.** 2.4 adds the 10th type, `standard`: current design standards under `docs/` may carry `Type: standard`, `Status:`, and `Version:` and join the supersession chain; free-form `docs/` knowledge and existing `.agents/` documents are unaffected. Measure first: `rg -l '^Type: standard$' .agents/ docs/ 2>/dev/null | wc -l` — an old tree should report `0`, so the upgrade has no effect on it; an existing `docs/design-standard-v1.2.md` may stay free-form and gain a header on its next substantive edit. The checker also supports a docs-only repository (only `docs/`, no `.agents/`); `init` still copies 21 payload files, with no migration.
 
 **The host has an existing documentation tree to bring under Curia.** The adoption discipline (six rules: register the roots, do not retro-fit, gate only the default surface, and so on) is in the spec's "Read-only adoption of an existing tree" section (target repo `.agents/README.md`, package copy [template/.agents/README.md](template/.agents/README.md)); this package provides no migration tooling or bulk repair.
 
@@ -265,7 +290,9 @@ After handling any item, finish with the bridge verification and self-check from
 
 **Can I use it without Node ≥ 18?** Yes. Copy `template/.` directly and add the three bridges by hand, or adopt only the text conventions and skip the checker.
 
-**Must I use all 9 document types?** No. The type table is an upper bound, not a quota; drop types and suggested sections, keeping only what you will actually write.
+**Must I use all 10 document types?** No. The type table is an upper bound, not a quota; drop types and suggested sections, keeping only what you will actually write.
+
+**Where do design standards go?** Cross-module, project-wide standards that need "which version is current" go to `docs/<topic>.md` with `Type: standard`, `Version:`, and `Status:`. A single module's overall design stays at `.agents/plans/<module>/design.md`; an unapproved standard stays under `.agents/plans/` as a proposal/spec. Free-form `docs/` knowledge (external facts, usage guides) still has no header block.
 
 **Can I upgrade after generating?** Yes, but there is no `upgrade` subcommand (fork-and-own). Upgrading is "compare, then rerun": `node <new package>/bin/init.mjs --diff --dir <your repo>` lists four classes read-only — not installed, identical, changed upstream, local-only — and after you decide file by file, rerunning `init` adds the new files; it never overwrites your changes. Full steps and uninstall are in [ADOPTION.md](./ADOPTION.md).
 
@@ -292,7 +319,7 @@ This repository is the Curia mother repository, developed independently of any a
 
 **There is exactly one version number, and it lives in `version` in [package.json](package.json).** Its `MAJOR.MINOR.PATCH` form gives each segment one job:
 
-- `MAJOR.MINOR` is the mechanism designation, identical to the spec title "Curia 2.3" — only a mechanism-level change (such as 2.2 → 2.3) moves it.
+- `MAJOR.MINOR` is the mechanism designation, identical to the spec title "Curia 2.4" — only a mechanism-level change (such as 2.3 → 2.4) moves it.
 - `PATCH` tracks artifact bytes: **any change to any file in the package** bumps it by one in the same batch, so that "`create-curia@<version>`" uniquely corresponds to one set of bytes. The criterion is the **artifact**, not the payload: even a README-only change bumps the number, because the tarball bytes change.
 
 `guide/` carries no number of its own; it follows this same version. An earlier scheme numbered the same artifacts `0.3.x`; from 2.3.0 the number is aligned with the mechanism designation, and the old numbers appear only in historical narrative.
@@ -311,7 +338,7 @@ Each criterion below is runnable; the object under acceptance is the payload its
 
 1. **Empty-set assertion**: `mkdir -p /tmp/empty-docs && node .agents/tools/check-docs.mjs --strict /tmp/empty-docs` → prints "no files checked", exit code 2.
 2. **Positive case**: in the payload tree (`template/`) or a repository generated from the payload, run `node .agents/tools/check-docs.mjs --strict` from the tree root → exit code 0.
-3. **Root-anchor assertion**: run the default invocation in a directory that does not itself contain `.agents/` (for example `cd /tmp && node <path>/check-docs.mjs`) → prints "root anchor missing", exit code 2; it does not silently degrade and does not walk up to parent directories.
+3. **Root-anchor assertion**: run the default invocation in a directory that contains neither `.agents/` nor `docs/` (for example `cd /tmp && node <path>/check-docs.mjs`) → prints "root anchor missing", exit code 2; it does not silently degrade and does not walk up to parent directories.
 4. **Zero dependencies**: `rg -n "from ['\"]|require\(|import\(" template/.agents/tools/check-docs.mjs` → only `node:`-prefixed built-in module names should appear.
 5. **Portability**: copy `.agents/` into a temporary directory with no git and no `node_modules`, then run `node .agents/tools/check-docs.mjs --strict` → the same verdict as in the source directory.
 6. **Bridge assertions**: `init` into an empty host → exit code 0, summary line "bridges 3: created 3, already in place 0, not connected 0"; rerun against the same empty host → "created 0, already identical 21, preserved 0; bridges 3: created 0, already in place 3, not connected 0", exit code 0; `init` into a host that already has a real `CLAUDE.md` file → exit code 3, naming the bridges that failed to connect (rerunning against that host still returns 3 — it does not fix itself until the occupied paths are cleared).
@@ -319,7 +346,7 @@ Each criterion below is runnable; the object under acceptance is the payload its
 8. **Version-discipline spot check** (before release, manual): `git log -1 --stat` shows changes in this repository (`template/`, `bin/`, or `README.md`) while `package.json`'s `version` did not bump in the same batch → artifact identity has decoupled from the bytes; do not release.
 9. **Bridge-resolution assertion**: `init` into a host where `.claude` is a symlink pointing outside the target repository → exit code 3, naming "parent directory … resolves outside the target repository", and **zero writes to that outside directory** (the `ls -A` count is unchanged before and after).
 10. **Structure-group false-green assertion**: build a tree containing only `.agents/README.md` and `.agents/tools/check-docs.mjs`, with none of the five homes (`plans/ research/ notes/ skills/ archive/`), then run the default invocation → the summary line carries "structure group has no objects to judge" (an annotation; the exit code still follows the warning count).
-11. **Out-of-surface typed-document assertion**: put a document with a `Type: plan` three-line header into `docs/`, and the same content into `.agents/plans/` → group 2 reports only the one in `docs/` ("a document of type `plan` lives outside `.agents/`"), and `--strict` exits with code 1.
+11. **Out-of-surface typed-document assertion**: put a document with a `Type: plan` three-line header into `docs/`, and the same content into `.agents/plans/2026-11-08-plan.md` → group 2 reports only the one in `docs/` ("should live in `.agents/plans/`, actually in `docs/`"), and `--strict` exits with code 1; put `Type: standard` + `Version:` into `docs/` → no home finding.
 12. **Destination assertion**: the host pre-makes `.agents/` (or `docs/`, or a nested `.agents/plans/`) a symlink pointing outside the repository → `init` exits with code `1`, naming item by item "destination … resolves outside the target repository", and **zero writes to that outside directory** (the `ls -A` count is unchanged before and after).
 13. **Git-boundary assertion**: the host makes `.agents` a git submodule → `init` exits with code `1`, naming item by item "inside another git repository", and **zero writes to the submodule's working tree**.
 14. **Supersession-chain assertion**: build three `Type: spec` documents A `superseded` → B `superseded` → C `active`; the chain should exit `0`. Then build four counter-cases — A→B→A cycle, A→archived document, A→note (no `Type`), A→survey with `Status: historical` — each must report a group-1 finding and exit `1` under `--strict`.
@@ -327,10 +354,12 @@ Each criterion below is runnable; the object under acceptance is the payload its
 16. **Module design document assertion**: build `.agents/plans/chat-bridge/design.md` (`Type: spec`, `Version: 1.4.2`, title containing `chat-bridge`) → exit `0`; then remove `Version:`, write `Version` as `v1.4`, drop the module identifier from the title, change `Type` to `reference`, and move the file to `.agents/plans/design.md` → each reports a group-1 or group-2 finding and exits `1` under `--strict`; add a `roadmap.md` beside it → still reported under the date-prefix rule.
 17. **Guidance assertion**: `init` into a host that already has its own `AGENTS.md` → the "next steps" must state that the rules were not installed and give the `--print-merge` command; `init` into a host with a real `CLAUDE.md` file → exit code `3`, and "next steps" must give the full "merge → `mv CLAUDE.md CLAUDE.md.pre-curia` → rerun" sequence; `node bin/init.mjs --print-merge` prints the three sections (`通用规则`, `桥`, `结构速览`) with exit code `0` and **performs no writes** (the target's `ls -A` count is unchanged before and after).
 18. **Upgrade-diff assertion**: `init --diff --dir <installed repo>` → "not installed 0, identical 24, changed upstream 0", exit code `0`; after editing one payload file → that file appears under "changed upstream"; after adding your own document under `.agents/plans/` → it appears under "local-only" and is not listed as a change; **zero writes throughout** (`git status` output is unchanged before and after).
+19. **Docs-standard assertion**: create `docs/design-standard-v1.2.md` (`Type: standard`, `Status: current`, `Updated`, `Version: 1.2.0`) → docs-only default invocation exits 0; then remove `Version:`, write `Version: v1.2`, rename the file to `v1.3` while the header stays `1.2.0`, change `Type` to `plan`, and move the file into `.agents/plans/` → each reports a group-1 or group-2 finding and exits `1` under `--strict`; a `superseded` standard → a `current` standard exits `0`; a `superseded` standard → a `historical` standard reports group 1; a `current` standard linking to a `superseded` document reports group 3.
+20. **docs-only assertion**: a tree containing only `docs/` (no `.agents/`) run with the default invocation → exit code follows the warning count, and stderr and the summary line carry "structure group not executed: docs-only root"; an empty `docs/` → prints "no files checked", exit code 2; neither `.agents/` nor `docs/` → "root anchor missing", exit code 2.
 
 ### Distribution boundary
 
-This package is **not distributed through a public registry**. Distribution has three channels: the source entry point, direct payload copying, and release artifacts (tarballs, see "Version discipline"). Release artifacts are published in this repository as `curia-v<version>` tags with tarball assets; the first publicly released artifact is `curia-v2.3.1`, while earlier artifacts (old numbering `0.3.x` and the unreleased `2.3.0`) belong to the independent development period and were not published with this repository. The `private: true` in [package.json](package.json) is a standing safeguard against accidental publication, not a transitional marker to be removed — do not remove it.
+This package is **not distributed through a public registry**. Distribution has three channels: the source entry point, direct payload copying, and release artifacts (tarballs, see "Version discipline"). Release artifacts are published in this repository as `curia-v<version>` tags with tarball assets; the first publicly released artifact is `curia-v2.3.1`, while earlier artifacts (old numbering `0.3.x` and the unreleased `2.3.0`) belong to the independent development period and were not published with this repository; the 2.4 artifact is recorded as `curia-v2.4.0`. The `private: true` in [package.json](package.json) is a standing safeguard against accidental publication, not a transitional marker to be removed — do not remove it.
 
 `npm pack` silently drops the payload's 3 bridging symlinks (3 in the source payload → 0 in the tarball, zero warnings) — tarball adopters must always use `init` (bridge creation is performed by the bridge step and does not depend on the links in the payload), or add the three `ln -s` bridges by hand; a direct copy from a tarball yields a workspace with zero bridges.
 

@@ -1,6 +1,6 @@
 # Curia MD
 
-> Curia 2.3 — 可移植的文档管理方案：两根布局、9 类文档、3 行头块、可解析到现行版本的取代链、零依赖检查器与脚手架，人和 AI agent 按同一套规则读写。
+> Curia 2.4 — 可移植的文档管理方案：两根布局、10 类文档、3 行头块、`docs/` 标准的版本与取代链、零依赖检查器与脚手架，人和 AI agent 按同一套规则读写。
 
 **简体中文** | [English](./README.en.md)
 
@@ -14,7 +14,7 @@
 
 ## 是什么
 
-Curia 2.3 是一套可移植的文档管理方案：两根布局——`.agents/` 管过程与制度（计划、调研、决策笔记、技能、归档），`docs/` 管外部事实与知识；9 类文档各有家与骨架；类型化文档统一带 3 行头块；过时的文档翻状态、由取代链解析到现行版本；配 1 支零依赖检查脚本 `check-docs.mjs`（Node ≥ 18，不联网）。采用后，文档放哪、长什么样、怎么引用、过时了怎么退役，都有明文，人和 agent 按同一份规则读写。
+Curia 2.4 是一套可移植的文档管理方案：两根布局——`.agents/` 管过程与过程产物（计划、调研、决策笔记、技能、归档），`docs/` 管外部事实、现行标准与知识；10 类文档各有家与骨架；类型化文档统一带 3 行头块，`docs/` 标准另带 `Version:`；过时的文档翻状态、由取代链解析到现行版本；配 1 支零依赖检查脚本 `check-docs.mjs`（Node ≥ 18，不联网）。采用后，文档放哪、长什么样、怎么引用、过时了怎么退役，都有明文，人和 agent 按同一份规则读写。
 
 `create-curia` 是它的本地分发包，也是一个生成器：把载荷复制进你的仓库、建好三条桥符号链接（`CLAUDE.md`、`.claude/skills`、`.codex/skills`——让 Claude Code、Codex 等 CLI 直接读到规则与技能）、打印下一步。它不提问、不装钩子、不运行载荷内任何脚本；一次跑完即 fork-and-own——生成后的文档树归你维护，本包没有 `upgrade` / `check` 驻留子命令。
 
@@ -40,8 +40,8 @@ Curia 2.3 是一套可移植的文档管理方案：两根布局——`.agents/`
 
 | 根 | 装什么 | 不装什么 |
 |---|---|---|
-| `.agents/` | 过程与制度：计划、调研、决策笔记、技能、归档。 | 外部事实登记、面向最终读者的发布内容。 |
-| `docs/` | 知识与外部事实：仓外系统的登记与定义（资源 ID、字段映射、端点、协议）；当前版即唯一真相，无状态机。 | 计划与提案、决策因果、原始事实快照。 |
+| `.agents/` | 过程与过程产物：计划、调研、决策笔记、技能、归档。 | 外部事实登记、跨模块/对外的现行标准与契约、面向最终读者的发布内容。 |
+| `docs/` | 结果性知识与契约：仓外系统的登记与定义（资源 ID、字段映射、端点、协议）；自由知识无头块、当前版即唯一真相；现行标准用 `Type: standard`，带轻量状态机与 `Version`。 | 计划与提案、决策因果、原始事实快照、过程性技能与操作手册。 |
 
 受管面封顶这两根，不再设第三根；项目可以只启用其中一根。
 
@@ -52,9 +52,9 @@ Curia 2.3 是一套可移植的文档管理方案：两根布局——`.agents/`
 3. 为什么 → `notes/`（决策因果，永远不进 research）
 4. 过时的 → 状态翻转优先，冷历史进 `archive/` 封存；**永不删除**
 
-补：可复用的干法 → `skills/`（skill / runbook）；外部事实 → 根 `docs/`。
+补：可复用的干法 → `skills/`（skill / runbook）；外部事实与现行标准 → 根 `docs/`——自由知识无头块，现行标准写 `Type: standard` 并带 `Version:`。模块的总体设计仍固定为 `plans/<模块>/design.md`。
 
-### 9 类文档
+### 10 类文档
 
 | Type | 家 | 是什么 | 建议节 |
 |---|---|---|---|
@@ -67,32 +67,33 @@ Curia 2.3 是一套可移植的文档管理方案：两根布局——`.agents/`
 | `reference` | `research/` | 长期事实参考：持续维护的映射与导览。 | 事实映射、方法与来源、维护方式、适用边界 |
 | `runbook` | `skills/` | 人向操作手册：前置条件、步骤、每步验证、失败恢复。 | 前置条件、步骤、验证、失败与恢复 |
 | `skill` | `skills/` | Agent 按需加载的工作流：frontmatter 加步骤加边界。 | 步骤、边界 |
+| `standard` | `docs/` | 现行标准与契约：设计规范、UI 设计系统、API/数据契约、编码约定、写作与排版约定；需要「现行第几版」的文档。 | 背景、适用范围、契约、版本与兼容、适用边界 |
 
 「建议节」是骨架默认，不是机器配额；检查脚本不查节的完整性。类型表是上界不是配额——短文档为主的项目可以删减类型与建议节。
 
 ### 3 行头块
 
-类型化文档（`plans/`、`research/`、`skills/` 家内的 Markdown）统一带固定三行，顺序不可换：
+类型化文档（`plans/`、`research/`、`skills/` 家内的 Markdown，以及 `docs/` 下带 `Type: standard` 的标准）统一带固定三行，顺序不可换：
 
 ```markdown
 # <标题>
 
-Type: <9 类之一>
+Type: <10 类之一>
 Status: <该类型允许值>
 Updated: yyyy-mm-dd
 ```
 
-`Status: superseded` 必须带 `Superseded-by: <相对链接>`；归档件必须带 `Archived: yyyy-mm-dd`。笔记用两行头块（标题加 `Status:`），`docs/` 无头块。完整规则见载荷内 [`.agents/README.md`](./template/.agents/README.md)。
+`standard` 在三行之后再加 `Version: MAJOR.MINOR.PATCH`。`Status: superseded` 必须带 `Superseded-by: <相对链接>`；归档件必须带 `Archived: yyyy-mm-dd`。笔记用两行头块（标题加 `Status:`），`docs/` 自由知识无头块。完整规则见载荷内 [`.agents/README.md`](./template/.agents/README.md)。
 
 ### 过时与取代
 
 文档过时了不删，翻状态——`superseded`。但状态翻转只说明「旧的不算数」，它不说「新的在哪」；所以本方案把取代做成一条**必须能走到底的链**。
 
 - 旧文档带 `Superseded-by: <相对链接>`；取代者不回写反向字段，反向索引现算（规范「链接与检索」第 6 条）。
-- 链可多跳，但必须终结在一份**类型化、现行态、未归档**的文档上。成环、指向笔记或 `docs/`（无 `Status`，链在那里不可判）、指向归档件、终点已退役——都算错，检查器报出来。
-- **一主题一现行承载点**：新的全局指导只有两种落法——原地改这份（`spec` 的做法，历史在 git），或新开一份并由它取代旧的。两份都留着、都声称是规范，属违规；这条靠评审，机器判不出「两份是不是同一主题」。
-- 制度与规范（写作标准、排版标准、流程约定）不进 `docs/`：`docs/` 无头块、无状态机，放进去就脱离了取代链。
-- 读的人只做一件事：**命中先看状态**，`superseded` 就沿链走到终点再读。`plans/` 与 `skills/` 里的文档链到被取代的文档会被报出来；`research/` 是某时点的快照，引用旧文不判。
+- 链可多跳，但必须终结在一份**类型化、现行态、未归档**的文档上。成环、指向笔记或 `docs/` 自由知识（无 `Type`/`Status`，链在那里不可判）、指向归档件、终点已退役——都算错，检查器报出来。
+- **一主题一现行承载点**：新的全局指导只有两种落法——原地改这份（`spec` 与 `standard` 的做法，历史在 git），或新开一份并由它取代旧的。两份都留着、都声称是规范，属违规；这条靠评审，机器判不出「两份是不是同一主题」。它跨两根生效：`.agents/plans/<模块>/design.md` 与 `docs/<主题>.md` 不能同时声称是同一主题的现行承载点。
+- 过程产物（计划、提案、决策因果、调研）不进 `docs/`；现行标准进 `docs/`，但必须带 `Type: standard`、`Status:` 与 `Version:`——这样它才进得了取代链。`docs/` 自由知识仍无头块、无状态机。
+- 读的人只做一件事：**命中先看状态**，`superseded` 就沿链走到终点再读。`plans/`、`skills/` 与 `docs/` 下 `current` 的标准链到被取代的文档会被报出来；`research/` 是某时点的快照，引用旧文不判。
 
 一句话：旧文档留着不是问题，留着却解析不到现行版本才是问题。
 
@@ -105,6 +106,28 @@ Updated: yyyy-mm-dd
 - 头块带 `Version: MAJOR.MINOR.PATCH`，是**这份设计自己的版本**：MAJOR 是契约不兼容的变更，MINOR 是兼容新增，PATCH 是澄清改字。它与包版本、与取代链各管一件事——取代链说「哪份是现行」，`Version` 说「这份自己演进到哪」。
 - 默认原地改、`Version` 递增、历史在 git；只有模块被拆分、改名或整体重做，才新建一份并让旧的翻 `superseded`。
 - 发现靠目录：`ls .agents/plans/*/design.md` 就是全部模块，`rg -n '^Version:' .agents/plans/*/design.md` 一次列出版本。**不建 `INDEX.md`**——索引会和现实漂移，路径不会。
+
+### docs 标准
+
+跨模块、全项目共同遵守的设计标准（UI 设计系统、API/数据契约、编码约定、写作与排版约定）住 `docs/`，类型是 `standard`。它需要回答「现行第几版」，所以头块带 `Version:`（与模块设计文档同族）：
+
+```markdown
+# <主题>（v<MAJOR.MINOR>）
+
+Type: standard
+Status: current
+Updated: yyyy-mm-dd
+Version: 1.2.0
+```
+
+- 位置是 `docs/<主题>.md`；主题段 kebab-case 或纯中文名。文件名可带版本（如 `docs/设计规范v1.2.md`），但头块 `Version:` 是权威；文件名版本必须是头块版本的前缀（`v1.2` 对 `1.2.0`）。
+- `Version` 语义与模块设计文档一致：MAJOR 不兼容、MINOR 兼容新增、PATCH 澄清改字。
+- `Status` 取 `current`（现行）、`historical`（仅保留给存量或参考）、`superseded`（被取代，必须带 `Superseded-by:`）。`docs/` 不放 `draft`——未定稿的标准走 `.agents/plans/`。
+- 默认原地改、`Version` 递增、历史在 git；大版本线必须共存或主题被重做时，才新建一份并让旧的翻 `superseded` 或 `historical`。
+- 与模块设计的分工：单模块总体设计住 `.agents/plans/<模块>/design.md`；跨模块、全项目、对外标准住 `docs/`。同一主题只有一个现行承载点；两者互相链接，不复制正文。
+- 发现靠目录：`rg -l '^Type: standard$' docs/` 列出全部标准，`rg -n '^(Type|Status|Version|Updated):' docs/` 看它们的头块；不建 `INDEX.md`。
+- `docs/` 自由知识没有 `Type:`，不参与状态机；当前文件即真相，改了直接改。
+
 ### 检查器
 
 ```bash
@@ -112,7 +135,7 @@ node .agents/tools/check-docs.mjs            # 报告模式：列发现，不失
 node .agents/tools/check-docs.mjs --strict   # 严格模式：任一发现即失败
 ```
 
-只查机械子集：编码、头块与生命周期（含取代链是否走到现行版本、模块设计文档的 `Version:`）、家与命名、相对链接（含现行文档是否还在引用被取代的文档）。零依赖、不联网、不执行文档内代码。**检查通过不等于文档合规**——节的完整性、事实真假、结论质量、时效新鲜度都不在机器判定面。
+只查机械子集：编码、头块与生命周期（含 `docs/` 标准的 `Version:` 与文件名版本一致性、取代链是否走到现行版本、模块设计文档的 `Version:`）、家与命名、相对链接（含现行文档是否还在引用被取代的文档）。零依赖、不联网、不执行文档内代码。**检查通过不等于文档合规**——节的完整性、事实真假、结论质量、时效新鲜度都不在机器判定面。
 
 ### 三条桥
 
@@ -159,7 +182,7 @@ node <包路径>/bin/init.mjs --dir <目标仓路径>
 │   └── skills/             # write-doc / write-note / prose-standard
 ├── .claude/skills          # -> ../.agents/skills（桥）
 ├── .codex/skills           # -> ../.agents/skills（桥）
-└── docs/README.md          # 外部事实与知识的根约定（按需启用，见文件内说明）
+└── docs/README.md          # 外部事实、现行标准与知识的根约定（按需启用，见文件内说明）
 ```
 
 这就是全部新增：21 个文件加 3 条桥。宿主已有同名文件时，那几件保持原样、不在此列。
@@ -237,7 +260,7 @@ node <包路径>/bin/init.mjs --print-merge   # 只打印并入宿主 AGENTS.md 
 
 **宿主根上 `.claude` 或 `.codex` 本身是指向仓外的符号链接**（dotfiles 共享配置的常见形态）。这时相对目标 `../.agents/skills` 会按落点解析到仓外、必然悬空，`init` 直接判「未接上」并说明父级解析到了哪里，**不在仓外写任何东西**。要接上得先决定那个符号链接的去留（删掉换真目录，或换一种暴露方式）。这是本包早期版本的又一个静默假成功：桥被建到仓外、`readlink` 字符串逐字正确、退出码 `0`、自检全绿，而桥是死的且根本不在仓里。
 
-**宿主已有 `docs/README.md`。** 影响最小：它是 `docs/` 的根约定，该目录按需启用、不启用也不影响 `.agents/` 完整使用——并入与否都不挡路。
+**宿主已有 `docs/README.md`。** 影响最小：它是 `docs/` 的根约定（外部事实、现行标准与知识），该目录按需启用、不启用也不影响 `.agents/` 完整使用——并入与否都不挡路。
 
 **备份放哪。** 没有约定：挑一个仓外位置（如 `~/.curia-backup-<日期>/`）或仓内已被忽略的目录。`init` 不管备份，也不删你的任何东西——`mv` 那一步是你自己执行的。
 
@@ -248,6 +271,8 @@ node <包路径>/bin/init.mjs --print-merge   # 只打印并入宿主 AGENTS.md 
 **没有 Node ≥ 18 又有占用路径。** 这一组合最麻烦：直拷不报告冲突、`init` 要 Node。出路是手工挑拣——把 `template/` 下的载荷件逐件比对后拷进去，再手工补三条桥 `ln -s`。
 
 **从 2.2 升到 2.3。** 2.3 只收紧一件事：`Superseded-by:` 必须终结在现行态类型化文档上（2.2 只要求这一行存在）。先量再改：`rg --hidden -l '^Superseded-by:' .agents/ | wc -l`——输出 `0`（载荷树就是 `0`）则本次升级对它零影响，直接换检查器；大于 `0` 就逐条看告警，修法只有三种：把指针改指链终点、把终点落成一份 `spec`（原先指向笔记或 `docs/` 页的情形）、或把旧文按归档四步归档。三种都不必动旧文正文。存量树仍按「规则不回溯」处理，新判据不设清理期限。
+
+**从 2.3 升到 2.4。** 2.4 新增第 10 类 `standard`：`docs/` 的现行设计标准可带 `Type: standard`、`Status:`、`Version:`，进入取代链；`docs/` 自由知识与 `.agents/` 既有文档都不受影响。先量再改：`rg -l '^Type: standard$' .agents/ docs/ 2>/dev/null | wc -l`——旧树应为 `0`，本次升级对它零影响；已有的 `docs/设计规范v1.2.md` 可以原样保留为自由知识，下次实质修改时再补头块。检查器同时支持只有 `docs/` 的仓（docs-only 模式）；`init` 载荷仍是 21 件，无迁移。
 
 **宿主已有存量文档树要纳入 Curia。** 纳入纪律（登记根、规则不回溯、闸门只挂默认面等六条）见规范「存量树只读纳管」节（目标仓 `.agents/README.md`，包内 [template/.agents/README.md](template/.agents/README.md)）；本包不提供迁移工具与批量修复。
 
@@ -261,7 +286,9 @@ node <包路径>/bin/init.mjs --print-merge   # 只打印并入宿主 AGENTS.md 
 
 **没有 Node ≥ 18 能用吗？** 能。直拷 `template/.` 并手工补三条桥，或只采用文本约定、不跑检查器。
 
-**9 类文档必须全用吗？** 不必。类型表是上界不是配额；可以删减类型与建议节，只保留你实际会写的。
+**10 类文档必须全用吗？** 不必。类型表是上界不是配额；可以删减类型与建议节，只保留你实际会写的。
+
+**设计规范放哪？** 跨模块、全项目、需要「现行第几版」的设计标准放 `docs/<主题>.md`，带 `Type: standard`、`Version:` 与 `Status:`；单模块的总体设计仍放 `.agents/plans/<模块>/design.md`；还没定稿的标准走 `.agents/plans/` 的 proposal/spec。`docs/` 自由知识（外部事实、使用说明）仍无头块。
 
 **生成后还能升级吗？** 能，但没有 `upgrade` 子命令（fork-and-own）。升级是「比对 + 重跑」：`node <新版本包路径>/bin/init.mjs --diff --dir <你的仓>` 只读列出「未安装 / 已一致 / 上游已变 / 本地独有」四类，你逐件裁决后重跑 `init` 补齐新增件——它永不覆盖你的改动。完整步骤与卸载见 [ADOPTION.md](./ADOPTION.md)。
 
@@ -288,7 +315,7 @@ node <包路径>/bin/init.mjs --print-merge   # 只打印并入宿主 AGENTS.md 
 
 **版本号只有一个，写在 [package.json](package.json) 的 `version`**，格式 `MAJOR.MINOR.PATCH`，三段各管一件事：
 
-- `MAJOR.MINOR` 是机制代号，与规范题头「Curia 2.3」逐字一致——只有机制级变更（如 2.2 → 2.3）才动它。
+- `MAJOR.MINOR` 是机制代号，与规范题头「Curia 2.4」逐字一致——只有机制级变更（如 2.3 → 2.4）才动它。
 - `PATCH` 是制品字节差异：**包内任何文件的改动**都同批跳一位，使「`create-curia@<版本>`」唯一对应一份字节。判据是**制品**不是载荷：只改本 README 也要跳号，因为 tarball 的字节变了。
 
 `guide/` 不单独编号，跟着这同一个版本走。此前用过另一套编号（`0.3.x`）记同一批制品，2.3.0 起与机制代号对齐——旧号只出现在历史叙述里。
@@ -307,7 +334,7 @@ diff -rq <tmp>/package/template template    # 预期差异恰为 3 条桥（CLAU
 
 1. **空集断言**：`mkdir -p /tmp/empty-docs && node .agents/tools/check-docs.mjs --strict /tmp/empty-docs` → 输出「未检查任何文件」，退出码 2。
 2. **正例**：在载荷树（`template/`）或载荷生成的仓库里、于该树根下跑 `node .agents/tools/check-docs.mjs --strict` → 退出码 0。
-3. **根锚点断言**：在自身不含 `.agents/` 的目录里跑默认调用（如 `cd /tmp && node <路径>/check-docs.mjs`）→ 输出「根锚点缺失」，退出码 2，不静默降级、不向父目录上溯。
+3. **根锚点断言**：在自身既不含 `.agents/` 也不含 `docs/` 的目录里跑默认调用（如 `cd /tmp && node <路径>/check-docs.mjs`）→ 输出「根锚点缺失」，退出码 2，不静默降级、不向父目录上溯。
 4. **零依赖**：`rg -n "from ['\"]|require\(|import\(" template/.agents/tools/check-docs.mjs` → 只应出现 `node:` 前缀的内置模块名。
 5. **可移植**：把 `.agents/` 拷进无 git、无 `node_modules` 的临时目录，跑 `node .agents/tools/check-docs.mjs --strict` → 与源目录同一判定。
 6. **桥断言**：`init` 到空宿主 → 退出码 0、汇总行「桥 3 条：新建 3、已就位 0、未接上 0」，对同一空宿主重跑 → 「新建 0、已一致 21、保留 0；桥 3 条：新建 0、已就位 3、未接上 0」、退出码 0；`init` 到已有 `CLAUDE.md` 真文件的宿主 → 退出码 3 并具名列出未接上的桥（该宿主重跑仍为退出码 3——占用路径没清障前不会自己变好）。
@@ -315,7 +342,7 @@ diff -rq <tmp>/package/template template    # 预期差异恰为 3 条桥（CLAU
 8. **版本纪律目检**（发布前，人工）：`git log -1 --stat` 显示本仓有改动（`template/`、`bin/`、`README.md` 任一），而 `package.json` 的 `version` 未随之跳号 → 制品身份与字节脱钩，不许发布。
 9. **桥解析断言**：`init` 到「`.claude` 是指向目标仓之外符号链接」的宿主 → 退出码 3、具名报出「父级目录……解析到目标仓之外」，且**仓外那个目录零写入**（前后 `ls -A` 计数不变）。
 10. **结构组假绿断言**：造一棵只有 `.agents/README.md` 与 `.agents/tools/check-docs.mjs`、五个家（`plans/ research/ notes/ skills/ archive/`）一个都没有的树，跑默认调用 → 汇总行带「结构组无判定对象」（是标注，退出码仍按告警数走）。
-11. **面外类型化断言**：把一份带 `Type: plan` 三行头块的文档放进 `docs/`、同内容放 `.agents/plans/` → 组 2 只报 `docs/` 里那份（「类型 `plan` 的文档住在 `.agents/` 之外」），`--strict` 退出码 1。
+11. **面外类型化断言**：把一份带 `Type: plan` 三行头块的文档放进 `docs/`、同内容放 `.agents/plans/2026-11-08-plan.md` → 组 2 只报 `docs/` 里那份（「应住 `.agents/plans/`，实际在 `docs/`」），`--strict` 退出码 1；把 `Type: standard` + `Version:` 放 `docs/` → 不报家归属。
 12. **落点断言**：宿主把 `.agents/`（或 `docs/`，或嵌套的 `.agents/plans/`）预先做成指向仓外的符号链接 → `init` 退出码 `1`、逐件具名「落点……解析到目标仓之外」，且**仓外那个目录零写入**（前后 `ls -A` 计数不变）。
 13. **git 边界断言**：宿主把 `.agents` 做成 git 子模块 → `init` 退出码 `1`、逐件具名「在另一个 git 仓里」，且**子模块工作树零写入**。
 14. **取代链断言**：造 `Type: spec` 的 A `superseded` → B `superseded` → C `active`，链路应退出码 `0`；再分别造 A→B→A 成环、A→归档件、A→笔记（无 `Type`）、A→`Status: historical` 的 survey 四种反例 → 各自报组 1 告警、`--strict` 退出码 `1`。
@@ -323,10 +350,12 @@ diff -rq <tmp>/package/template template    # 预期差异恰为 3 条桥（CLAU
 16. **模块设计文档断言**：造 `.agents/plans/chat-bridge/design.md`（`Type: spec`、`Version: 1.4.2`、标题含 `chat-bridge`）→ 退出码 `0`；分别去掉 `Version:`、把 `Version` 写成 `v1.4`、标题去掉模块标识、`Type` 改成 `reference`、把文件挪到 `.agents/plans/design.md` → 各自报组 1 或组 2 告警、`--strict` 退出码 `1`；同目录再放一份 `roadmap.md` → 仍按日期前缀规则报。
 17. **引导断言**：`init` 到「已有自己的 `AGENTS.md`」的宿主 → 「下一步」必须列出「规则没有装上」并给出 `--print-merge` 的取原文命令；`init` 到「已有真实 `CLAUDE.md` 文件」的宿主 → 退出码 `3`，且「下一步」给出「并入 → `mv CLAUDE.md CLAUDE.md.pre-curia` → 重跑」的完整序列；`node bin/init.mjs --print-merge` 输出含 `通用规则`、`桥`、`结构速览` 三节且退出码 `0`，且**不做任何写操作**（运行前后目标仓 `ls -A` 计数不变）。
 18. **升级比对断言**：`init --diff --dir <已装好的仓>` → 「未安装 0、已一致 24、上游已变 0」、退出码 `0`；改一件载荷文件后再跑 → 该件进「上游已变」；在 `.agents/plans/` 放一份自己的文档后再跑 → 进「本地独有」且不列进改动；**全过程零写入**（运行前后目标仓 `git status` 输出不变）。
+19. **docs 标准断言**：造 `docs/设计规范v1.2.md`（`Type: standard`、`Status: current`、`Updated`、`Version: 1.2.0`）→ docs-only 默认调用退出码 0；分别去掉 `Version:`、写 `Version: v1.2`、把文件名改成 `v1.3` 而头块仍 `1.2.0`、把 `Type` 改成 `plan`、把文件挪到 `.agents/plans/` → 各自报组 1 或组 2、`--strict` 退出码 1；造 `superseded` 标准 → `current` 标准 → 退出码 0；`superseded` → `historical` 标准 → 组 1；`current` 标准链接 `superseded` 文档 → 组 3。
+20. **docs-only 断言**：只含 `docs/`（无 `.agents/`）的树默认调用 → 退出码按告警数，stderr 与汇总行带「结构组未执行：仅 docs/ 根」；只有空的 `docs/` → 输出「未检查任何文件」、退出码 2；既无 `.agents/` 也无 `docs/` → 「根锚点缺失」、退出码 2。
 
 ### 分发边界
 
-本包**不分发到公共 registry**，分发方式是源码入口、载荷直拷与发布制品（tarball，见「版本纪律」）三条。发布制品以 `curia-v<版本>` tag 与 tarball asset 的形态发布在本仓；首个公开发布的制品是 `curia-v2.3.1`，更早的制品（旧编号 `0.3.x` 与未定稿的 `2.3.0`）属独立开发期，未随本仓公开发布。[package.json](package.json) 的 `private: true` 是常设的防误发限制，不是待移除的过渡标记——不要移除它。
+本包**不分发到公共 registry**，分发方式是源码入口、载荷直拷与发布制品（tarball，见「版本纪律」）三条。发布制品以 `curia-v<版本>` tag 与 tarball asset 的形态发布在本仓；首个公开发布的制品是 `curia-v2.3.1`，更早的制品（旧编号 `0.3.x` 与未定稿的 `2.3.0`）属独立开发期，未随本仓公开发布；2.4 的制品记作 `curia-v2.4.0`。[package.json](package.json) 的 `private: true` 是常设的防误发限制，不是待移除的过渡标记——不要移除它。
 
 `npm pack` 会静默丢弃载荷里的 3 个桥符号链接（源载荷 3 条 → tarball 内 0 条，零 warning）——tarball 采用方一律走 `init`（建桥由桥步完成，不依赖载荷里的链接），或手工补三条 `ln -s`；从 tarball 直拷得到的是零桥工作区。
 

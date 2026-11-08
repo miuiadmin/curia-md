@@ -274,6 +274,8 @@ node <包路径>/bin/init.mjs --print-merge   # 只打印并入宿主 AGENTS.md 
 
 **从 2.3 升到 2.4。** 2.4 新增第 10 类 `standard`：`docs/` 的现行设计标准可带 `Type: standard`、`Status:`、`Version:`，进入取代链；`docs/` 自由知识与 `.agents/` 既有文档都不受影响。先量再改：`rg -l '^Type: standard$' .agents/ docs/ 2>/dev/null | wc -l`——旧树应为 `0`，本次升级对它零影响；已有的 `docs/设计规范v1.2.md` 可以原样保留为自由知识，下次实质修改时再补头块。检查器同时支持只有 `docs/` 的仓（docs-only 模式）；`init` 载荷仍是 21 件，无迁移。
 
+**从 2.4.0 升到 2.4.1。** 2.4.1 修检查器两处判据一致性：`CURRENT.proposal` 纳入 `draft`（规范一直写 proposal/plan 的 `draft`/`active`）；组 3 的「现行版本是 X」只认类型化、现行态、未归档的终点，不再把 `done`/`historical` 叫现行。无迁移，换检查器即可；载荷仍是 21 件。
+
 **宿主已有存量文档树要纳入 Curia。** 纳入纪律（登记根、规则不回溯、闸门只挂默认面等六条）见规范「存量树只读纳管」节（目标仓 `.agents/README.md`，包内 [template/.agents/README.md](template/.agents/README.md)）；本包不提供迁移工具与批量修复。
 
 处理完任何一项，都用「跑完怎么确认装对了」的桥核对与自检收尾。
@@ -345,7 +347,7 @@ diff -rq <tmp>/package/template template    # 预期差异恰为 3 条桥（CLAU
 11. **面外类型化断言**：把一份带 `Type: plan` 三行头块的文档放进 `docs/`、同内容放 `.agents/plans/2026-11-08-plan.md` → 组 2 只报 `docs/` 里那份（「应住 `.agents/plans/`，实际在 `docs/`」），`--strict` 退出码 1；把 `Type: standard` + `Version:` 放 `docs/` → 不报家归属。
 12. **落点断言**：宿主把 `.agents/`（或 `docs/`，或嵌套的 `.agents/plans/`）预先做成指向仓外的符号链接 → `init` 退出码 `1`、逐件具名「落点……解析到目标仓之外」，且**仓外那个目录零写入**（前后 `ls -A` 计数不变）。
 13. **git 边界断言**：宿主把 `.agents` 做成 git 子模块 → `init` 退出码 `1`、逐件具名「在另一个 git 仓里」，且**子模块工作树零写入**。
-14. **取代链断言**：造 `Type: spec` 的 A `superseded` → B `superseded` → C `active`，链路应退出码 `0`；再分别造 A→B→A 成环、A→归档件、A→笔记（无 `Type`）、A→`Status: historical` 的 survey 四种反例 → 各自报组 1 告警、`--strict` 退出码 `1`。
+14. **取代链断言**：造 `Type: spec` 的 A `superseded` → B `superseded` → C `active`，链路应退出码 `0`；把 C 换成 `Type: proposal`、`Status: draft` → 仍退出码 `0`，换成 `Status: done` → 报「终点不是现行态」、`--strict` 退出码 `1`；再分别造 A→B→A 成环、A→归档件、A→笔记（无 `Type`）、A→`Status: historical` 的 survey 四种反例 → 各自报组 1 告警、`--strict` 退出码 `1`；让一份 `active` 的 plan 链接到 A（终点是 `done` proposal）→ 组 3 报「且取代链未解析到现行版本」，不把 `done` proposal 叫现行版本。
 15. **现行引用断言**：`plans/` 里一份 `active` 的 plan 链接到 `superseded` 的 spec → 报组 3 告警并指出其现行版本；同一链接写进 `research/` 的 survey 或 `notes/` 笔记 → 不报。
 16. **模块设计文档断言**：造 `.agents/plans/chat-bridge/design.md`（`Type: spec`、`Version: 1.4.2`、标题含 `chat-bridge`）→ 退出码 `0`；分别去掉 `Version:`、把 `Version` 写成 `v1.4`、标题去掉模块标识、`Type` 改成 `reference`、把文件挪到 `.agents/plans/design.md` → 各自报组 1 或组 2 告警、`--strict` 退出码 `1`；同目录再放一份 `roadmap.md` → 仍按日期前缀规则报。
 17. **引导断言**：`init` 到「已有自己的 `AGENTS.md`」的宿主 → 「下一步」必须列出「规则没有装上」并给出 `--print-merge` 的取原文命令；`init` 到「已有真实 `CLAUDE.md` 文件」的宿主 → 退出码 `3`，且「下一步」给出「并入 → `mv CLAUDE.md CLAUDE.md.pre-curia` → 重跑」的完整序列；`node bin/init.mjs --print-merge` 输出含 `通用规则`、`桥`、`结构速览` 三节且退出码 `0`，且**不做任何写操作**（运行前后目标仓 `ls -A` 计数不变）。
@@ -355,7 +357,7 @@ diff -rq <tmp>/package/template template    # 预期差异恰为 3 条桥（CLAU
 
 ### 分发边界
 
-本包**不分发到公共 registry**，分发方式是源码入口、载荷直拷与发布制品（tarball，见「版本纪律」）三条。发布制品以 `curia-v<版本>` tag 与 tarball asset 的形态发布在本仓；首个公开发布的制品是 `curia-v2.3.1`，更早的制品（旧编号 `0.3.x` 与未定稿的 `2.3.0`）属独立开发期，未随本仓公开发布；2.4 的制品记作 `curia-v2.4.0`。[package.json](package.json) 的 `private: true` 是常设的防误发限制，不是待移除的过渡标记——不要移除它。
+本包**不分发到公共 registry**，分发方式是源码入口、载荷直拷与发布制品（tarball，见「版本纪律」）三条。发布制品以 `curia-v<版本>` tag 与 tarball asset 的形态发布在本仓；首个公开发布的制品是 `curia-v2.3.1`，更早的制品（旧编号 `0.3.x` 与未定稿的 `2.3.0`）属独立开发期，未随本仓公开发布；2.4 的首个制品是 `curia-v2.4.0`，2.4.1 为修复制品。[package.json](package.json) 的 `private: true` 是常设的防误发限制，不是待移除的过渡标记——不要移除它。
 
 `npm pack` 会静默丢弃载荷里的 3 个桥符号链接（源载荷 3 条 → tarball 内 0 条，零 warning）——tarball 采用方一律走 `init`（建桥由桥步完成，不依赖载荷里的链接），或手工补三条 `ln -s`；从 tarball 直拷得到的是零桥工作区。
 

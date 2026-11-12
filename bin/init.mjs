@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * create-curia —— Curia 2.4 文档工作区生成器。
+ * create-curia —— Curia 2.5 文档工作区生成器。
  *
  * 定位（红线，见 ../README.md）：生成器，不是运行时。只做三件事：
  *   - 复制包内 template/ 载荷（逐项；桥树留给桥步）；
@@ -52,7 +52,7 @@ const die = (msg, code = 2) => {
 };
 
 function usage() {
-  console.log(`create-curia —— 把 Curia 2.4 文档工作区生成到你的仓库（生成器，不是运行时）。
+  console.log(`create-curia —— 把 Curia 2.5 文档工作区生成到你的仓库（生成器，不是运行时）。
 
 用法：
   node bin/init.mjs [--dir <目标目录>] [--defaults] [--print-merge]
@@ -141,7 +141,7 @@ function isMain() {
 /* ------------------------------------------------------------------ 主流程 */
 
 function run(opts) {
-  log('create-curia：把 Curia 2.4 文档工作区生成到你的仓库（生成器，不是运行时）');
+  log('create-curia：把 Curia 2.5 文档工作区生成到你的仓库（生成器，不是运行时）');
   if (opts.defaults) log('--defaults：直通（init 无提问，参数为兼容保留）');
 
   /* 1) 先验证载荷完整性，再碰目标目录 */
@@ -401,7 +401,9 @@ function run(opts) {
   console.log('       - 退出码 `0` 且汇总行「未接上 0」——判据是这两项，不是「新建 21」这种数字；');
   console.log('       - `ls -l CLAUDE.md .claude/skills .codex/skills` 三条都在，且 `ls .claude/skills` 能列出 write-doc / write-note / prose-standard 三个技能目录；');
   console.log('       - 在目标仓根跑 `node .agents/tools/check-docs.mjs --strict`，退出码 `0`（纯载荷树是「检查 12 篇 / 告警 0 条」）。');
+  console.log(`  ${step++}. 装完体检（只读，不是门禁）：\`node .agents/tools/check-docs.mjs --health\`——报告载荷清点、三条桥、AGENTS.md 合并态与 docs 标准覆盖；不写文件，正常退出码 \`0\`。`);
   console.log(`  ${step++}. 建档：按 \`.agents/README.md\` 的「规范格式（骨架）」节手抄骨架，落 3 行头块；模块的总体设计固定为 \`plans/<模块>/design.md\`（\`Type: spec\` + \`Version:\`）；跨模块/全项目的设计标准放 \`docs/<主题>.md\`（\`Type: standard\` + \`Version:\` + \`Status:\`）。`);
+  console.log(`  ${step++}. 已有 \`docs/\` 存量文档：\`node .agents/tools/check-docs.mjs --suggest-standards\` 列出标准候选与建议头块（只读启发式，人工确认后再补 \`Type: standard\`；\`Version\` 与 \`Updated\` 按实情填，不照搬建议值）。`);
   console.log(`  ${step++}. 要提交拦截（可选）：\`.git/hooks/pre-commit\` 里写一行 \`node .agents/tools/check-docs.mjs --strict\`，再 \`chmod +x\`——不加执行位 git 会静默忽略钩子；装完提交一份坏文档验证它真被拦下。`);
   console.log('  之后一切修改都是你的（fork-and-own）：本工具只有 init，没有 upgrade / check 驻留子命令。');
 }

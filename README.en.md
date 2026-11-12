@@ -1,6 +1,6 @@
 # Curia MD
 
-> Curia 2.4 — a portable documentation management scheme: two roots, 10 document types, 3-line header blocks, versioned and superseded standards under `docs/`, a zero-dependency checker, and a scaffold. Humans and AI agents read and write by the same rules.
+> Curia 2.5 — a portable documentation management scheme: two roots, 10 document types, 3-line header blocks, versioned and superseded standards under `docs/`, a zero-dependency checker and scaffold, plus read-only health diagnostics and standards-promotion hints. Humans and AI agents read and write by the same rules.
 
 **English** | [简体中文](./README.md)
 
@@ -14,7 +14,7 @@
 
 ## What it is
 
-Curia 2.4 is a portable documentation management scheme: two roots — `.agents/` holds process and process artifacts (plans, research, decision notes, skills, archive), while `docs/` holds external facts, current standards, and knowledge; 10 document types each have a home and a skeleton; typed documents carry a fixed 3-line header block, and `docs/` standards add a `Version:` line; outdated documents flip status and a supersession chain resolves them to the current version; and one zero-dependency checker, `check-docs.mjs` (Node ≥ 18, no network), ships with it. Once adopted, where a document goes, what it looks like, how it is referenced, and how it retires are all written down; humans and agents read and write by the same rules.
+Curia 2.5 is a portable documentation management scheme: two roots — `.agents/` holds process and process artifacts (plans, research, decision notes, skills, archive), while `docs/` holds external facts, current standards, and knowledge; 10 document types each have a home and a skeleton; typed documents carry a fixed 3-line header block, and `docs/` standards add a `Version:` line; outdated documents flip status and a supersession chain resolves them to the current version; and one zero-dependency checker, `check-docs.mjs` (Node ≥ 18, no network), ships with it. The checker also carries two read-only diagnostics: `--health` reviews the payload, the bridges, and the `AGENTS.md` merge state, while `--suggest-standards` lists `docs/` files that look like candidates for `standard`; both only advise and write no files. Once adopted, where a document goes, what it looks like, how it is referenced, and how it retires are all written down; humans and agents read and write by the same rules.
 
 `create-curia` is its local distribution package and generator: it copies the payload into your repository, creates three bridging symlinks (`CLAUDE.md`, `.claude/skills`, `.codex/skills` — so CLIs such as Claude Code and Codex read the rules and skills directly), and prints the next steps. It asks no questions, installs no hooks, and runs no script from the payload. One run and the tree is fork-and-own — the generated documentation tree is yours to maintain; this package has no resident `upgrade` / `check` subcommands.
 
@@ -127,15 +127,22 @@ Version: 1.2.0
 - Boundary with module design: a single module's overall design lives in `.agents/plans/<module>/design.md`; cross-module, project-wide, outward contracts live under `docs/`. There is one current carrier per topic; the two link to each other and do not copy the body.
 - Discovery is the directory: `rg -l '^Type: standard$' docs/` lists every standard, and `rg -n '^(Type|Status|Version|Updated):' docs/` shows their headers. No `INDEX.md`.
 - Free-form `docs/` knowledge has no `Type:` and does not participate in the state machine; the current file is the truth, edited in place.
+- To promote an existing document to `standard`: run `node .agents/tools/check-docs.mjs --suggest-standards` first — it lists candidates read-only (a standard-like filename, or `Updated:`/`Verified:`/`Version:` clues in the first 20 lines) and prints a suggested header; a human then adds `Type: standard`, `Status:`, `Updated:`, and `Version:` by hand, because the checker never rewrites any file. Promotion does not relax "one current carrier per topic": a topic still has exactly one current standard.
 
 ### Checker
 
 ```bash
-node .agents/tools/check-docs.mjs            # report mode: list findings, do not fail
-node .agents/tools/check-docs.mjs --strict   # strict mode: fail on any finding
+node .agents/tools/check-docs.mjs                      # report mode: list findings, do not fail
+node .agents/tools/check-docs.mjs --strict             # strict mode: fail on any finding
+node .agents/tools/check-docs.mjs --health             # read-only health: payload, bridges, AGENTS.md merge state, docs coverage
+node .agents/tools/check-docs.mjs --suggest-standards  # read-only hint: list docs standard candidates and a suggested header
 ```
 
 It checks only the mechanical subset: encoding, header block and lifecycle (including `docs/` standards' `Version:` and filename-version consistency, whether a supersession chain reaches the current version, and the `Version:` of module design documents), home and naming, relative links (including whether a current document still points at a superseded one). Zero dependencies, no network, no execution of code inside documents. **A passing check does not mean the documents are compliant** — section completeness, factual truth, conclusion quality, and freshness are outside the machine's judgment.
+
+Both diagnostics are read-only and write no files: `--health` prints whether the payload is complete (missing recommended items are named too; the health list is the 14 substantive payload items, and the 7 `.gitkeep` placeholders are not among them), the state of the three bridges (`symlink-ok` / `symlink-broken` / `symlink-other` / `real-file-pointer` / `missing` and so on), whether `AGENTS.md` has all three sections merged, and the counts of docs standards and candidates; `--suggest-standards` lists candidate files, the reasons they matched, and a suggested header for a human to confirm and apply by hand. In normal cases both always exit `0`, and `--strict` has no effect on them — **they are diagnostics, not gates**, so missing items are reported but do not fail; only a missing root anchor, an internal error, or a usage error (diagnostics take no path arguments) returns `2`. They can be combined (health first, then suggest), and when the checker runs outside `.agents/tools/` health still counts the payload complete and names the checker's actual location.
+
+When warnings are greater than zero, the report-mode summary appends group counts: `checked N documents / M warnings (group 0 …, group 1 …, group 2 …, group 3 …)`; with zero warnings it still prints only `checked N documents / 0 warnings`.
 
 ### Three bridges
 
@@ -280,6 +287,8 @@ The per-case notes below remain for human reference.
 
 **Upgrading from 2.4.0 to 2.4.1.** 2.4.1 fixes two checker consistency issues: `CURRENT.proposal` now includes `draft` (the spec has always said proposal/plan `draft`/`active`); and the group-3 message "current version is X" now only accepts a typed, current, unarchived terminal, so it no longer calls a `done`/`historical` document current. No migration; swap the checker; the payload is still 21 files.
 
+**Upgrading from 2.4.1 to 2.5.** 2.5 touches only the checker, the docs-standard surface, and the accompanying wording: it adds the two read-only diagnostics `--health` and `--suggest-standards`, and the default summary appends group counts when warnings are greater than zero; the document model is unchanged, the payload is still 21 files plus 3 bridges, and no document migration is needed — wording updates in the spec and payload are listed by `--diff` as "changed upstream" for case-by-case decisions. After replacing `template/.agents/tools/check-docs.mjs` in the target repository, run `node .agents/tools/check-docs.mjs --health` at the repository root to see the payload and bridge state, then `--suggest-standards` to see which existing `docs/` files could be promoted to `standard` — decide by hand from the hints; nothing is rewritten automatically.
+
 **The host has an existing documentation tree to bring under Curia.** The adoption discipline (six rules: register the roots, do not retro-fit, gate only the default surface, and so on) is in the spec's "Read-only adoption of an existing tree" section (target repo `.agents/README.md`, package copy [template/.agents/README.md](template/.agents/README.md)); this package provides no migration tooling or bulk repair.
 
 After handling any item, finish with the bridge verification and self-check from "Verify the install".
@@ -295,6 +304,14 @@ After handling any item, finish with the bridge verification and self-check from
 **Must I use all 10 document types?** No. The type table is an upper bound, not a quota; drop types and suggested sections, keeping only what you will actually write.
 
 **Where do design standards go?** Cross-module, project-wide standards that need "which version is current" go to `docs/<topic>.md` with `Type: standard`, `Version:`, and `Status:`. A single module's overall design stays at `.agents/plans/<module>/design.md`; an unapproved standard stays under `.agents/plans/` as a proposal/spec. Free-form `docs/` knowledge (external facts, usage guides) still has no header block.
+
+**How do I promote an existing design standard to `standard`?** Run `node .agents/tools/check-docs.mjs --suggest-standards` first: it lists candidates by filename keywords and header clues, and prints a suggested header block. After confirmation, add `Type: standard`, `Status:`, `Updated:`, and `Version:` by hand — the checker **never rewrites** any file; promotion still obeys "one current carrier per topic".
+
+**How do I check the bridges and payload?** At the repository root, run `node .agents/tools/check-docs.mjs --health`: it prints the payload x/14 (missing items named as required/recommended), the state of the three bridges (such as `symlink-ok`, `real-file-pointer`, `symlink-broken`, `missing`), the `AGENTS.md` merge state, and docs coverage. Exit code `0` is the norm — it is a diagnostic, not a gate; only a missing root anchor, an internal error, or a usage error (path arguments) returns `2`.
+
+**How do I upgrade if I modified the checker locally?** Record a baseline before upgrading: the `create-curia` version in use and the official checker's sha256 (`--health` prints the first 8 hex digits of the local checker's sha256, which you can compare with the official value). Keep local changes together in one clearly marked patch block; when upgrading, start from the new upstream file and re-apply that block — **do not** overwrite your changes wholesale with the new release, and do not scatter unmarked changes through the file.
+
+**How do I deal with a strict-mode backlog?** Run report mode first to see the whole picture: the summary gives the counts for groups 0 through 3. Fix group 1 (header block and lifecycle), then group 2 (home and naming), then group 3 (relative links); existing trees follow "rules do not apply retroactively". Use `--strict` only when you decide to make it a gate — **whether it is a gate is the project's own decision**; Curia does not impose one.
 
 **Can I upgrade after generating?** Yes, but there is no `upgrade` subcommand (fork-and-own). Upgrading is "compare, then rerun": `node <new package>/bin/init.mjs --diff --dir <your repo>` lists four classes read-only — not installed, identical, changed upstream, local-only — and after you decide file by file, rerunning `init` adds the new files; it never overwrites your changes. Full steps and uninstall are in [ADOPTION.md](./ADOPTION.md).
 
@@ -321,12 +338,12 @@ This repository is the Curia mother repository, developed independently of any a
 
 **There is exactly one version number, and it lives in `version` in [package.json](package.json).** Its `MAJOR.MINOR.PATCH` form gives each segment one job:
 
-- `MAJOR.MINOR` is the mechanism designation, identical to the spec title "Curia 2.4" — only a mechanism-level change (such as 2.3 → 2.4) moves it.
+- `MAJOR.MINOR` is the mechanism designation, identical to the spec title "Curia 2.5" — only a mechanism-level change (such as 2.3 → 2.4, 2.4 → 2.5) moves it.
 - `PATCH` tracks artifact bytes: **any change to any file in the package** bumps it by one in the same batch, so that "`create-curia@<version>`" uniquely corresponds to one set of bytes. The criterion is the **artifact**, not the payload: even a README-only change bumps the number, because the tarball bytes change.
 
 `guide/` carries no number of its own; it follows this same version. An earlier scheme numbered the same artifacts `0.3.x`; from 2.3.0 the number is aligned with the mechanism designation, and the old numbers appear only in historical narrative.
 
-When releasing an artifact, record `shasum -a 512`; an adopter records one line, "adopted `create-curia@<version>`, sha512-…", and thereby has a verifiable identity. Before release, run this check as well (`npm pack` dropping symlinks is expected behavior, not an error):
+When releasing an artifact, record `shasum -a 512`; an adopter records one line, "adopted `create-curia@2.5.0`, sha512-…", and thereby has a verifiable identity. Before release, run this check as well (`npm pack` dropping symlinks is expected behavior, not an error):
 
 ```bash
 npm pack --pack-destination <tmp>
@@ -358,10 +375,13 @@ Each criterion below is runnable; the object under acceptance is the payload its
 18. **Upgrade-diff assertion**: `init --diff --dir <installed repo>` → "not installed 0, identical 24, changed upstream 0", exit code `0`; after editing one payload file → that file appears under "changed upstream"; after adding your own document under `.agents/plans/` → it appears under "local-only" and is not listed as a change; **zero writes throughout** (`git status` output is unchanged before and after).
 19. **Docs-standard assertion**: create `docs/design-standard-v1.2.md` (`Type: standard`, `Status: current`, `Updated`, `Version: 1.2.0`) → docs-only default invocation exits 0; then remove `Version:`, write `Version: v1.2`, rename the file to `v1.3` while the header stays `1.2.0`, change `Type` to `plan`, and move the file into `.agents/plans/` → each reports a group-1 or group-2 finding and exits `1` under `--strict`; a `superseded` standard → a `current` standard exits `0`; a `superseded` standard → a `historical` standard reports group 1; a `current` standard linking to a `superseded` document reports group 3.
 20. **docs-only assertion**: a tree containing only `docs/` (no `.agents/`) run with the default invocation → exit code follows the warning count, and stderr and the summary line carry "structure group not executed: docs-only root"; an empty `docs/` → prints "no files checked", exit code 2; neither `.agents/` nor `docs/` → "root anchor missing", exit code 2.
+21. **Health-diagnostic assertion**: `cd template && node .agents/tools/check-docs.mjs --health` → exit code `0`, and the output carries "payload: 14/14 complete", all three bridges `symlink-ok`, "AGENTS.md: merged (rules and all three sections present)", and "docs standards: 0; candidates 0"; a host missing `GLOSSARY.md` (a recommended item) with a real `CLAUDE.md` file → reports "payload: 13/14; missing: .agents/GLOSSARY.md (recommended)" and `CLAUDE.md=real-file-pointer`, still exit code `0`; pointing `CLAUDE.md` at another file → `CLAUDE.md=symlink-other`, still exit code `0`; a docs-only tree → prints ".agents/ does not exist: skipping payload, bridge, and AGENTS.md checks", exit code `0`; neither `.agents/` nor `docs/` → "root anchor missing", exit code `2`; `--health --suggest-standards` together → health first, then suggest, exit code `0`; a path argument → usage error, exit code `2`.
+22. **Standards-promotion assertion**: create `docs/设计规范v1.2.md` (only an old `Updated:` line, no `Type`) → `--suggest-standards` lists it, with reasons including the filename keyword and `Updated:`, and prints a suggested header containing `Type: standard`; add a file that already has `Type: standard` in the same directory → it is not listed; exit code `0`; adding `--strict` changes neither the output nor the exit code.
+23. **Summary group-count assertion**: build a tree with exactly one group-1 warning (for example `docs/某标准.md` with `Type: standard` but no `Version:`) → the default summary contains "group 1 1" ("checked 1 documents / 1 warnings (group 0 0, group 1 1, group 2 0, group 3 0)" as measured); a clean payload tree (`template/`) → prints only "checked 12 documents / 0 warnings", with no group text.
 
 ### Distribution boundary
 
-This package is **not distributed through a public registry**. Distribution has three channels: the source entry point, direct payload copying, and release artifacts (tarballs, see "Version discipline"). Release artifacts are published in this repository as `curia-v<version>` tags with tarball assets; the first publicly released artifact is `curia-v2.3.1`, while earlier artifacts (old numbering `0.3.x` and the unreleased `2.3.0`) belong to the independent development period and were not published with this repository; the first 2.4 artifact is `curia-v2.4.0`, and `curia-v2.4.1` is the patch artifact. The `private: true` in [package.json](package.json) is a standing safeguard against accidental publication, not a transitional marker to be removed — do not remove it.
+This package is **not distributed through a public registry**. Distribution has three channels: the source entry point, direct payload copying, and release artifacts (tarballs, see "Version discipline"). Release artifacts are published in this repository as `curia-v<version>` tags with tarball assets; the first publicly released artifact is `curia-v2.3.1`, while earlier artifacts (old numbering `0.3.x` and the unreleased `2.3.0`) belong to the independent development period and were not published with this repository; the first 2.4 artifact is `curia-v2.4.0`, `curia-v2.4.1` is the patch artifact, and the 2.5 artifact is `curia-v2.5.0`. The `private: true` in [package.json](package.json) is a standing safeguard against accidental publication, not a transitional marker to be removed — do not remove it.
 
 `npm pack` silently drops the payload's 3 bridging symlinks (3 in the source payload → 0 in the tarball, zero warnings) — tarball adopters must always use `init` (bridge creation is performed by the bridge step and does not depend on the links in the payload), or add the three `ln -s` bridges by hand; a direct copy from a tarball yields a workspace with zero bridges.
 

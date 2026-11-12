@@ -20,11 +20,17 @@
 
 **docs 自由知识（free-form docs）**：`docs/` 下没有 `Type:` 的文档——外部事实、接入说明、架构导览与 FAQ；无状态机，当前文件即真相。_Avoid_: 把所有 `docs/` 文档都叫无头文档
 
+**标准候选（standard candidate）**：`--suggest-standards` 按文件名与头块线索列出的、可考虑升成 `docs/` `standard` 的自由知识；只是提示，升格由人确认，检查器不改写。_Avoid_: 准标准、待定标准
+
 **契约版本（contract version）**：模块设计文档与 `docs/` 标准头块里的 `Version: MAJOR.MINOR.PATCH`——记这份文档自己的契约演进；与包版本、取代链各管一件事。_Avoid_: 文档版本、发布版本
 
 **笔记（note）**：`notes/` 下的决策因果记录，头块两行，取值与所在 lifecycle 目录一致。_Avoid_: 日记、流水账
 
 **桥（bridge）**：把 `.agents/` 暴露给各 CLI 的入口（`CLAUDE.md`、`.claude/skills`、`.codex/skills`）——`init` 在目标路径空闲时建符号链接，被占用时保留原物并打印手工命令。_Avoid_: 适配层、同步脚本
+
+**工作区健康（health）**：`--health` 的只读体检——报告载荷齐全度、三条桥状态、`AGENTS.md` 合并态与 docs 标准/候选计数；不改文件，正常退出 0。_Avoid_: 自检报告、状态页
+
+**本地补丁基线（local patch baseline）**：本地修改检查器前记录的 create-curia 版本与检查器 sha256（前 8 位），升级时用来区分上游改动与本地补丁。_Avoid_: 校验和、指纹
 
 **技能（skill）**：`skills/<name>/SKILL.md`——按需加载的工作流；frontmatter 的 `description` 决定触发时机。_Avoid_: 提示词模板、脚本
 

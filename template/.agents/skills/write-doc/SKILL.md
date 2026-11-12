@@ -27,6 +27,16 @@ description: 在 Curia .agents 工作区新建或修改文档的完整流程—�
 - 想做的：不承诺的意图落成 `draft` 的 proposal；做完的计划翻 `done`，事实与因果分家互链。
 - 过时了：优先状态翻转（`superseded` / `done` / `historical`）；冷历史走[归档四步](../../archive/README.md)——移动、`Archived:` 行、重写自身相对链接、修入链。**永不删除。**
 
+## 标准升格
+
+考虑把 `docs/` 已有知识升成 `standard` 时，先跑只读候选清单：
+
+```bash
+node .agents/tools/check-docs.mjs --suggest-standards
+```
+
+它按文件名与头块线索给建议，不写文件。升格与否由人确认——需要回答「现行第几版」才升；确认后手工补 `Type: standard` / `Status:` / `Updated:` / `Version:`，检查器不自动改写。同主题只留一个 `current` 载体，旧的翻 `historical` 或 `superseded`。
+
 ## 改类型系统本身
 
 类型有两份表示：规范「10 类文档」表（人读权威）与 `check-docs.mjs` 内联枚举（机器读）。增删类型必须两份同批改——一致性靠人工纪律，无机内自检。

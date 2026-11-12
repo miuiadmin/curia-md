@@ -1,8 +1,8 @@
 {
   "name": "create-curia",
-  "version": "2.4.1",
+  "version": "2.5.0",
   "private": true,
-  "description": "Scaffold a Curia 2.4 documentation workspace into any repository.",
+  "description": "Scaffold a Curia 2.5 documentation workspace into any repository.",
   "keywords": [
     "curia",
     "scaffold",

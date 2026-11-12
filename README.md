@@ -1,6 +1,6 @@
 # Curia MD
 
-> Curia 2.4 — 可移植的文档管理方案：两根布局、10 类文档、3 行头块、`docs/` 标准的版本与取代链、零依赖检查器与脚手架，人和 AI agent 按同一套规则读写。
+> Curia 2.5 — 可移植的文档管理方案：两根布局、10 类文档、3 行头块、`docs/` 标准的版本与取代链、零依赖检查器与脚手架，外加只读的健康诊断与 docs 标准升格提示；人和 AI agent 按同一套规则读写。
 
 **简体中文** | [English](./README.en.md)
 
@@ -14,7 +14,7 @@
 
 ## 是什么
 
-Curia 2.4 是一套可移植的文档管理方案：两根布局——`.agents/` 管过程与过程产物（计划、调研、决策笔记、技能、归档），`docs/` 管外部事实、现行标准与知识；10 类文档各有家与骨架；类型化文档统一带 3 行头块，`docs/` 标准另带 `Version:`；过时的文档翻状态、由取代链解析到现行版本；配 1 支零依赖检查脚本 `check-docs.mjs`（Node ≥ 18，不联网）。采用后，文档放哪、长什么样、怎么引用、过时了怎么退役，都有明文，人和 agent 按同一份规则读写。
+Curia 2.5 是一套可移植的文档管理方案：两根布局——`.agents/` 管过程与过程产物（计划、调研、决策笔记、技能、归档），`docs/` 管外部事实、现行标准与知识；10 类文档各有家与骨架；类型化文档统一带 3 行头块，`docs/` 标准另带 `Version:`；过时的文档翻状态、由取代链解析到现行版本；配 1 支零依赖检查脚本 `check-docs.mjs`（Node ≥ 18，不联网），另带两支只读诊断：`--health` 体检载荷、桥与 `AGENTS.md` 合并态，`--suggest-standards` 列出 `docs/` 里可升格为 `standard` 的候选；两者只提示、不写文件。采用后，文档放哪、长什么样、怎么引用、过时了怎么退役，都有明文，人和 agent 按同一份规则读写。
 
 `create-curia` 是它的本地分发包，也是一个生成器：把载荷复制进你的仓库、建好三条桥符号链接（`CLAUDE.md`、`.claude/skills`、`.codex/skills`——让 Claude Code、Codex 等 CLI 直接读到规则与技能）、打印下一步。它不提问、不装钩子、不运行载荷内任何脚本；一次跑完即 fork-and-own——生成后的文档树归你维护，本包没有 `upgrade` / `check` 驻留子命令。
 
@@ -127,15 +127,22 @@ Version: 1.2.0
 - 与模块设计的分工：单模块总体设计住 `.agents/plans/<模块>/design.md`；跨模块、全项目、对外标准住 `docs/`。同一主题只有一个现行承载点；两者互相链接，不复制正文。
 - 发现靠目录：`rg -l '^Type: standard$' docs/` 列出全部标准，`rg -n '^(Type|Status|Version|Updated):' docs/` 看它们的头块；不建 `INDEX.md`。
 - `docs/` 自由知识没有 `Type:`，不参与状态机；当前文件即真相，改了直接改。
+- 把已有文档升格为 `standard`：先跑 `node .agents/tools/check-docs.mjs --suggest-standards`——它只读列出候选（文件名像标准，或前 20 行有 `Updated:`/`Verified:`/`Version:` 线索）并打印建议头块；由人确认后手工补 `Type: standard`、`Status:`、`Updated:`、`Version:`，检查器不自动改写任何文件。升格不改变「一主题一现行承载点」：同一主题仍只能有一份现行标准。
 
 ### 检查器
 
 ```bash
-node .agents/tools/check-docs.mjs            # 报告模式：列发现，不失败
-node .agents/tools/check-docs.mjs --strict   # 严格模式：任一发现即失败
+node .agents/tools/check-docs.mjs                      # 报告模式：列发现，不失败
+node .agents/tools/check-docs.mjs --strict             # 严格模式：任一发现即失败
+node .agents/tools/check-docs.mjs --health             # 只读体检：载荷、桥、AGENTS.md 合并态与 docs 覆盖
+node .agents/tools/check-docs.mjs --suggest-standards  # 只读提示：列出 docs 标准候选与建议头块
 ```
 
 只查机械子集：编码、头块与生命周期（含 `docs/` 标准的 `Version:` 与文件名版本一致性、取代链是否走到现行版本、模块设计文档的 `Version:`）、家与命名、相对链接（含现行文档是否还在引用被取代的文档）。零依赖、不联网、不执行文档内代码。**检查通过不等于文档合规**——节的完整性、事实真假、结论质量、时效新鲜度都不在机器判定面。
+
+两支诊断只读、不写文件：`--health` 按项打印载荷是否齐全（推荐项缺失也会点名；体检清单是 14 项实质载荷，7 个 `.gitkeep` 占位不在其中）、三条桥的状态（`symlink-ok` / `symlink-broken` / `symlink-other` / `real-file-pointer` / `missing` 等）、`AGENTS.md` 是否已合并三节，以及 docs 标准与候选计数；`--suggest-standards` 列出候选文件、候选理由与建议头块，供人确认后手工补。正常情形两者一律退出 `0`，`--strict` 对它们无效——**它们是诊断不是门禁**，缺项只报告、不失败；只有根锚点缺失、内部错误或用法错误（诊断不接受路径参数）才返回 `2`。两者可同时使用（先 health 后 suggest）；检查器搬出 `.agents/tools/` 时 health 仍算载荷齐全并注明运行位置。
+
+报告模式的汇总行在告警大于 0 时附带分组计数：`检查 N 篇 / 告警 M 条（组 0 …、组 1 …、组 2 …、组 3 …）`；告警为 0 时仍只输出 `检查 N 篇 / 告警 0 条`。
 
 ### 三条桥
 
@@ -276,6 +283,8 @@ node <包路径>/bin/init.mjs --print-merge   # 只打印并入宿主 AGENTS.md 
 
 **从 2.4.0 升到 2.4.1。** 2.4.1 修检查器两处判据一致性：`CURRENT.proposal` 纳入 `draft`（规范一直写 proposal/plan 的 `draft`/`active`）；组 3 的「现行版本是 X」只认类型化、现行态、未归档的终点，不再把 `done`/`historical` 叫现行。无迁移，换检查器即可；载荷仍是 21 件。
 
+**从 2.4.1 升到 2.5。** 2.5 只动检查器、docs 标准口径与相应说明文字：新增 `--health` 与 `--suggest-standards` 两支只读诊断，默认汇总行在告警大于 0 时补分组计数；文档模型不变，载荷仍是 21 件、3 条桥不变，无文档迁移——规范与载荷里的措辞更新由 `--diff` 列为「上游已变」，逐件裁决。把新版 `template/.agents/tools/check-docs.mjs` 换进目标仓后，在仓根跑 `node .agents/tools/check-docs.mjs --health` 看载荷与桥的现状，再跑 `--suggest-standards` 看哪些存量 `docs/` 文件可升格为 `standard`——按提示人工裁决，不自动改写。
+
 **宿主已有存量文档树要纳入 Curia。** 纳入纪律（登记根、规则不回溯、闸门只挂默认面等六条）见规范「存量树只读纳管」节（目标仓 `.agents/README.md`，包内 [template/.agents/README.md](template/.agents/README.md)）；本包不提供迁移工具与批量修复。
 
 处理完任何一项，都用「跑完怎么确认装对了」的桥核对与自检收尾。
@@ -291,6 +300,14 @@ node <包路径>/bin/init.mjs --print-merge   # 只打印并入宿主 AGENTS.md 
 **10 类文档必须全用吗？** 不必。类型表是上界不是配额；可以删减类型与建议节，只保留你实际会写的。
 
 **设计规范放哪？** 跨模块、全项目、需要「现行第几版」的设计标准放 `docs/<主题>.md`，带 `Type: standard`、`Version:` 与 `Status:`；单模块的总体设计仍放 `.agents/plans/<模块>/design.md`；还没定稿的标准走 `.agents/plans/` 的 proposal/spec。`docs/` 自由知识（外部事实、使用说明）仍无头块。
+
+**怎么把已有设计规范升成 `standard`？** 先跑 `node .agents/tools/check-docs.mjs --suggest-standards`：它按文件名关键词与头块线索列出候选，并打印建议头块。确认后由人手工补 `Type: standard`、`Status:`、`Updated:`、`Version:`——检查器**不自动改写**任何文件；升格后仍受「一主题一现行承载点」约束。
+
+**怎么检查桥和载荷？** 在仓根跑 `node .agents/tools/check-docs.mjs --health`：它打印载荷 x/14（缺项按必需/推荐具名）、三条桥的状态（如 `symlink-ok`、`real-file-pointer`、`symlink-broken`、`missing`）、`AGENTS.md` 的合并态与 docs 覆盖。退出码 `0` 是常态——它是诊断，不是门禁；只有根锚点缺失、内部错误或用法错误（带路径参数）才返回 `2`。
+
+**本地改了 checker 怎么升级？** 升级前记下基线：所用 `create-curia` 版本与官方检查器的 sha256（`--health` 会打印本地检查器的 sha256 前 8 位，可与官方值比对）。本地改动集中放在一个带显眼标记的补丁块里，升级时先取新版原件、再把补丁块重新贴上——**不要**用新版整份覆盖你的改动，也不要让改动无标记地散落在文件中。
+
+**strict 积压怎么处理？** 先跑报告模式看全貌：汇总行会给出组 0 到组 3 的计数。修复顺序是先组 1（头块与生命周期）、组 2（家与命名），再组 3（相对链接）；存量树按「规则不回溯」处理。`--strict` 只适合在你决定把它当闸门时启用——**是不是门禁归项目自己定**，Curia 不强制。
 
 **生成后还能升级吗？** 能，但没有 `upgrade` 子命令（fork-and-own）。升级是「比对 + 重跑」：`node <新版本包路径>/bin/init.mjs --diff --dir <你的仓>` 只读列出「未安装 / 已一致 / 上游已变 / 本地独有」四类，你逐件裁决后重跑 `init` 补齐新增件——它永不覆盖你的改动。完整步骤与卸载见 [ADOPTION.md](./ADOPTION.md)。
 
@@ -317,12 +334,12 @@ node <包路径>/bin/init.mjs --print-merge   # 只打印并入宿主 AGENTS.md 
 
 **版本号只有一个，写在 [package.json](package.json) 的 `version`**，格式 `MAJOR.MINOR.PATCH`，三段各管一件事：
 
-- `MAJOR.MINOR` 是机制代号，与规范题头「Curia 2.4」逐字一致——只有机制级变更（如 2.3 → 2.4）才动它。
+- `MAJOR.MINOR` 是机制代号，与规范题头「Curia 2.5」逐字一致——只有机制级变更（如 2.3 → 2.4、2.4 → 2.5）才动它。
 - `PATCH` 是制品字节差异：**包内任何文件的改动**都同批跳一位，使「`create-curia@<版本>`」唯一对应一份字节。判据是**制品**不是载荷：只改本 README 也要跳号，因为 tarball 的字节变了。
 
 `guide/` 不单独编号，跟着这同一个版本走。此前用过另一套编号（`0.3.x`）记同一批制品，2.3.0 起与机制代号对齐——旧号只出现在历史叙述里。
 
-发布制品时记下 `shasum -a 512`，采用方记一行「采用 `create-curia@<版本>`，sha512-…」即获得可复核的身份。发布前另跑一次核对（`npm pack` 丢符号链接是预期行为，不是错误）：
+发布制品时记下 `shasum -a 512`，采用方记一行「采用 `create-curia@2.5.0`，sha512-…」即获得可复核的身份。发布前另跑一次核对（`npm pack` 丢符号链接是预期行为，不是错误）：
 
 ```bash
 npm pack --pack-destination <tmp>
@@ -354,10 +371,13 @@ diff -rq <tmp>/package/template template    # 预期差异恰为 3 条桥（CLAU
 18. **升级比对断言**：`init --diff --dir <已装好的仓>` → 「未安装 0、已一致 24、上游已变 0」、退出码 `0`；改一件载荷文件后再跑 → 该件进「上游已变」；在 `.agents/plans/` 放一份自己的文档后再跑 → 进「本地独有」且不列进改动；**全过程零写入**（运行前后目标仓 `git status` 输出不变）。
 19. **docs 标准断言**：造 `docs/设计规范v1.2.md`（`Type: standard`、`Status: current`、`Updated`、`Version: 1.2.0`）→ docs-only 默认调用退出码 0；分别去掉 `Version:`、写 `Version: v1.2`、把文件名改成 `v1.3` 而头块仍 `1.2.0`、把 `Type` 改成 `plan`、把文件挪到 `.agents/plans/` → 各自报组 1 或组 2、`--strict` 退出码 1；造 `superseded` 标准 → `current` 标准 → 退出码 0；`superseded` → `historical` 标准 → 组 1；`current` 标准链接 `superseded` 文档 → 组 3。
 20. **docs-only 断言**：只含 `docs/`（无 `.agents/`）的树默认调用 → 退出码按告警数，stderr 与汇总行带「结构组未执行：仅 docs/ 根」；只有空的 `docs/` → 输出「未检查任何文件」、退出码 2；既无 `.agents/` 也无 `docs/` → 「根锚点缺失」、退出码 2。
+21. **健康诊断断言**：`cd template && node .agents/tools/check-docs.mjs --health` → 退出码 `0`，输出「载荷：14/14 齐全」、三条桥均为 `symlink-ok`、「AGENTS.md：merged（规则与三节齐全）」、「docs 标准：0 篇；候选 0 篇」；造一个缺 `GLOSSARY.md`（推荐项）且 `CLAUDE.md` 为真实文件的宿主 → 报「载荷：13/14；缺：.agents/GLOSSARY.md（推荐）」与 `CLAUDE.md=real-file-pointer`，退出码仍 `0`；把 `CLAUDE.md` 指向另一份文件 → `CLAUDE.md=symlink-other`，退出码仍 `0`；只含 `docs/` 的树 → 输出「.agents/ 不存在：跳过载荷、桥与 AGENTS.md 检查」、退出码 `0`；既无 `.agents/` 也无 `docs/` → 「根锚点缺失」、退出码 `2`；`--health --suggest-standards` 同时给出 → 先 health 后 suggest、退出码 `0`；带路径参数 → 用法错误、退出码 `2`。
+22. **标准升格提示断言**：造 `docs/设计规范v1.2.md`（只有旧 `Updated:` 行、无 `Type`）→ `--suggest-standards` 列出该文件，候选理由含文件名关键词与 `Updated:`，并给出含 `Type: standard` 的建议头块；同目录放一份已带 `Type: standard` 的文件 → 不列入候选；退出码 `0`；追加 `--strict` 后输出与退出码不变。
+23. **汇总分组计数断言**：造只含一个组 1 告警的树（如 `docs/某标准.md` 带 `Type: standard` 而缺 `Version:`）→ 默认汇总行含「组 1 1」（实测「检查 1 篇 / 告警 1 条（组 0 0、组 1 1、组 2 0、组 3 0）」）；干净载荷树（`template/`）→ 只输出「检查 12 篇 / 告警 0 条」，不带分组文字。
 
 ### 分发边界
 
-本包**不分发到公共 registry**，分发方式是源码入口、载荷直拷与发布制品（tarball，见「版本纪律」）三条。发布制品以 `curia-v<版本>` tag 与 tarball asset 的形态发布在本仓；首个公开发布的制品是 `curia-v2.3.1`，更早的制品（旧编号 `0.3.x` 与未定稿的 `2.3.0`）属独立开发期，未随本仓公开发布；2.4 的首个制品是 `curia-v2.4.0`，2.4.1 为修复制品。[package.json](package.json) 的 `private: true` 是常设的防误发限制，不是待移除的过渡标记——不要移除它。
+本包**不分发到公共 registry**，分发方式是源码入口、载荷直拷与发布制品（tarball，见「版本纪律」）三条。发布制品以 `curia-v<版本>` tag 与 tarball asset 的形态发布在本仓；首个公开发布的制品是 `curia-v2.3.1`，更早的制品（旧编号 `0.3.x` 与未定稿的 `2.3.0`）属独立开发期，未随本仓公开发布；2.4 的首个制品是 `curia-v2.4.0`，2.4.1 为修复制品；2.5 的制品是 `curia-v2.5.0`。[package.json](package.json) 的 `private: true` 是常设的防误发限制，不是待移除的过渡标记——不要移除它。
 
 `npm pack` 会静默丢弃载荷里的 3 个桥符号链接（源载荷 3 条 → tarball 内 0 条，零 warning）——tarball 采用方一律走 `init`（建桥由桥步完成，不依赖载荷里的链接），或手工补三条 `ln -s`；从 tarball 直拷得到的是零桥工作区。
 

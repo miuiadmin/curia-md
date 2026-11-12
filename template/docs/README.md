@@ -19,6 +19,18 @@ Version: 1.2.0
 
 `Status` 取 `current`（现行）、`historical`（仅保留给存量或参考）、`superseded`（被取代，必须带 `Superseded-by:` 相对链接）。`Version` 是这份标准自己的契约版本：MAJOR 不兼容、MINOR 兼容新增、PATCH 澄清改字。
 
+## 现有标准升格
+
+已有自由知识要升成标准时，先跑只读候选清单：
+
+```bash
+node .agents/tools/check-docs.mjs --suggest-standards
+```
+
+它按文件名与头块线索列出候选并给出建议头块，**不写文件**。是否升格由人裁决：确认它需要回答「现行第几版」后，手工补 `Type: standard`、`Status:`、`Updated:`、`Version:` 四行；同主题只留一个 `current` 载体，旧的翻 `historical` 或 `superseded`。不批量转换。
+
+工作区体检用 `--health`：只读报告载荷、桥、`AGENTS.md` 合并态与 docs 标准/候选计数，正常退出 0，不改文件。
+
 ## 放什么，不放什么
 
 放这里：外部系统登记、字段映射、端点、协议；现行设计标准与契约（含写作与排版约定）；面向人的使用说明、接入指南、FAQ；图片、图表、HTML 原型、PDF、JSON schema 等附件。

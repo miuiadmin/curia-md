@@ -1,6 +1,6 @@
 # Curia MD
 
-> Curia 2.5 — 可移植的文档管理方案：两根布局、10 类文档、3 行头块、`docs/` 标准的版本与取代链、零依赖检查器与脚手架，外加只读的健康诊断与 docs 标准升格提示；人和 AI agent 按同一套规则读写。
+> Curia 2.6 — 可移植的文档管理方案：两根布局、10 类文档、3 行头块、`docs/` 标准的版本与取代链、零依赖检查器与脚手架，外加只读的健康诊断与 docs 标准升格提示；人和 AI agent 按同一套规则读写。
 
 **简体中文** | [English](./README.en.md)
 
@@ -14,7 +14,7 @@
 
 ## 是什么
 
-Curia 2.5 是一套可移植的文档管理方案：两根布局——`.agents/` 管过程与过程产物（计划、调研、决策笔记、技能、归档），`docs/` 管外部事实、现行标准与知识；10 类文档各有家与骨架；类型化文档统一带 3 行头块，`docs/` 标准另带 `Version:`；过时的文档翻状态、由取代链解析到现行版本；配 1 支零依赖检查脚本 `check-docs.mjs`（Node ≥ 18，不联网），另带两支只读诊断：`--health` 体检载荷、桥与 `AGENTS.md` 合并态，`--suggest-standards` 列出 `docs/` 里可升格为 `standard` 的候选；两者只提示、不写文件。采用后，文档放哪、长什么样、怎么引用、过时了怎么退役，都有明文，人和 agent 按同一份规则读写。
+Curia 2.6 是一套可移植的文档管理方案：两根布局——`.agents/` 管过程与过程产物（计划、调研、决策笔记、技能、归档），`docs/` 管外部事实、现行标准与知识；10 类文档各有家与骨架；类型化文档统一带 3 行头块，`docs/` 标准另带 `Version:`；过时的文档翻状态、由取代链解析到现行版本；配 1 支零依赖检查脚本 `check-docs.mjs`（Node ≥ 18，不联网），另带两支只读诊断：`--health` 体检载荷、桥与 `AGENTS.md` 合并态，`--suggest-standards` 列出 `docs/` 里可升格为 `standard` 的候选；两者只提示、不写文件；`--selftest` 用合成夹具自腿，检测器自身改坏必须红。模块设计文档可选「节级完成态」双戳（戳在场即受检，存量零回填）。采用后，文档放哪、长什么样、怎么引用、过时了怎么退役，都有明文，人和 agent 按同一份规则读写。
 
 `create-curia` 是它的本地分发包，也是一个生成器：把载荷复制进你的仓库、建好三条桥符号链接（`CLAUDE.md`、`.claude/skills`、`.codex/skills`——让 Claude Code、Codex 等 CLI 直接读到规则与技能）、打印下一步。它不提问、不装钩子、不运行载荷内任何脚本；一次跑完即 fork-and-own——生成后的文档树归你维护，本包没有 `upgrade` / `check` 驻留子命令。
 
@@ -283,6 +283,8 @@ node <包路径>/bin/init.mjs --print-merge   # 只打印并入宿主 AGENTS.md 
 
 **从 2.4.0 升到 2.4.1。** 2.4.1 修检查器两处判据一致性：`CURRENT.proposal` 纳入 `draft`（规范一直写 proposal/plan 的 `draft`/`active`）；组 3 的「现行版本是 X」只认类型化、现行态、未归档的终点，不再把 `done`/`historical` 叫现行。无迁移，换检查器即可；载荷仍是 21 件。
 
+**从 2.5 升到 2.6。** 2.6 动三件：检查器（`--selftest` 自检模式 + 双戳机检——双戳是可选协议，未盖戳的文档零新约束）、规范正文（节级完成态协议、两档钩子样例、诚实条款补「检测器也会哑」）、`template/AGENTS.md`（新增「本地追加」节——已采用项目若在通用规则上有本地修订，建议把修订条目挪进本地追加节，恢复骨架与上游的可对拍性）。文档模型与载荷清单不变，无文档迁移；把新版 `template/.agents/tools/check-docs.mjs`、`template/.agents/README.md`、`template/AGENTS.md` 换进目标仓后跑 `--strict` 与 `--selftest` 各一次即完成升级。
+
 **从 2.4.1 升到 2.5。** 2.5 只动检查器、docs 标准口径与相应说明文字：新增 `--health` 与 `--suggest-standards` 两支只读诊断，默认汇总行在告警大于 0 时补分组计数；文档模型不变，载荷仍是 21 件、3 条桥不变，无文档迁移——规范与载荷里的措辞更新由 `--diff` 列为「上游已变」，逐件裁决。把新版 `template/.agents/tools/check-docs.mjs` 换进目标仓后，在仓根跑 `node .agents/tools/check-docs.mjs --health` 看载荷与桥的现状，再跑 `--suggest-standards` 看哪些存量 `docs/` 文件可升格为 `standard`——按提示人工裁决，不自动改写。
 
 **宿主已有存量文档树要纳入 Curia。** 纳入纪律（登记根、规则不回溯、闸门只挂默认面等六条）见规范「存量树只读纳管」节（目标仓 `.agents/README.md`，包内 [template/.agents/README.md](template/.agents/README.md)）；本包不提供迁移工具与批量修复。
@@ -334,12 +336,12 @@ node <包路径>/bin/init.mjs --print-merge   # 只打印并入宿主 AGENTS.md 
 
 **版本号只有一个，写在 [package.json](package.json) 的 `version`**，格式 `MAJOR.MINOR.PATCH`，三段各管一件事：
 
-- `MAJOR.MINOR` 是机制代号，与规范题头「Curia 2.5」逐字一致——只有机制级变更（如 2.3 → 2.4、2.4 → 2.5）才动它。
+- `MAJOR.MINOR` 是机制代号，与规范题头「Curia 2.6」逐字一致——只有机制级变更（如 2.3 → 2.4、2.4 → 2.5）才动它。
 - `PATCH` 是制品字节差异：**包内任何文件的改动**都同批跳一位，使「`create-curia@<版本>`」唯一对应一份字节。判据是**制品**不是载荷：只改本 README 也要跳号，因为 tarball 的字节变了。
 
 `guide/` 不单独编号，跟着这同一个版本走。此前用过另一套编号（`0.3.x`）记同一批制品，2.3.0 起与机制代号对齐——旧号只出现在历史叙述里。
 
-发布制品时记下 `shasum -a 512`，采用方记一行「采用 `create-curia@2.5.0`，sha512-…」即获得可复核的身份。发布前另跑一次核对（`npm pack` 丢符号链接是预期行为，不是错误）：
+发布制品时记下 `shasum -a 512`，采用方记一行「采用 `create-curia@2.6.0`，sha512-…」即获得可复核的身份。发布前另跑一次核对（`npm pack` 丢符号链接是预期行为，不是错误）：
 
 ```bash
 npm pack --pack-destination <tmp>
@@ -377,7 +379,7 @@ diff -rq <tmp>/package/template template    # 预期差异恰为 3 条桥（CLAU
 
 ### 分发边界
 
-本包**不分发到公共 registry**，分发方式是源码入口、载荷直拷与发布制品（tarball，见「版本纪律」）三条。发布制品以 `curia-v<版本>` tag 与 tarball asset 的形态发布在本仓；首个公开发布的制品是 `curia-v2.3.1`，更早的制品（旧编号 `0.3.x` 与未定稿的 `2.3.0`）属独立开发期，未随本仓公开发布；2.4 的首个制品是 `curia-v2.4.0`，2.4.1 为修复制品；2.5 的制品是 `curia-v2.5.0`。[package.json](package.json) 的 `private: true` 是常设的防误发限制，不是待移除的过渡标记——不要移除它。
+本包**不分发到公共 registry**，分发方式是源码入口、载荷直拷与发布制品（tarball，见「版本纪律」）三条。发布制品以 `curia-v<版本>` tag 与 tarball asset 的形态发布在本仓；首个公开发布的制品是 `curia-v2.3.1`，更早的制品（旧编号 `0.3.x` 与未定稿的 `2.3.0`）属独立开发期，未随本仓公开发布；2.4 的首个制品是 `curia-v2.4.0`，2.4.1 为修复制品；2.5 的制品是 `curia-v2.5.0`；2.6 的制品是 `curia-v2.6.0`。[package.json](package.json) 的 `private: true` 是常设的防误发限制，不是待移除的过渡标记——不要移除它。
 
 `npm pack` 会静默丢弃载荷里的 3 个桥符号链接（源载荷 3 条 → tarball 内 0 条，零 warning）——tarball 采用方一律走 `init`（建桥由桥步完成，不依赖载荷里的链接），或手工补三条 `ln -s`；从 tarball 直拷得到的是零桥工作区。
 

@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 /**
- * check-docs.mjs —— Curia 2.5 文档自检（纯 node 标准库、零依赖、Node ≥ 18、不联网、不执行文档内代码）。
- * 权威：Curia 2.5 规范「配套脚本规格」与「豁免清单」——编码预检 + 3 组检查（报告组号 0 至 3）、退出码 0/1/2、
+ * check-docs.mjs —— Curia 2.6 文档自检（纯 node 标准库、零依赖、Node ≥ 18、不联网、不执行文档内代码）。
+ * 权威：Curia 2.6 规范「配套脚本规格」与「豁免清单」——编码预检 + 3 组检查（报告组号 0 至 3）、退出码 0/1/2、
  * 目录级与组级豁免、诚实条款（空集必红、根锚点缺失必红、只证明机械子集、不读 git、异常非零）。用法：
  *   node .agents/tools/check-docs.mjs [--strict] [--health] [--suggest-standards] [--exclude <路径或 glob>]… [路径…]
  *   报告模式列发现不失败（0）；--strict 任一发现即 1；
  *   2 = 无法完成检查：扫描面为空、路径不存在、根锚点缺失、内部错误——两种模式都不得返回 0。
  *   诊断模式：--health 体检载荷、桥与规范覆盖，--suggest-standards 列出 docs 标准候选；
  *   两者只读、不写文件、--strict 无效，正常一律退出 0（根锚点缺失或内部错误才 2）。
+ *   --selftest：合成夹具 + 子进程自腿（2.6 检测器自检律——检测器变哑即红：组 0-3 各
+ *   至少一腿坏样例必触发、好样例必过、双戳三坏样例必触发）；不读写活树、不依赖 git。
  * 锚点：工作区根 = 调用时的工作目录，该目录须自身含 `.agents/` 或 `docs/` 目录——两者皆无时默认调用退出码 2，
  *   不自脚本位置、不向父目录上溯（上溯会命中 `~/.agents` 一类无关祖先）；脚本文件位置不限，一律以调用目录为基准。
  *   结构判定以根下 `.agents/` 目录为锚；显式路径的面内无 `.agents/` 子树时结构组不执行，stderr 注明、汇总行自带标注；
@@ -22,7 +24,9 @@
  */
 
 import { createHash } from 'node:crypto';
-import { existsSync, lstatSync, readdirSync, readFileSync, readlinkSync, realpathSync, statSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -124,16 +128,17 @@ function isExcluded(entry, excludes) {
   });
 }
 
-const USAGE = '用法：node .agents/tools/check-docs.mjs [--strict] [--health] [--suggest-standards] [--exclude <路径或 glob>]… [路径…]\n  --health / --suggest-standards 是只读诊断，不接受路径参数；先 cd 到工作区根。';
+const USAGE = '用法：node .agents/tools/check-docs.mjs [--strict] [--health] [--suggest-standards] [--selftest] [--exclude <路径或 glob>]… [路径…]\n  --health / --suggest-standards 是只读诊断，不接受路径参数；先 cd 到工作区根。\n  --selftest 合成夹具自检（检测器变哑即红）。';
 class UsageError extends Error {}
 
 function parseArgs(argv) {
-  const opts = { strict: false, health: false, suggestStandards: false, excludes: [], paths: [], help: false };
+  const opts = { strict: false, health: false, suggestStandards: false, selftest: false, excludes: [], paths: [], help: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i], v = argv[i + 1];
     if (a === '--strict') opts.strict = true;
     else if (a === '--health') opts.health = true;
     else if (a === '--suggest-standards') opts.suggestStandards = true;
+    else if (a === '--selftest') opts.selftest = true;
     else if (a === '--exclude') {
       if (!v) throw new UsageError(`${a} 缺参数`);
       i++;
@@ -395,6 +400,40 @@ function checkArchivedHeader(rel, hdr, out) {
   else if (!DATE_RE.test(archF.value)) add(out, 1, rel, archF.idx + 1, `Archived 值 \`${archF.value}\` 非 yyyy-mm-dd`);
 }
 
+/** 组 1：规划双戳（2.6 可选协议「模块设计的节级完成态」）——`.agents/plans/<模块>/design.md` 已含戳行者受检（戳在场即 opt-in，存量未戳模块零回填）。反黑洞：盖戳节禁裸 `- [ ]`、戳计数须等于本节 checklist 实数、双戳齐才算 done；节内末条 Verified 为准（历史戳不执法）。 */
+function checkDesignStamps(rel, lines, out) {
+  if (!/^\.agents\/plans\/[^/]+\/design\.md$/.test(rel)) return;
+  const VERIFIED_RE = /^>\s*Verified:\s*(\d{4}-\d{2}-\d{2})\s*·\s*([0-9a-f]{7,40})\s*·\s*(\d+)\s*\/\s*(\d+)\s*·\s*tests\s+(\d+|-)\s*$/;
+  const QUALITY_RE = /^>\s*Quality reviewed:\s*\S/;
+  const CHECK_RE = /^\s*-\s+\[( |x|X)\]/;
+  // 分节扫描（自跟踪围栏，防代码块内 checklist 假计数）
+  let fenced = false;
+  const sections = [];
+  let cur = { checks: 0, unchecked: 0, verified: null, quality: false };
+  const seal = () => sections.push(cur);
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    if (/^\s*(```|~~~)/.test(raw)) { fenced = !fenced; continue; }
+    if (fenced) continue;
+    if (/^#{1,6}\s/.test(raw)) { seal(); cur = { checks: 0, unchecked: 0, verified: null, quality: false }; continue; }
+    const vm = VERIFIED_RE.exec(raw);
+    if (vm) { cur.verified = { line: i + 1, m: vm }; continue; }
+    if (QUALITY_RE.test(raw)) { cur.quality = true; continue; }
+    const cm = CHECK_RE.exec(raw);
+    if (cm) { if (cm[1] === ' ') cur.unchecked++; else cur.checks++; }
+  }
+  seal();
+  for (const s of sections) {
+    if (!s.verified) continue;
+    const { line, m } = s.verified;
+    const date = m[1], n1 = m[3], n2 = m[4];
+    if (!DATE_RE.test(date)) add(out, 1, rel, line, `Verified 戳日期 \`${date}\` 非 yyyy-mm-dd`);
+    if (s.unchecked > 0) add(out, 1, rel, line, `反黑洞：盖戳节内有 ${s.unchecked} 个裸 \`- [ ]\`——未验收项必须先撤戳重验（调度只读结构，裸项塞进盖戳节即隐形）`);
+    if (s.checks !== +n1 || s.checks !== +n2) add(out, 1, rel, line, `戳计数不符：\`${n1}/${n2}\` ≠ 本节 checklist 实数 ${s.checks} 项（已勾 ${s.checks}、裸 ${s.unchecked}）`);
+    if (!s.quality) add(out, 1, rel, line, '缺 `> Quality reviewed:` 行——双戳齐才算 done（规范「节级完成态」）');
+  }
+}
+
 /** 组 1/2：模块设计文档的固定形态——`plans/<模块>/design.md`，Type 为 spec、带 `Version` semver、标题含模块标识。 */
 function checkModuleDesign(rel, hdr, lines, out) {
   const parts = rel.split('/'), base = parts[parts.length - 1];
@@ -402,6 +441,7 @@ function checkModuleDesign(rel, hdr, lines, out) {
   // rel 相对工作区根：合法形态恰为 `.agents/plans/<模块>/design.md`
   const underAnchor = parts[0] === '.agents' ? parts.slice(1) : parts;
   if (underAnchor.length !== 3 || underAnchor[0] !== 'plans') { add(out, 2, rel, 1, '`design.md` 是模块设计文档的固定名，应放在 `.agents/plans/<模块>/design.md`'); return; }
+  checkDesignStamps(rel, lines, out);
   const slug = underAnchor[1];
   const typeF = hdr.fields.find((f) => f.key === 'Type');
   const verF = hdr.fields.find((f) => f.key === 'Version');
@@ -700,6 +740,67 @@ function runSuggestStandards(opts) {
   return 0;
 }
 
+/** --selftest：合成夹具 + 子进程自腿（检测器自检律——检测器变哑即红）。 */
+function runSelftest() {
+  const self = fileURLToPath(import.meta.url);
+  const leg = (name, cond) => {
+    if (!cond) { console.error(`check-docs 自检 FAIL: ${name}`); process.exitCode = 1; return false; }
+    console.log(`check-docs 自检: 腿绿 ${name}`);
+    return true;
+  };
+  const mkTree = (root) => {
+    mkdirSync(join(root, '.agents/plans/mod1'), { recursive: true });
+    mkdirSync(join(root, '.agents/plans/mod5'), { recursive: true });
+    mkdirSync(join(root, 'docs'), { recursive: true });
+    writeFileSync(join(root, '.agents/plans/mod1/design.md'),
+      '# mod1 总体设计\n\nType: spec\nStatus: active\nUpdated: 2026-11-21\nVersion: 1.0.0\n\n一句话说明：好样例。\n');
+    // 合法双戳样例（1/1 恰等、零裸项、Quality reviewed 在场）
+    writeFileSync(join(root, '.agents/plans/mod5/design.md'),
+      '# mod5 总体设计\n\nType: spec\nStatus: active\nUpdated: 2026-11-21\nVersion: 1.0.0\n\n## 验收标准\n\n- [x] 甲\n- [x] 乙\n\n> Verified: 2026-11-21 · abcdef123456 · 2/2 · tests 4\n> Quality reviewed: 对抗审查 2x 2026-11-21\n');
+    writeFileSync(join(root, 'docs/free.md'), '# 自由\n\n一句话说明：自由知识无头块合法。\n');
+  };
+  const run = (args, cwd) => spawnSync(process.execPath, [self, ...args], { cwd, encoding: 'utf8' });
+
+  let ok = true;
+  // 腿 1：好样例必过（--strict 全绿）
+  const good = mkdtempSync(join(tmpdir(), 'cd-good-'));
+  mkTree(good);
+  let r = run(['--strict'], good);
+  ok = leg('好样例 --strict 过', r.status === 0) && ok;
+
+  // 腿 2：坏样例各组必触发（组 0 编码 / 组 1 头块 / 组 2 家 / 组 3 链接）
+  const bad = mkdtempSync(join(tmpdir(), 'cd-bad-'));
+  mkTree(bad);
+  mkdirSync(join(bad, '.agents/plans/mod2'), { recursive: true });
+  writeFileSync(join(bad, '.agents/plans/bin-bad.md'), '# 坏编码\n\n�\n'); // 组 0：内容含替换符
+  writeFileSync(join(bad, '.agents/plans/mod2/design.md'),
+    '# mod2 总体设计\n\nType: spec\nStatus: active\nUpdated: 2026-11-21\n'); // 缺 Version → 组 1
+  writeFileSync(join(bad, '.agents/plans/leak.md'),
+    '# 走错家\n\nType: survey\nStatus: current\nUpdated: 2026-11-21\n\n正文。\n'); // survey 应在 research → 组 2
+  writeFileSync(join(bad, '.agents/plans/mod1/断链.md'),
+    '# 断链\n\nType: plan\nStatus: active\nUpdated: 2026-11-21\n\n看[不存在的目标](../nope.md)。\n'); // 组 3
+  // 双戳三坏样例（2.6）
+  for (const s of ['s1', 's2', 's3']) mkdirSync(join(bad, '.agents/plans', s), { recursive: true });
+  writeFileSync(join(bad, '.agents/plans/s1/design.md'),
+    '# s1 总体设计\n\nType: spec\nStatus: active\nUpdated: 2026-11-21\nVersion: 1.0.0\n\n## 验收\n\n- [x] 甲\n- [ ] 乙\n\n> Verified: 2026-11-21 · abcdef123456 · 2/2 · tests 1\n> Quality reviewed: x 2026-11-21\n'); // 裸 checkbox → 反黑洞
+  writeFileSync(join(bad, '.agents/plans/s2/design.md'),
+    '# s2 总体设计\n\nType: spec\nStatus: active\nUpdated: 2026-11-21\nVersion: 1.0.0\n\n## 验收\n\n- [x] 甲\n\n> Verified: 2026-11-21 · abcdef123456 · 2/2 · tests 1\n> Quality reviewed: x 2026-11-21\n'); // 计数 2/2 ≠ 实数 1
+  writeFileSync(join(bad, '.agents/plans/s3/design.md'),
+    '# s3 总体设计\n\nType: spec\nStatus: active\nUpdated: 2026-11-21\nVersion: 1.0.0\n\n## 验收\n\n- [x] 甲\n\n> Verified: 2026-11-21 · abcdef123456 · 1/1 · tests 1\n'); // 缺 Quality reviewed
+  r = run(['--strict'], bad);
+  const out = r.stdout || '';
+  ok = leg('坏样例退出 1', r.status === 1) && ok;
+  for (const g of [0, 1, 2, 3]) ok = leg(`组 ${g} 坏样例触发`, out.includes(`组 ${g} ·`)) && ok;
+  ok = leg('反黑洞坏样例触发', out.includes('反黑洞')) && ok;
+  ok = leg('戳计数坏样例触发', out.includes('戳计数不符')) && ok;
+  ok = leg('缺 Quality reviewed 坏样例触发', out.includes('Quality reviewed')) && ok;
+
+  rmSync(good, { recursive: true, force: true });
+  rmSync(bad, { recursive: true, force: true });
+  if (ok) console.log('check-docs 自检：PASS（好过/四组坏样例触发/双戳三坏样例触发——检测器变哑即红）');
+  return ok ? 0 : 1;
+}
+
 function main(argv) {
   let opts;
   try { opts = parseArgs(argv); } catch (e) {
@@ -707,6 +808,10 @@ function main(argv) {
     throw e;
   }
   if (opts.help) { console.log(USAGE); return 0; }
+  if (opts.selftest) {
+    if (opts.paths.length || opts.health || opts.suggestStandards) { console.error(`用法错误：--selftest 不与其他模式/路径混用\n${USAGE}`); return 2; }
+    return runSelftest();
+  }
   if (opts.health || opts.suggestStandards) {
     if (opts.paths.length) {
       console.error(`用法错误：--health / --suggest-standards 不接受路径参数；先 cd 到工作区根\n${USAGE}`);

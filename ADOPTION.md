@@ -130,6 +130,8 @@ node .agents/tools/check-docs.mjs --strict
 
 本包没有 `upgrade` 子命令（fork-and-own：生成后文档树归你）。升级靠**比对 + 重跑**，全程不覆盖你的改动。
 
+2.5 → 2.6 的注意件（详文见仓库 README「升级」节）：换 `template/.agents/tools/check-docs.mjs` 后先跑 `--strict`（输出应与旧版一致——双戳对未盖戳文档零新约束）再跑 `--selftest`；`template/AGENTS.md` 新增「本地追加」节，通用规则上有本地修订的采用方把修订条目挪进去，恢复骨架对拍；装了对拍档钩子的仓注意「未跟踪链接目标视为断链」的收紧（迁移期用最小档）。
+
 ### 比对
 
 ```bash

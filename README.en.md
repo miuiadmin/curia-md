@@ -340,12 +340,12 @@ This repository is the Curia mother repository, developed independently of any a
 
 **There is exactly one version number, and it lives in `version` in [package.json](package.json).** Its `MAJOR.MINOR.PATCH` form gives each segment one job:
 
-- `MAJOR.MINOR` is the mechanism designation, identical to the spec title "Curia 2.5" — only a mechanism-level change (such as 2.3 → 2.4, 2.4 → 2.5) moves it.
+- `MAJOR.MINOR` is the mechanism designation, identical to the spec title "Curia 2.6" — only a mechanism-level change (such as 2.3 → 2.4, 2.4 → 2.5, 2.5 → 2.6) moves it.
 - `PATCH` tracks artifact bytes: **any change to any file in the package** bumps it by one in the same batch, so that "`create-curia@<version>`" uniquely corresponds to one set of bytes. The criterion is the **artifact**, not the payload: even a README-only change bumps the number, because the tarball bytes change.
 
 `guide/` carries no number of its own; it follows this same version. An earlier scheme numbered the same artifacts `0.3.x`; from 2.3.0 the number is aligned with the mechanism designation, and the old numbers appear only in historical narrative.
 
-When releasing an artifact, record `shasum -a 512`; an adopter records one line, "adopted `create-curia@2.5.0`, sha512-…", and thereby has a verifiable identity. Before release, run this check as well (`npm pack` dropping symlinks is expected behavior, not an error):
+When releasing an artifact, record `shasum -a 512`; an adopter records one line, "adopted `create-curia@2.6.0`, sha512-…", and thereby has a verifiable identity. Before release, run this check as well (`npm pack` dropping symlinks is expected behavior, not an error):
 
 ```bash
 npm pack --pack-destination <tmp>
@@ -383,7 +383,7 @@ Each criterion below is runnable; the object under acceptance is the payload its
 
 ### Distribution boundary
 
-This package is **not distributed through a public registry**. Distribution has three channels: the source entry point, direct payload copying, and release artifacts (tarballs, see "Version discipline"). Release artifacts are published in this repository as `curia-v<version>` tags with tarball assets; the first publicly released artifact is `curia-v2.3.1`, while earlier artifacts (old numbering `0.3.x` and the unreleased `2.3.0`) belong to the independent development period and were not published with this repository; the first 2.4 artifact is `curia-v2.4.0`, `curia-v2.4.1` is the patch artifact, and the 2.5 artifact is `curia-v2.5.0`. The `private: true` in [package.json](package.json) is a standing safeguard against accidental publication, not a transitional marker to be removed — do not remove it.
+This package is **not distributed through a public registry**. Distribution has three channels: the source entry point, direct payload copying, and release artifacts (tarballs, see "Version discipline"). Release artifacts are published in this repository as `curia-v<version>` tags with tarball assets; the first publicly released artifact is `curia-v2.3.1`, while earlier artifacts (old numbering `0.3.x` and the unreleased `2.3.0`) belong to the independent development period and were not published with this repository; the first 2.4 artifact is `curia-v2.4.0`, `curia-v2.4.1` is the patch artifact, the 2.5 artifact is `curia-v2.5.0`, and the 2.6 artifact is `curia-v2.6.0`. The `private: true` in [package.json](package.json) is a standing safeguard against accidental publication, not a transitional marker to be removed — do not remove it.
 
 `npm pack` silently drops the payload's 3 bridging symlinks (3 in the source payload → 0 in the tarball, zero warnings) — tarball adopters must always use `init` (bridge creation is performed by the bridge step and does not depend on the links in the payload), or add the three `ln -s` bridges by hand; a direct copy from a tarball yields a workspace with zero bridges.
 
